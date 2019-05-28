@@ -7,7 +7,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2015 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
@@ -25,8 +25,8 @@
 // $Author: akhe $                                              
 // $Revision: 1.6 $ 
 
-#if !defined(AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
-#define AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_
+#if !defined(IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
+#define IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_
 
 #ifdef WIN32
 
@@ -46,10 +46,10 @@
 
 #endif
 
-#include "../../../../common/canal.h"
-#include "../../../../common/vscp.h"
-#include "../../../../common/canal_macro.h"
-#include "../../../../../common/dllist.h"
+#include <canal.h>
+#include <vscp.h>
+#include <canal_macro.h>
+#include <dllist.h>
 
 // IXXAT Includes
 #include <XatXXReg.h>
@@ -274,7 +274,7 @@ public:
 			1				1					0			Reject
 			1				1					1			Accept
 
-		Formula is !( ( filter îd ) & mask )
+		Formula is !( ( filter ï¿½d ) & mask )
 	*/
 	uint32_t m_filter;
 
@@ -353,7 +353,7 @@ public:
 	/*!
 		CAN channel on board
 	*/
-	uint8_t m_channel;			
+	int m_channel;			
 	
 	/*!
 		IXXAT filter for outgoing messages
@@ -382,4 +382,4 @@ public:
  
 };
 
-#endif // !defined(AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
+#endif // !defined(IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)

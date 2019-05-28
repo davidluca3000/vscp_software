@@ -1,14 +1,10 @@
 /*
   Name:     node.h
-  Author:   Ake Hedman, D of Scandinavia, Sweden akhe@users.sf.net
-  Description: 
-  Date: 29-01-03 22:38
-  Copyright: 
 */
 // 
 // the EDA deamon.
 //
-// Copyright (C) 2000-2008 Ake Hedman, eurosource, <akhe@eurosource.se>
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB, akhe@grodansparadis.com
 //
 // This software is placed into
 // the public domain and may be used for any purpose.  However, this
@@ -61,17 +57,17 @@ class CNodeObject
 {
 
  public:
-	
+    
   /**
      Constructor
   */
   CNodeObject();
-	
+    
   /**
      destructor
   */
   ~CNodeObject();
-	
+    
  public:
 
   /**
@@ -99,12 +95,12 @@ class CNode
      Constructor
   */
   CNode( void );
-	
+    
   /**
      Destructor
   */
   virtual ~CNode( void );
-	
+    
   /**
      Get object embedded in node.
      
@@ -312,7 +308,7 @@ class CDoubleLinkedList
      Pointer to the tail of the linked list
   */
   CNode * m_pTail;
-	
+    
 };
 
 #endif // H_NODE_H

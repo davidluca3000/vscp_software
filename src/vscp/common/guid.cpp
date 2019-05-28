@@ -1,89 +1,83 @@
 ///////////////////////////////////////////////////////////////////////////////
-// guid.cpp: 
+// guid.cpp:
 //
-// This file is part is part of CANAL (CAN Abstraction Layer)
-// http://www.vscp.org)
+// This file is part of the VSCP (http://www.vscp.org)
 //
-// Copyright (C) 2000-2014 
-// Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
+// The MIT License (MIT)
 //
-// This library is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 2.1 of the License, or (at your option) any later version.
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB
+// <info@grodansparadis.com>
 //
-// This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// Lesser General Public License for more details.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-// You should have received a copy of the GNU Lesser General Public
-// License along with this library; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// $RCSfile: canaltcpif.cpp,v $                                       
-// $Date: 2005/08/24 21:56:55 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.4 $ 
-///////////////////////////////////////////////////////////////////////////////
-
-#ifdef VSCP_QT
-
-#else
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #ifdef __GNUG__
-    //#pragma implementation
+//#pragma implementation
 #endif
 
-// For compilers that support precompilation, includes "wx.h".
-#include "wx/wxprec.h" 
+#include <algorithm>
+#include <cctype>
+#include <deque>
+#include <functional>
+#include <locale>
+#include <memory>
+#include <string>
+#include <vector>
 
-#ifdef __BORLANDC__
-    #pragma hdrstop
-#endif
-
-#ifndef WX_PRECOMP
-#include "wx/wx.h"
-#endif
-
-#ifdef __WXMSW__
-    #include  "wx/ownerdrw.h"
-#endif
-
-#include <wx/tokenzr.h>
-
-#endif
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "guid.h"
-
+#include "vscphelper.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
 cguid::cguid()
-{	
-	clear();
+{
+    clear();
 }
 
+cguid::cguid(const cguid &guid)
+{
+    memcpy(m_id, guid.m_id, sizeof(m_id));
+}
 
 cguid::~cguid()
-{	
-	;
+{
+    ;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // operator=
 //
 
-cguid& cguid::operator=( const cguid& guid )
+cguid &
+cguid::operator=(const cguid &guid)
 {
-	// Check for self-assignment!
-    if ( this == &guid ) {	// Same object?
-		return *this;		// Yes, so skip assignment, and just return *this.
-	}
+    // Check for self-assignment!
+    if (this == &guid) { // Same object?
+        return *this;    // Yes, so skip assignment, and just return *this.
+    }
 
-    memcpy( m_id, guid.m_id, 16 );
+    memcpy(m_id, guid.m_id, sizeof(m_id));
 
     return *this;
 }
@@ -92,112 +86,147 @@ cguid& cguid::operator=( const cguid& guid )
 // operator==
 //
 
-bool cguid::operator==( const cguid &guid )
+bool
+cguid::operator==(const cguid &guid)
 {
-	if ( 0 != memcmp( m_id, guid.m_id, 16 ) ) return false;
-	return true;
+    if (0 != memcmp(m_id, guid.m_id, 16)) return false;
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // operator!=
 //
 
-bool cguid::operator!=(const cguid &guid) 
+bool
+cguid::operator!=(const cguid &guid)
 {
-	return !(*this == guid);
+    return !(*this == guid);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // getFromString
 //
- 
-#ifdef VSCP_QT
-void cguid::getFromString( const QString& strGUID )
-{
-    QStringList guidlist = strGUID.split(":");
 
-    for ( int i=0; i<std::min(16,guidlist.size()); i++ ) {
-        m_id[ i ] = (uint8_t)guidlist.at(i).toUShort();
-    }
-}
-#else
-void cguid::getFromString( const wxString& strGUID )
+/*void cguid::getFromString( const std::string& strGUID )
 {
     unsigned long val;
+    std::string wxstr = strGUID;
 
-    wxStringTokenizer tkz( strGUID, wxT ( ":" ) );
+    // Check for default string (all nills)
+    wxstr.Trim();
+    if ( "-" == wxstr ) {
+        clear();
+        return;
+    }
+
+    std::stringTokenizer tkz( strGUID, wxT ( ":" ) );
     for ( int i=0; i<16; i++ ) {
-        tkz.GetNextToken().ToULong ( &val, 16 );
+        tkz.GetNextToken().ToULong( &val, 16 );
         m_id[ i ] = ( uint8_t ) val;
-        // If no tokens left no use to continue
+        // If no tokens left no meaning to continue
         if ( !tkz.HasMoreTokens() ) break;
     }
+}*/
+
+void
+cguid::getFromString(const std::string &strGUID)
+{
+    unsigned long val;
+    std::string str = strGUID;
+
+    // Check for default string (all nills)
+    vscp_trim(str);
+    if ("-" == str) {
+        clear();
+        return;
+    }
+
+    std::deque<std::string> tokens;
+    vscp_split(tokens, str, ":");
+    for (int i = 0; i < 16; i++) {
+        if (tokens.size()) {
+            std::string tok = tokens.front();
+            try {
+                std::size_t pos;
+                m_id[i] = (uint8_t)std::stoul(tok, &pos, 16);
+            } catch (std::invalid_argument) {
+                m_id[i] = 0;
+            }
+            tokens.pop_front();
+        }
+    }
 }
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // getFromString
 //
 
-#ifdef VSCP_QT
-void cguid::getFromString( char *pszGUID )
+void
+cguid::getFromString(const char *pszGUID)
 {
-  //QString str = pszGUID;
-  //getFromString( str );
-  getFromString( QString( pszGUID ) );
+    std::string str;
+    str = std::string(pszGUID);
+    getFromString(str);
 }
-#else
- void cguid::getFromString( char *pszGUID )
- {
-    wxString str;
-    str.FromAscii( pszGUID );
-    getFromString( str );
- }
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // getFromArray
 //
 
-void cguid::getFromArray( uint8_t *pguid )
+void
+cguid::getFromArray(const uint8_t *pguid)
 {
-  memcpy(m_id, pguid, 16 );
+    memcpy(m_id, pguid, 16);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // toString
 //
 
-#ifdef VSCP_QT
-void cguid::toString( QString& strGUID  )
+void
+cguid::toString(std::string &strGUID)
 {
-  strGUID.sprintf( "%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X",
-                      m_id[0], m_id[1], m_id[2], m_id[3],
-                      m_id[4], m_id[5], m_id[6], m_id[7],
-                      m_id[8], m_id[9], m_id[10], m_id[11],
-                      m_id[12], m_id[13], m_id[14], m_id[15] );
+    strGUID = vscp_str_format("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:"
+                              "%02X:%02X:%02X:%02X:%02X:%02X:%02X",
+                              m_id[0],
+                              m_id[1],
+                              m_id[2],
+                              m_id[3],
+                              m_id[4],
+                              m_id[5],
+                              m_id[6],
+                              m_id[7],
+                              m_id[8],
+                              m_id[9],
+                              m_id[10],
+                              m_id[11],
+                              m_id[12],
+                              m_id[13],
+                              m_id[14],
+                              m_id[15]);
 }
-#else
-void cguid::toString( wxString& strGUID  )
-{
-    strGUID.Printf( _( "%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X" ),
-                    m_id[0], m_id[1], m_id[2], m_id[3],
-                    m_id[4], m_id[5], m_id[6], m_id[7],
-                    m_id[8], m_id[9], m_id[10], m_id[11],
-                    m_id[12], m_id[13], m_id[14], m_id[15] );
-}
-#endif
 
+///////////////////////////////////////////////////////////////////////////////
+// toString
+//
+
+std::string
+cguid::toString(void)
+{
+    std::string str;
+    toString(str);
+    return str;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // isSameGUID
 //
 
-bool cguid::isSameGUID( const unsigned char *pguid )
+bool
+cguid::isSameGUID(const unsigned char *pguid)
 {
-    if ( NULL == pguid ) return false;
-
-    if ( 0 != memcmp ( m_id, pguid, 16 ) ) return false;
+    if (NULL == pguid) return false;
+    if (0 != memcmp(m_id, pguid, 16)) return false;
 
     return true;
 }
@@ -206,38 +235,41 @@ bool cguid::isSameGUID( const unsigned char *pguid )
 // isNULL
 //
 
-bool cguid::isNULL( void )
+bool
+cguid::isNULL(void)
 {
-	for ( int i=0; i<16; i++ ) {
-		if ( m_id[ i ] ) return false;
-	}
+    for (int i = 0; i < 16; i++) {
+        if (m_id[i]) return false;
+    }
 
-	return true;
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // writeGUID
 //
 
-void cguid::writeGUID( uint8_t *pArray )
+void
+cguid::writeGUID(uint8_t *pArray)
 {
     // Check pointer
     if (NULL == pArray) return;
-    
-    memcpy( pArray, m_id, 16 );
+
+    memcpy(pArray, m_id, 16);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // writeGUID_reverse
 //
 
-void cguid::writeGUID_reverse( uint8_t *pArray )
+void
+cguid::writeGUID_reverse(uint8_t *pArray)
 {
     // Check pointer
     if (NULL == pArray) return;
-    
-    for ( int i=0; i<16; i++ ) {
-        pArray[ 15-i ] = m_id[ i ];
+
+    for (int i = 0; i < 16; i++) {
+        pArray[15 - i] = m_id[i];
     }
 }
 
@@ -245,18 +277,30 @@ void cguid::writeGUID_reverse( uint8_t *pArray )
 // setClientID
 //
 
-void cguid::setClientID( uint16_t clientid )
+void
+cguid::setClientID(uint16_t clientid)
 {
-    m_id[12] = ( clientid >> 8 ) & 0xff;
+    m_id[12] = (clientid >> 8) & 0xff;
     m_id[13] = clientid & 0xff;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// getClientID
+//
+
+uint16_t
+cguid::getClientID(void)
+{
+    return (uint16_t)(m_id[12] << 8) + m_id[13];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // setNicknameID
 //
 
-void cguid::setNicknameID( uint16_t nicknameid )
+void
+cguid::setNicknameID(uint16_t nicknameid)
 {
-    m_id[14] = ( nicknameid >> 8 ) & 0xff;
+    m_id[14] = (nicknameid >> 8) & 0xff;
     m_id[15] = nicknameid & 0xff;
 }

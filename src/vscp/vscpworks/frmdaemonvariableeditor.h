@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     24/10/2012 14:36:40
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -36,8 +36,8 @@
 //  this file might be covered by the GNU General Public License.
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
-//  eurosource at info@eurosource.se, http://www.eurosource.se
-/////////////////////////////////////////////////////////////////////////////
+//  Ake Hedman, Grodans Paradis AB, akhe@grodansparadis.com
+// 
 
 #ifndef _FRMDAEMONVARIABLEEDITOR_H_
 #define _FRMDAEMONVARIABLEEDITOR_H_
@@ -93,9 +93,19 @@ class DaemonVariableEditor: public wxFrame
 public:
   /// Constructors
   DaemonVariableEditor();
-  DaemonVariableEditor( wxWindow* parent, wxWindowID id = SYMBOL_DAEMONVARIABLEEDITOR_IDNAME, const wxString& caption = SYMBOL_DAEMONVARIABLEEDITOR_TITLE, const wxPoint& pos = SYMBOL_DAEMONVARIABLEEDITOR_POSITION, const wxSize& size = SYMBOL_DAEMONVARIABLEEDITOR_SIZE, long style = SYMBOL_DAEMONVARIABLEEDITOR_STYLE );
+  DaemonVariableEditor( wxWindow* parent, 
+                            wxWindowID id = SYMBOL_DAEMONVARIABLEEDITOR_IDNAME, 
+                            const wxString& caption = SYMBOL_DAEMONVARIABLEEDITOR_TITLE, 
+                            const wxPoint& pos = SYMBOL_DAEMONVARIABLEEDITOR_POSITION, 
+                            const wxSize& size = SYMBOL_DAEMONVARIABLEEDITOR_SIZE, 
+                            long style = SYMBOL_DAEMONVARIABLEEDITOR_STYLE );
 
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DAEMONVARIABLEEDITOR_IDNAME, const wxString& caption = SYMBOL_DAEMONVARIABLEEDITOR_TITLE, const wxPoint& pos = SYMBOL_DAEMONVARIABLEEDITOR_POSITION, const wxSize& size = SYMBOL_DAEMONVARIABLEEDITOR_SIZE, long style = SYMBOL_DAEMONVARIABLEEDITOR_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DAEMONVARIABLEEDITOR_IDNAME, 
+                    const wxString& caption = SYMBOL_DAEMONVARIABLEEDITOR_TITLE, 
+                    const wxPoint& pos = SYMBOL_DAEMONVARIABLEEDITOR_POSITION, 
+                    const wxSize& size = SYMBOL_DAEMONVARIABLEEDITOR_SIZE, 
+                    long style = SYMBOL_DAEMONVARIABLEEDITOR_STYLE );
 
   /// Destructor
   ~DaemonVariableEditor();

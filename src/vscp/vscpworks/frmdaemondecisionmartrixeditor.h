@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     24/10/2012 14:39:12
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -36,8 +36,8 @@
 //  this file might be covered by the GNU General Public License.
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
-//  eurosource at info@eurosource.se, http://www.eurosource.se
-/////////////////////////////////////////////////////////////////////////////
+//  Ake Hedman, Grodans Paradis AB, akhe@grodansparadis.com
+// 
 
 #ifndef _FRMDAEMONDECISIONMARTRIXEDITOR_H_
 #define _FRMDAEMONDECISIONMARTRIXEDITOR_H_
@@ -93,9 +93,19 @@ class DaemonDecisionMartrixEditor: public wxFrame
 public:
   /// Constructors
   DaemonDecisionMartrixEditor();
-  DaemonDecisionMartrixEditor( wxWindow* parent, wxWindowID id = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_IDNAME, const wxString& caption = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_TITLE, const wxPoint& pos = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_POSITION, const wxSize& size = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_SIZE, long style = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_STYLE );
+  DaemonDecisionMartrixEditor( wxWindow* parent, 
+                                wxWindowID id = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_IDNAME, 
+                                const wxString& caption = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_TITLE, 
+                                const wxPoint& pos = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_POSITION, 
+                                const wxSize& size = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_SIZE, 
+                                long style = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_STYLE );
 
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_IDNAME, const wxString& caption = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_TITLE, const wxPoint& pos = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_POSITION, const wxSize& size = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_SIZE, long style = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_IDNAME, 
+                    const wxString& caption = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_TITLE, 
+                    const wxPoint& pos = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_POSITION, 
+                    const wxSize& size = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_SIZE, 
+                    long style = SYMBOL_DAEMONDECISIONMARTRIXEDITOR_STYLE );
 
   /// Destructor
   ~DaemonDecisionMartrixEditor();

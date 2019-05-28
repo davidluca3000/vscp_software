@@ -7,7 +7,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014
+// Copyright (C) 2000-2019 Ake Hedman,
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
@@ -19,14 +19,10 @@
 // along with this file see the file COPYING.  If not, write to
 // the Free Software Foundation, 59 Temple Place - Suite 330,
 // Boston, MA 02111-1307, USA.
-//
-// $RCSfile: dlldrvobj.h,v $                                       
-// $Date: 2005/08/08 21:59:34 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.1 $ 
 
-#if !defined(AFX_DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_)
-#define AFX_DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_
+
+#if !defined(DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_)
+#define DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_
 
 #include "../common/xapobj.h"
 
@@ -103,4 +99,4 @@ public:
 
 
 
-#endif // !defined(AFX_DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_)
+#endif // !defined(DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_)

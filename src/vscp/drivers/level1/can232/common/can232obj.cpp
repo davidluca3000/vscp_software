@@ -4,7 +4,7 @@
 // This file is part is part of CANAL (CAN Abstraction Layer)
 // http://www.vscp.org)
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2015 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 //
 // This library is free software; you can redistribute it and/or
@@ -32,7 +32,7 @@
 
 // Prototypes
 void workThread( void *p );
-bool can323ToCanal( char * p, PCANALMSG pMsg );
+bool can232ToCanal( char * p, PCANALMSG pMsg );
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -558,7 +558,7 @@ bool CCAN232Obj::getStatus( PCANALSTATUS pCanalStatus )
 ///////////////////////////////////////////////////////////////////////////////
 // workThread
 //
-// The workThread do most of the acual work such as send and receive.
+// The workThread do most of the acual work such as send and receive messages.
 //
 //
 
@@ -623,7 +623,7 @@ void workThread( void *pThreadObject )
 							dllnode *pNode = new dllnode; 
 							if ( NULL != pNode ) {
 							
-								if ( !can323ToCanal( pcan232obj->m_receiveBuf, pMsg ) ) {									
+								if ( can232ToCanal( pcan232obj->m_receiveBuf, pMsg ) ) {									
 									
 									pNode->pObject = pMsg;
 									dll_addNode( &pcan232obj->m_rcvList, pNode );
@@ -688,6 +688,8 @@ void workThread( void *pThreadObject )
 			if ( !( msg.flags & CANAL_IDFLAG_EXTENDED ) && ( msg.id > 0x7ff ) ) {
 				msg.id &= 0x7ff;	
 			};
+
+            // OR
 
 			// Must be a valid extended id
 			if ( ( msg.flags & CANAL_IDFLAG_EXTENDED ) && ( msg.id > 0x1fffffff ) ) {
@@ -760,12 +762,12 @@ void workThread( void *pThreadObject )
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// can323ToCanal
+// can232ToCanal
 //
 
-bool can323ToCanal( char * p, PCANALMSG pMsg )
+bool can232ToCanal( char * p, PCANALMSG pMsg )
 {
-	bool rv = false;
+	bool rv = true;
 	int val;
 	short data_offset;	// Offset to dlc byte
 	char save;
@@ -806,28 +808,34 @@ bool can323ToCanal( char * p, PCANALMSG pMsg )
 		sscanf( p + 1, "%lx", &pMsg->id );	
 		p[ 9 ] = save;
 	}
+    else {
+        rv = false;
+    }
+    
+    if ( false != rv ) {
 	
-	save = *(p + data_offset + 2 * pMsg->sizeData );
-	
-	if ( !( pMsg->flags & CANAL_IDFLAG_RTR ) ) {
-		for ( int i= pMsg->sizeData; i > 0; i-- ) {
-			*(p + data_offset + 2 * (i-1) + 2 )	= 0;
-			sscanf( p + data_offset + 2 * (i-1), "%x", &val );
-			pMsg->data[ i - 1 ] = val;
-		}
-	}
+        save = *(p + data_offset + 2 * pMsg->sizeData );
+        
+        if ( !( pMsg->flags & CANAL_IDFLAG_RTR ) ) {
+            for ( int i= pMsg->sizeData; i > 0; i-- ) {
+                *(p + data_offset + 2 * (i-1) + 2 )	= 0;
+                sscanf( p + data_offset + 2 * (i-1), "%x", &val );
+                pMsg->data[ i - 1 ] = val;
+            }
+        }
 
-	*(p + data_offset + 2 * pMsg->sizeData ) = save;
+        *(p + data_offset + 2 * pMsg->sizeData ) = save;
 
-	// If timestamp is actve - fetch it
-	if ( 0x0d != *( p + data_offset + 2 * pMsg->sizeData ) ) {
-		p[ data_offset + 2 * ( pMsg->sizeData ) + 4 ] = 0;
-		sscanf( ( p + data_offset + 2 * ( pMsg->sizeData ) ), "%x", &val );
-		pMsg->timestamp = val * 1000;	// microseconds 
-	}
-	else {
-		pMsg->timestamp = 0;	
-	}
+        // If timestamp is actve - fetch it
+        if ( 0x0d != *( p + data_offset + 2 * pMsg->sizeData ) ) {
+            p[ data_offset + 2 * ( pMsg->sizeData ) + 4 ] = 0;
+            sscanf( ( p + data_offset + 2 * ( pMsg->sizeData ) ), "%x", &val );
+            pMsg->timestamp = val * 1000;	// microseconds 
+        }
+        else {
+            pMsg->timestamp = 0;	
+        }
+    }
 
 	return rv;
 }

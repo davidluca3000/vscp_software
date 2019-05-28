@@ -4,7 +4,7 @@
 // This file is part is part of CANAL (CAN Abstraction Layer)
 // http://www.vscp.org)
 //
-// Copyright (C) 2000-2014
+// Copyright (C) 2000-2019 Ake Hedman,
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 //
 // This library is free software; you can redistribute it and/or
@@ -22,8 +22,8 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
-#if !defined(AFX_SOCKETCANDRV_H__16828641_5EDF_4115_9522_97BD178F566B__INCLUDED_)
-#define AFX_SOCKETCANDRV_H__16828641_5EDF_4115_9522_97BD178F566B__INCLUDED_
+#if !defined(SOCKETCANDRV_H__16828641_5EDF_4115_9522_97BD178F566B__INCLUDED_)
+#define SOCKETCANDRV_H__16828641_5EDF_4115_9522_97BD178F566B__INCLUDED_
 
 #if _MSC_VER > 1000
 #pragma once
@@ -61,7 +61,8 @@
 #define SOCKETCAN_MAX_RCVMSG	512	// Maximum number of received messages
 #define SOCKETCAN_MAX_SNDMSG	512	// Maximum number of received messages
 
-#define SOCKETCAN_OBJ_MUTEX     "___SOCKETCAN_OBJ_MUTEX___"
+#define SOCKETCAN_RX_MUTEX     "___SOCKETCAN_LEVEL1_RX_MUTEX___"
+#define SOCKETCAN_TX_MUTEX     "___SOCKETCAN_LEVEL1_TX_MUTEX___"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // _socketcanobj
@@ -114,10 +115,10 @@ public:
     /*!
         Send frame
      */
-    int writeMsg(bool bExtended,
-            unsigned long id,
-            unsigned char dlc,
-            unsigned char * pdata);
+    int writeMsg( bool bExtended,
+					unsigned long id,
+					unsigned char dlc,
+					unsigned char * pdata);
 
     /*!
         Send frame
@@ -150,7 +151,7 @@ public:
     /*!
         Get statistics
      */
-    bool getStatistics(PCANALSTATISTICS pCanalStatistics);
+    bool getStatistics(PCANALSTATISTICS& pCanalStatistics);
 
 
     /*
@@ -159,9 +160,7 @@ public:
     int dataAvailable(void);
 
     /*!
-        Get the status code
-
-		
+        Get the status code	
      */
     bool getStatus(PCANALSTATUS pCanalStatus);
 
@@ -170,13 +169,10 @@ public:
 
 
     /*!
-        The socketcan object MUTEX 
-        Ice: ????? socketcandrv.h have already object mutex 
-        this must be for list locking and port locking
-					
-     */
-    pthread_mutex_t m_socketcanObjMutex;
-
+        The socketcan read/write mutexes 
+	 */ 
+    pthread_mutex_t m_socketcanRcvMutex;
+	pthread_mutex_t m_socketcanSndMutex;
 
     /*!
         id for worker thread
@@ -185,4 +181,4 @@ public:
 
 };
 
-#endif // !defined(AFX_SOCKETCANDRV_H__16828641_5EDF_4115_9522_97BD178F566B__INCLUDED_)
+#endif // !defined(SOCKETCANDRV_H__16828641_5EDF_4115_9522_97BD178F566B__INCLUDED_)

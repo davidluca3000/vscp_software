@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     21/12/2007 17:17:18
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -37,7 +37,7 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+// 
 
 #ifndef _READGUID_H_
 #define _READGUID_H_
@@ -86,10 +86,20 @@ class ReadGUID: public wxDialog
 public:
   /// Constructors
   ReadGUID();
-  ReadGUID( wxWindow* parent, wxWindowID id = SYMBOL_READGUID_IDNAME, const wxString& caption = SYMBOL_READGUID_TITLE, const wxPoint& pos = SYMBOL_READGUID_POSITION, const wxSize& size = SYMBOL_READGUID_SIZE, long style = SYMBOL_READGUID_STYLE );
+  ReadGUID( wxWindow* parent, 
+                wxWindowID id = SYMBOL_READGUID_IDNAME, 
+                const wxString& caption = SYMBOL_READGUID_TITLE, 
+                const wxPoint& pos = SYMBOL_READGUID_POSITION, 
+                const wxSize& size = SYMBOL_READGUID_SIZE, 
+                long style = SYMBOL_READGUID_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_READGUID_IDNAME, const wxString& caption = SYMBOL_READGUID_TITLE, const wxPoint& pos = SYMBOL_READGUID_POSITION, const wxSize& size = SYMBOL_READGUID_SIZE, long style = SYMBOL_READGUID_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_READGUID_IDNAME, 
+                    const wxString& caption = SYMBOL_READGUID_TITLE, 
+                    const wxPoint& pos = SYMBOL_READGUID_POSITION, 
+                    const wxSize& size = SYMBOL_READGUID_SIZE, 
+                    long style = SYMBOL_READGUID_STYLE );
 
   /// Destructor
   ~ReadGUID();

@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     24/10/2012 14:39:12
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -36,8 +36,8 @@
 //  this file might be covered by the GNU General Public License.
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
-//  eurosource at info@eurosource.se, http://www.eurosource.se
-/////////////////////////////////////////////////////////////////////////////
+//  Ake Hedman, Grodans Paradis AB, akhe@grodansparadis.com
+// 
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
 #pragma implementation "frmdaemondecisionmartrixeditor.h"
@@ -2088,7 +2088,12 @@ DaemonDecisionMartrixEditor::DaemonDecisionMartrixEditor()
   Init();
 }
 
-DaemonDecisionMartrixEditor::DaemonDecisionMartrixEditor( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+DaemonDecisionMartrixEditor::DaemonDecisionMartrixEditor( wxWindow* parent, 
+                                                            wxWindowID id, 
+                                                            const wxString& caption, 
+                                                            const wxPoint& pos, 
+                                                            const wxSize& size, 
+                                                            long style )
 {
   Init();
   Create( parent, id, caption, pos, size, style );
@@ -2099,7 +2104,12 @@ DaemonDecisionMartrixEditor::DaemonDecisionMartrixEditor( wxWindow* parent, wxWi
 // DaemonDecisionMartrixEditor creator
 //
 
-bool DaemonDecisionMartrixEditor::Create( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+bool DaemonDecisionMartrixEditor::Create( wxWindow* parent, 
+                                            wxWindowID id, 
+                                            const wxString& caption, 
+                                            const wxPoint& pos, 
+                                            const wxSize& size, 
+                                            long style )
 {
 ////@begin DaemonDecisionMartrixEditor creation
   wxFrame::Create( parent, id, caption, pos, size, style );
@@ -2195,7 +2205,11 @@ void DaemonDecisionMartrixEditor::CreateControls()
   m_gridRegisters = new wxGrid;
   m_gridRegisters->Create( m_panel0, ID_GRID_REGISTERS, wxDefaultPosition, wxSize(400, 340), wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
   m_gridRegisters->SetBackgroundColour(wxColour(240, 240, 240));
-  m_gridRegisters->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+#if  wxCHECK_VERSION(2, 9, 5)  
+  m_gridRegisters->SetFont(wxFont(wxFontInfo(8).FaceName("Tahoma").Bold()));
+#else
+  m_gridRegisters->SetFont(wxFont( 8, wxSWISS, wxNORMAL, wxBOLD, false, wxT( "Tahoma" ) ));          
+#endif  
   m_gridRegisters->SetDefaultColSize(50);
   m_gridRegisters->SetDefaultRowSize(18);
   m_gridRegisters->SetColLabelSize(18);
@@ -2214,7 +2228,11 @@ void DaemonDecisionMartrixEditor::CreateControls()
   m_gridAbstractions = new wxGrid;
   m_gridAbstractions->Create( itemPanel15, ID_GRID_ABSTRACTIONS, wxDefaultPosition, wxSize(400, 340), wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
   m_gridAbstractions->SetBackgroundColour(wxColour(240, 240, 240));
-  m_gridAbstractions->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+#if  wxCHECK_VERSION(2, 9, 5)  
+  m_gridAbstractions->SetFont(wxFont(wxFontInfo(8).FaceName("Tahoma").Bold() ) );
+#else
+     m_gridAbstractions->SetFont(wxFont( 8, wxSWISS, wxNORMAL, wxBOLD, false, wxT( "Tahoma" ) ) );
+#endif  
   m_gridAbstractions->SetDefaultColSize(50);
   m_gridAbstractions->SetDefaultRowSize(18);
   m_gridAbstractions->SetColLabelSize(18);
@@ -2233,7 +2251,11 @@ void DaemonDecisionMartrixEditor::CreateControls()
   m_gridDM = new wxGrid;
   m_gridDM->Create( itemPanel18, ID_GRID_DM, wxDefaultPosition, wxSize(400, 340), wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
   m_gridDM->SetBackgroundColour(wxColour(240, 240, 240));
-  m_gridDM->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+#if  wxCHECK_VERSION(2, 9, 5)  
+  m_gridDM->SetFont(wxFont(wxFontInfo(8).FaceName("Tahoma").Bold() ) );
+#else
+    m_gridDM->SetFont( wxFont( 8, wxSWISS, wxNORMAL, wxBOLD, false, wxT( "Tahoma" ) ) );
+#endif  
   m_gridDM->SetDefaultColSize(50);
   m_gridDM->SetDefaultRowSize(18);
   m_gridDM->SetColLabelSize(18);

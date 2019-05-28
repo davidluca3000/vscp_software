@@ -1,41 +1,21 @@
-From version 0.4.0 of VSCP & Friends the 
-
-vscp daemon
-vscpservice 
-xapdrv
-lircdrv
-rawethernet
-syslogdrv
-tellstickdrv
-vscpbtdetect driver
-vscplogger driver
-
-is not supported on windows anymore. Most of them will still compile however and will 
-maybe build after minor (or major) work. 
-
-vscpworkd, mkpasswd, vscpcmd the helper library and most level I drivers will still be built and
-maintained.
-
-
-
 Summary
 =======
 
 First of all. You don't need to build this package yourself. Everything here is 
 installed for you in the binary version (see https://sourceforge.net/projects/m2m/files/vscp/).
 
-To build the VSCP Project for WIN32 there are 2 project files which
+To build the VSCP Project for WIN32/WIN64 there are 2 project files which
 differ in the number of sub-projects included. They also require
 different sets of external resources to run successfully:
 
    1.) vscp_project.sln
        Requires:
-                - Microsoft Visual Studio with Microsoft Foundation Classes (MFC).
-                - wxWidgets,
+                - Microsoft Visual Studio 2013 (Can be downloaded free).
+                - wxWidgets 3.0.0 or greater,
                 - wxExpat,
-                - various other libraries to compile drivers for specific hardware.
+                - various other libraries to compile drivers for specific hardware (info below).
 
-       This project is descibed in the section "VSCP Project (complete)" below and is the
+       This project is described in the section "VSCP Project (complete)" below and is the
        project used for distributing the project. 
                    
    2.) vscp_project_minimal.sln
@@ -43,7 +23,7 @@ different sets of external resources to run successfully:
                 - Free version of Visual Studio (no MFC required),
                 - wxWidgets.
 
-       This project is descibed in the section "VSCP Project Minimal" below.
+       This project is described in the section "VSCP Project Minimal" below.
 
 Both of these project files can be found in the directory $(VSCP_HOME)/src/vscp
 
@@ -54,33 +34,39 @@ VSCP Project (complete)
 
 This is the "original" project and includes all sub-projects.
 
-- to build the Vector CANAL driver the propritary Vector libs/includes is needed.
-- to build the peak CANAL drivr the propritary PEAK libs/includes is needed.
-- to build the ccs CANAL driver the propritary CCS libs/includes is needed.
-- to build the IXXAT CANAL driver the propritary IXXAT libs/includes is needed.
-
-
+- to build the vectorxl CANAL driver the proprietary vectorxl libs/includes is needed.
+- to build the Peak CANAL driver the proprietary PEAK libs/includes is needed.
+- to build the CSS CANAL driver the proprietary CCS libs/includes is needed.
+- to build the IXXAT CANAL driver the proprietary IXXAT libs/includes is needed.
 
 1.) Define environment variable VSCP_HOME that points to the VSCP base folder (c:\development\vscp_software).
     define environment variable VSCP_FIRMWARE that points to VSCP firmware base folder 
-    (c:\development\vscp_firmware)
+    (c:\development\vscp_firmware). If you want to build install file structure an environment
+	variable called VSCP_INSTALL should be created (C:\Users\grodansparadis\development\vscp_install_win32). It
+	will contain all binaries after a release build (32-bit/64-bit). Just point it to a temporary folder or
+	something if no need for this.
 
-2.) Install and build wxWidgets 2.6.0 or higher. 2.8.12 recommended but others will probably 
-    do to. You find the build files in the build folder of the wxWidgets project. 
+2.) Install and build wxWidgets 3.1.0 or higher but others will probably 
+    do to. You find the build files in the build folder of the wxWidgets project.
+    Available at http://www.wxwidgets.org	
 
 3.) Make an environment variable WXWIN that points to the wxWidgets installation directory.
-    (e.g. c:\wxWidgets-2.8.12).
+    (e.g. c:\wxWidgets-3.1.0).
 
 4.) Add the wxwin include directory to the list of include files under 
-    tools->options->directories ('projects and solutions->VC++ Direcories' on 2003/2005/2008) 
+    tools->options->directories ('projects and solutions->VC++ Directories' on 2003/2005/2008) 
         $(WXWIN)\include 
-        (c:\wxWidgets-2.8.10\include).
-    This is not needed on Visual Studio 2010 as it looks.
+        (c:\wxWidgets-3.0.2\include).
+    This is not needed on Visual Studio 2010 and above
 
 5.) expat(http://expat.sourceforge.net/) is needed to build the daemon and other applications in the suit.
-    Download and install. Make a environment variable EXPAT that points to the folder. 
+    Download and install. Make a environment variable EXPAT32 that points to the 32-bit folder (
+	C:\Program Files (x86)\Expat 2.1.0) and EXPAT64 that points to the 64-bit folder
+	(C:\Users\grodansparadis\development\expat-2.1.0\win64). 
 
-6.) Install OpenSLL from http://slproweb.com/products/Win32OpenSSL.html  	
+6.) Install OpenSLL from http://slproweb.com/products/Win32OpenSSL.html  Set an environment variable to the 
+    location you install the file to with the name OPENSSL32 ((C:\OpenSSL-Win32\lib\VC)) for 32-bit version and OPENSSL64 
+	(C:\OpenSSL-Win64\lib\VC)for 64-bit version. 	
 
 6.) To build the APOX driver and the tellstick driver the dxx driver which is available from ftdi 
     (http://www.ftdichip.com) is needed. Make an environment variable named "ftdi" that points on 
@@ -91,28 +77,29 @@ This is the "original" project and includes all sub-projects.
     can.dll driver from CC-Systems also is available in the path (system32).
 
 8.) To build ixxatvcidrv you need to add the ixxat include directory and also add the ixxat
-    lib directory to LIB( Xat11Reg.lib vci11un6.lib ) (tools->options->directories). Make sure the 
-    IXXAT VCI driver version 2 is installed (http://www.ixxat.com/download_vci_en.html).   C:\Program Files\IXXAT\VCI 2.20
+    lib directory to LIB( Xat11Reg.lib vci11un6.lib ) Add an environment variable IXXAT2 that
+	that points to the ixxat version 2 vsci folder (C:\Users\akhe\development\ixxat_v2). Make sure 
+	the IXXAT VCI driver version 2 is installed (http://www.ixxat.com/download_vci_en.html) 
+	(C:\Program Files\IXXAT\VCI 2.20).
 
 9.) To build the CANAL PEAK driver you need to install the PEAK driver and support libraries 
-    from here http://www.peak-system.com/Support.55.0.html?&L=1 Yuou need the driver and the PCAN-Basic API.
+    from here http://www.peak-system.com/Support.55.0.html?&L=1 You need the driver and the PCAN-Basic API.
     Make an environment variable named PCANBASICAPI that points to the location where you unpack the
     PCAN-BASIC API
         
-10.) lircdrv: expat is needed you build the lircdrv as well as winlirc. Set include in 
-    tools->options->directories to point to expat.h in <expat install dir>/source/lib and 
-    LIB to expat lib <expat install dir>/StaticLibs.  Expat is available here 
-    http://sourceforge.net/projects/expat/ and winlirc is here http://sourceforge.net/projects/winlirc/
+10.) expat is needed you build the daemon. Create an environment variable EXPAT  that points to the
+    libexpat root folder. Expat is available here http://sourceforge.net/projects/expat/  
+	Expat is also needed for the level I lirc driver which interfaces http://winlirc.sourceforge.net/ 
         
-11.) To build the vector driver (vectordrv)  the INCLUDE and LIB paths must point to 
-    to the vector directories LIB and INCLUDE. The low level driver from Vector must be installed for 
-    the CANAL driver to work. Current the old driver is used which can be found here 
-    http://www.vector.com/downloads/drivers/canlib43.zip
+11.) To build the vectorxl driver (vectorxldrv) an environment variable (VECTORDRV) vectorxl must be defined so it 
+	points to the dll folder of the installation (C:\Users\akhe\development\Vector_CANLIB\dll). The low level driver 
+	from vectorxl must be installed for the CANAL driver to work. Current the old driver is used which can be found here 
+	http://download.vectorxl.com/drivers/xl_lib90.zip
 
 12.) To build the rawethernet driver the wpcap library and include files need to be installed on the system. A
-	environment variable named "pcap" should point to folder of the project (where the inlude and lib folders are).
-	install the latest wpdpack from http://www.winpcap.org/archive/ and point the environment variable to it.
-	wincap itself needs to be installed as well (http://www.winpcap.org).	
+	environment variable named "pcap" should point to folder of the project (where the include and lib folders are).
+	install the latest wpdpak from http://www.winpcap.org/archive/ and point the environment variable to it.
+	wincap (the driver) itself needs to be installed as well (http://www.winpcap.org.	
 
 
 VSCP Minimal Project

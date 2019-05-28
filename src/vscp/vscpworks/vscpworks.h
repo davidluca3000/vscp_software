@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     Thu 28 Jun 2007 10:05:16 CEST
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -37,7 +37,7 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+// 
 
 #ifndef _VSCPWORKS_H_
 #define _VSCPWORKS_H_
@@ -50,94 +50,87 @@
  * Includes
  */
 
-////@begin includes
 #include "wx/image.h"
 #include "frmmain.h"
-////@end includes
 
-#include "../common/vscp.h"
-#include "../common/canalsuperwrapper.h"
-#include "../common/mdf.h"
+#include <vscp.h>
+#include <canalsuperwrapper.h>
+#include <mdf.h>
 
 /*!
  * Forward declarations
  */
 
-////@begin forward declarations
-////@end forward declarations
 
 /*!
  * Control identifiers
  */
 
-////@begin control identifiers
-////@end control identifiers
-
-//#ifndev BOOL
-//#define BOOL (int)
-//#endif
-
-
-
 #define VSCPWORKS_CONFIG_FILE_NAME   _("vscpworks.conf")
 
-#define VSCPWORKS_MAIN_WINDOW_DEFAULT_WIDTH     600
-#define VSCPWORKS_MAIN_WINDOW_DEFAULT_HEGHT     311
+#define VSCPWORKS_MAIN_WINDOW_DEFAULT_WIDTH                 700
+#define VSCPWORKS_MAIN_WINDOW_DEFAULT_HEGHT                 400
 
-#define MAX_NUMBER_OF_NODES         256
+#define MAX_NUMBER_OF_NODES                                 256
 
-#define DAEMON_LOGMSG_DEBUG         0
-#define DAEMON_LOGMSG_INFO          1
-#define DAEMON_LOGMSG_NOTICE        2
-#define DAEMON_LOGMSG_WARNING       3
-#define DAEMON_LOGMSG_ERROR         4
-#define DAEMON_LOGMSG_CRITICAL      5
-#define DAEMON_LOGMSG_ALERT         6
-#define DAEMON_LOGMSG_EMERGENCY     7
+#define VSCPWORKS_LOGMSG_DEBUG                              0
+#define VSCPWORKS_LOGMSG_INFO                               1
+#define VSCPWORKS_LOGMSG_NOTICE                             2
+#define VSCPWORKS_LOGMSG_WARNING                            3
+#define VSCPWORKS_LOGMSG_ERROR                              4
+#define VSCPWORKS_LOGMSG_CRITICAL                           5
+#define VSCPWORKS_LOGMSG_ALERT                              6
+#define VSCPWORKS_LOGMSG_EMERGENCY                          7
 
-#define VCSP_TRMIT_FIELD_COUNT      6
+#define VCSP_TRMIT_FIELD_COUNT                              6
 
-#define VCSP_TRMIT_FIELD_WIDTH_0   30
-#define VCSP_TRMIT_FIELD_WIDTH_1   200
-#define VCSP_TRMIT_FIELD_WIDTH_2   60
-#define VCSP_TRMIT_FIELD_WIDTH_3   60
-#define VCSP_TRMIT_FIELD_WIDTH_4   120
-#define VCSP_TRMIT_FIELD_WIDTH_5   900
+#define VCSP_TRMIT_FIELD_WIDTH_0                            30
+#define VCSP_TRMIT_FIELD_WIDTH_1                            200
+#define VCSP_TRMIT_FIELD_WIDTH_2                            60
+#define VCSP_TRMIT_FIELD_WIDTH_3                            60
+#define VCSP_TRMIT_FIELD_WIDTH_4                            120
+#define VCSP_TRMIT_FIELD_WIDTH_5                            900
 
-#define VCSP_TRMIT_FIELD_TEXT_0  _("x")
-#define VCSP_TRMIT_FIELD_TEXT_1  _("Name")
-#define VCSP_TRMIT_FIELD_TEXT_2  _("Period")
-#define VCSP_TRMIT_FIELD_TEXT_3  _("Count")
-#define VCSP_TRMIT_FIELD_TEXT_4  _("Trigger")
-#define VCSP_TRMIT_FIELD_TEXT_5  _("Event")
+#define VCSP_TRMIT_FIELD_TEXT_0                             _("x")
+#define VCSP_TRMIT_FIELD_TEXT_1                             _("Name")
+#define VCSP_TRMIT_FIELD_TEXT_2                             _("Period")
+#define VCSP_TRMIT_FIELD_TEXT_3                             _("Count")
+#define VCSP_TRMIT_FIELD_TEXT_4                             _("Trigger")
+#define VCSP_TRMIT_FIELD_TEXT_5                             _("Event")
 
-#define VCSP_RSCV_FIELD_COUNT     4
+#define VCSP_RSCV_FIELD_COUNT                               4
 
 #ifdef WIN32
-#define VCSP_RSCV_FIELD_DEFAULT_HEIGHT   20
-#else
-#define VCSP_RSCV_FIELD_DEFAULT_HEIGHT   20
+#define VCSP_RSCV_FIELD_DEFAULT_HEIGHT                      20
+#else   
+#define VCSP_RSCV_FIELD_DEFAULT_HEIGHT                      20
 #endif
 
-#define VCSP_RSCV_FIELD_WIDTH_0   30
-#define VCSP_RSCV_FIELD_WIDTH_1   170
-#define VCSP_RSCV_FIELD_WIDTH_2   170
-#define VCSP_RSCV_FIELD_WIDTH_3   700
+#define VCSP_RSCV_FIELD_WIDTH_0                             30
+#define VCSP_RSCV_FIELD_WIDTH_1                             170
+#define VCSP_RSCV_FIELD_WIDTH_2                             170
+#define VCSP_RSCV_FIELD_WIDTH_3                             700
 
-#define VCSP_RSCV_FIELD_TEXT_0    _("Dir")
-#define VCSP_RSCV_FIELD_TEXT_1    _("Class")
-#define VCSP_RSCV_FIELD_TEXT_2    _("Type")
-#define VCSP_RSCV_FIELD_TEXT_3    _("Note")
+#define VCSP_RSCV_FIELD_TEXT_0                              _("Dir")
+#define VCSP_RSCV_FIELD_TEXT_1                              _("Class")
+#define VCSP_RSCV_FIELD_TEXT_2                              _("Type")
+#define VCSP_RSCV_FIELD_TEXT_3                              _("Note")
 
 // Default values for read/write register functions
 // used in device config and scan.
-#define VSCP_REGISTER_READ_RESEND_TIMEOUT       2000
-#define VSCP_REGISTER_READ_ERROR_TIMEOUT        5000
-#define VSCP_REGISTER_READ_MAX_TRIES            2
+#define VSCP_CANAL_RESEND_TIMEOUT                           1000
+#define VSCP_CANAL_ERROR_TIMEOUT                            5000
+#define VSCP_CANAL_MAX_TRIES                                3
 
-#define VSCP_DEVCONFIG_NUMBERBASE_HEX			0
-#define VSCP_DEVCONFIG_NUMBERBASE_DECIMAL		1
+#define VSCPWORKS_TCPIP_DEFAULT_RESPONSE_TIMEOUT            6000
+#define VSCPWORKS_TCPIP_REGISTER_READ_RESEND_TIMEOUT        2000
+#define VSCPWORKS_TCPIP_REGISTER_READ_ERROR_TIMEOUT         30000
+#define VSCPWORKS_TCPIP_REGISTER_READ_MAX_TRIES             3
 
+#define VSCP_DEVCONFIG_NUMBERBASE_HEX                       0
+#define VSCP_DEVCONFIG_NUMBERBASE_DECIMAL                   1
+
+WX_DECLARE_STRING_HASH_MAP( wxString, MdfProxyHash );
 
 // Structure for CANAL nodes
 typedef struct {
@@ -164,16 +157,16 @@ typedef struct {
 } canal_interface;
 
 // Structure for VSCP drivers
-typedef struct {	
-    wxString m_strDescription;		// Description of VSCP interface
-    wxString m_strHost;				// Host where server lives
-    wxString m_strUser;				// Username
-    wxString m_strPassword;			// Password
-	bool m_bLevel2;					// Full Level II communication
-    unsigned long m_port;			// Port to use on server
-	wxString m_strInterfaceName;	// Name for remote interface
-    unsigned char m_GUID[16];		// GUID for interface
-	vscpEventFilter m_vscpfilter;	// Filter to apply
+typedef struct {
+    wxString m_strDescription;      // Description of VSCP interface
+    wxString m_strHost;             // Host where server lives
+    wxString m_strUser;             // Username
+    wxString m_strPassword;         // Password
+    bool m_bLevel2;                 // Full Level II communication
+    //unsigned long m_port;         // Port to use on server
+    wxString m_strInterfaceName;    // Name for remote interface
+    unsigned char m_GUID[16];       // GUID for interface
+    vscpEventFilter m_vscpfilter;   // Filter to apply
 } vscp_interface;
 
 #define INTERFACE_CANAL   0
@@ -181,9 +174,9 @@ typedef struct {
 
 // Structure for VSCP drivers
 typedef struct {
-  int m_type;
-  canal_interface *m_pcanalif;
-  vscp_interface *m_pvscpif;
+    int m_type;
+    canal_interface *m_pcanalif;
+    vscp_interface *m_pvscpif;
 } both_interface;
 
 // Lists for interfaces
@@ -194,18 +187,26 @@ WX_DECLARE_LIST(vscp_interface, LIST_VSCP_IF );
 typedef struct {
 
     // General
-    int m_sizeWidth;    		    // Initial main frame width
-    int m_sizeHeight;   		    // Initial main frame height
-    int m_xpos;         		    // Initial main frame x position
-    int m_ypos;         		    // Initial main frame y position
-    
-    wxString m_strPathTemp;     // Path to temporary storage
+    wxString m_strPathTemp;         // Path to temporary storage
     
     // Logfile
-    bool m_bEnableLog;          // True for writes to logfile
-    wxString m_strPathLogFile;  // Path to logfile
-	uint8_t m_logLevel;			// Log level
+    bool m_bEnableLog;              // True for writes to logfile
+    wxString m_strPathLogFile;      // Path to logfile
+    uint8_t m_logLevel;             // Log level
     
+    // Mainframe
+    int m_sizeMainFrameWidth;       // Initial main frame width
+    int m_sizeMainFrameHeight;      // Initial main frame height
+    int m_xposMainFrame;            // Initial main frame x position
+    int m_yposMainFrame;            // Initial main frame y position
+    
+    // Session window
+    int m_sizeSessionFrameWidth;    // Initial session frame width
+    int m_sizeSessionFrameHeight;   // Initial session frame height
+    
+    // Configuration window
+    int m_sizeConfigurationFrameWidth;    // Initial configuration frame width
+    int m_sizeConfigurationFrameHeight;   // Initial configuration frame height
     
 /*
     // CANAL Frames
@@ -265,18 +266,32 @@ typedef struct {
     LIST_CANAL_IF m_canalIfList;
     LIST_VSCP_IF m_vscpIfList;
 
-    uint32_t m_VscpRegisterReadResendTimeout;	// Timeout before register read retries
-    uint32_t m_VscpRegisterReadErrorTimeout;	// Timeout before register read is considered and error
-    uint8_t	m_VscpRegisterReadMaxRetries;		// Max number of retries to read a register.
+    // DLL communication settings
+    uint8_t  m_CANALRegMaxRetries;              // Max number of retries to read a register.
+    uint32_t m_CANALRegResendTimeout;           // Timeout before register read retries    
+    uint32_t m_CANALRegErrorTimeout;            // Timeout before register read is considered and error
 
-	// device configuration
-	uint8_t m_Numberbase;						// Number base for register values
-
-	// Confirm switch 
-	bool m_bConfirmDelete;						// Must confirm session rx/tx etc list delete
-
-	
+    // TCP/IP communication settings
+    uint32_t m_TCPIP_ResponseTimeout;           // General response time in seconds (for all communication)
+    uint32_t m_TCPIP_SleepAfterCommand;         // Wait after a command has been sent
+    uint8_t	m_TCPIPRegMaxRetries;               // Max number of retries to read a register.
+    uint32_t m_TCPIPRegResendTimeout;           // Timeout before register read retries
+    uint32_t m_TCPIPRegErrorTimeout;            // Timeout before register read is considered and error
     
+    // device configuration
+    uint8_t m_Numberbase;                       // Number base for register values
+
+    // Confirm switch 
+    bool m_bConfirmDelete;                      // Must confirm session rx/tx etc list delete
+
+    MdfProxyHash m_mfProxyHashTable;            // Translate devices stored URL to whatever is read from
+                                                // configuration file
+    // Save data from Manufacturer dialog.
+    bool bGuidWritable;                         // Should be trye for manufacturing information to be writable
+    cguid m_manufacturerGuid;                   // Last used manufacturer GUID
+    uint32_t m_manufacturerId;
+    uint32_t m_manufacturerSubId;
+
 } appConfiguration;	
 
 
@@ -291,6 +306,9 @@ typedef struct {
     wxColour m_BackgroundColour;
 } listfield;
 
+
+// Forward class definitions
+class worksMulticastThread;
 
 
 
@@ -320,7 +338,18 @@ public:
   /*!
     Log message
   */
-  void logMsg( const wxString& wxstr, unsigned char level );
+  void logMsg( const wxString& wxstr, unsigned char level = VSCPWORKS_LOGMSG_INFO );
+
+  /*!
+    Handler for asserts
+  */
+#if (wxMAJOR_VERSION >= 3)
+  static void AssertHandler( const wxString &file,
+                                    int line,
+                                    const wxString &func,
+                                    const wxString &cond,
+                                    const wxString &msg );
+#endif
 
   /*!
     Read XML configuration from file
@@ -373,8 +402,8 @@ public:
                             uint8_t *interfaceGUID, 
                             uint32_t reg = 0xd0, 
                             uint8_t *pcontent = NULL,
-							uint8_t *pdestGUID = NULL,
-							bool bLevel2 = false );  
+                            uint8_t *pdestGUID = NULL,
+                            bool bLevel2 = false );  
                             
   /*!
     Write a level 2 register
@@ -389,16 +418,19 @@ public:
                               uint8_t *interfaceGUID, 
                               uint32_t reg, 
                               uint8_t *pcontent,
-							  uint8_t *pdestGUID = NULL,
-							  bool bLevel2 = false );   
+                              uint8_t *pdestGUID = NULL,
+                              bool bLevel2 = false );   
 
-	/*!
-		Make a string look nicer with linebreaks etc
-		@param str String to make look nicer
-		@param width Linewidth to maintain.
-		@return Fromated string.
-	*/
-	wxString formatString( const wxString& str, const unsigned int width = 80 );
+    /*!
+        Make a string look nicer with linebreaks etc
+        @param str String to make look nicer
+        @param width Linewidth to maintain.
+        @return Fromated string.
+    */
+    wxString formatString( const wxString& str, const unsigned int width = 80 );
+
+
+    
   
   /*!
     Get Decision Matrix info for a Level I Node
@@ -420,7 +452,7 @@ public:
   bool getLevel2DmInfo( CCanalSuperWrapper *pcsw,
                           unsigned char *interfaceGUID, 
                           unsigned char *pdata,
-						  bool bLevel2 = false );
+                          bool bLevel2 = false );
   
   /*!
     Get a HTML string with clear text register information
@@ -432,77 +464,80 @@ public:
                                 const uint8_t *registers );
 
   /*!
-	Load and parse mdf from device
+    Load and parse mdf from device
     @param pwnd Pointer to window (ownder usually this) that called this method.
-	@param pcsw Pointer to CANAL super wrapper
-	@param pmdf Pointer to mdf class that will receive result
-	@param url Pointer to url that have the mdf file. If this file
-	contains "://" as in "http://" it is expected to be a remote file. If
-	empty registers will be read.
-	if not a local path.
-	@param pid A pointer to an interface GUID for Level II node or node id for Level I node.
-	@return true on success.
+    @param pcsw Pointer to CANAL super wrapper
+    @param pmdf Pointer to mdf class that will receive result
+    @param url Pointer to url that have the mdf file. If this file
+    contains "://" as in "http://" it is expected to be a remote file. If
+    empty registers will be read.
+    if not a local path.
+    @param pid A pointer to an interface GUID for Level II node or node id for Level I node.
+    @return true on success.
   */
   bool loadMDF( wxWindow *pwnd, CCanalSuperWrapper *pcsw, CMDF *pmdf, wxString& url, uint8_t *pid );
 
   /*!
-	Load level I register content into an array
-	@param pwnd Pointer to window (owner usually this) that called this method.
-	@param pcsw Pointer to CANAL super wrapper
-	@param pregisters Pointer to an array of 256 8-bit registers.
-	@param nodeid nodeid The node whos registers should be read.
-	@param bQuite No progress information if sett to true. (default is false)
+    Load level I register content into an array
+    @param pwnd Pointer to window (owner usually this) that called this method.
+    @param pcsw Pointer to CANAL super wrapper
+    @param pregisters Pointer to an array of 256 8-bit registers.
+    @param nodeid nodeid The node whos registers should be read.
+    @param bQuite No progress information if sett to true. (default is false)
   */
   bool readAllLevel1Registers( wxWindow *pwnd,
-									CCanalSuperWrapper *pcsw,
-									uint8_t *pregisters,
-									uint8_t nodeid );
+                                    CCanalSuperWrapper *pcsw,
+                                    uint8_t *pregisters,
+                                    uint8_t nodeid );
 
   /*!
-	Load level II register content into an array
-	@param pwnd Pointer to window (owner usually this) that called this method.
-	@param pcsw Pointer to CANAL super wrapper
-	@param pregisters Pointer to an array of 256 8-bit registers.
-	@param nodeid nodeid The node whos registers should be read.
-	@param bQuite No progress information if sett to true. (default is false)
-	return true on success.
+    Load level II register content into an array
+    @param pwnd Pointer to window (owner usually this) that called this method.
+    @param pcsw Pointer to CANAL super wrapper
+    @param pregisters Pointer to an array of 256 8-bit registers.
+    @param nodeid nodeid The node whos registers should be read.
+    @param bQuite No progress information if sett to true. (default is false)
+    return true on success.
   */
   bool readAllLevel2Registers( wxWindow *pwnd,
-									CCanalSuperWrapper *pcsw,
-									uint8_t *pregisters,
-									uint8_t *pinterfaceGUID );
+                                    CCanalSuperWrapper *pcsw,
+                                    uint8_t *pregisters,
+                                    uint8_t *pinterfaceGUID );
 
   /*!
-		Get MDf file from device registers
-		@param pcsw Pointer to CANAL super wrapper
-		@param pid Pointer to id. Either a one byte nickname if bLevel = false
-				or a 16 byte GUID if bLevel2 = true.
-		@param bLevel2 True if pid points to a full  GUID false if pid points to one 
-				byte nickname.
+        Get MDf file from device registers
+        @param pcsw Pointer to CANAL super wrapper
+        @param pid Pointer to id. Either a one byte nickname if bLevel = false
+                or a 16 byte GUID if bLevel2 = true.
+        @param bLevel2 True if pid points to a full  GUID false if pid points to one 
+                byte nickname.
   */
   wxString getMDFfromDevice( CCanalSuperWrapper *pcsw, 
-								uint8_t *pid, 
-								bool bLevel2 = false,
-								bool bSilent = false );
+                                uint8_t *pid, 
+                                bool bLevel2 = false,
+                                bool bSilent = false );
 
   /*!
-	Get MDF info.
-	@param pmdf Pointer to MDF object holding information
-	@return With MDF information in HTML format.
+    Get MDF info.
+    @param pmdf Pointer to MDF object holding information
+    @return With MDF information in HTML format.
 
   */
   wxString addMDFInfo( CMDF *pmdf );
 
-////@begin VscpworksApp event handler declarations
+  /*!
+    This variable is true if the configuration is fetched from
+    the global paces /progdata instead of user data location. 
+    Typically this happesn when a windows machine has no password.
+  */
+  bool m_bUseGlobalConfig;
 
-////@end VscpworksApp event handler declarations
+  /*!
+    Pointer to the multicast worker thread
+  */
+  worksMulticastThread *m_pmulticastWorkerThread;
+  pthread_mutex_t m_mutexmulticastWorkerThread;
 
-////@begin VscpworksApp member function declarations
-
-////@end VscpworksApp member function declarations
-
-////@begin VscpworksApp member variables
-////@end VscpworksApp member variables
 };
 
 /*!
@@ -512,6 +547,17 @@ public:
 ////@begin declare app
 DECLARE_APP(VscpworksApp)
 ////@end declare app
+
+
+
+
+
+
+
+
+
+
+
 
 #endif
   // _VSCPWORKS_H_

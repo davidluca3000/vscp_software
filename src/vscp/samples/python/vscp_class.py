@@ -3,7 +3,7 @@
 """
  /**
  * @brief           VSCP Level I/II class definition file
- * @file            vscp_class.h
+ * @file            vscp_class.py
  * @author          Ake Hedman, eurosource, www.vscp.org
  *
  * @section description Description
@@ -16,7 +16,7 @@
  * VSCP  Very Simple Control Protocol
  * http://www.vscp.org
  *
- * Copyright  C  1995-2011 Ake Hedman,
+ * Copyright  (C)  1995-2018 Ake Hedman,
  * eurosource, <akhe@eurosource.se>
  *
  * This software is provided 'as-is', without any express or implied
@@ -53,6 +53,8 @@ VSCP_CLASS1_MULTIMEDIA          =                  40
 VSCP_CLASS1_AOL                 =                  50
 VSCP_CLASS1_MEASUREMENT64       =                  60
 VSCP_CLASS1_MEASUREZONE         =                  65
+VSCP_CLASS1_WEATHER             =                  90
+VSCP_CLASS1_WEATHER_FORECAST    =                  95
 VSCP_CLASS1_PHONE               =                  100
 VSCP_CLASS1_LIN                 =                  101
 VSCP_CLASS1_DISPLAY             =                  102
@@ -77,6 +79,10 @@ VSCP_CLASS2_LEVEL1_INFORMATION  =                  512 + 20
 VSCP_CLASS2_LEVEL1_CONTROL      =                  512 + 30
 VSCP_CLASS2_LEVEL1_MULTIMEDIA   =                  512 + 40
 VSCP_CLASS2_LEVEL1_AOL          =                  512 + 50
+VSCP_CLASS1_LEVEL1_MEASUREMENT64       =           512 + 60
+VSCP_CLASS1_LEVEL1_MEASUREZONE         =           512 + 65
+VSCP_CLASS1_LEVEL1_WEATHER             =           512 + 90
+VSCP_CLASS1_LEVEL1_WEATHER_FORECAST    =           512 + 95
 VSCP_CLASS2_LEVEL1_PHONE        =                  512 + 100
 VSCP_CLASS2_LEVEL1_LIN          =                  512 + 101
 VSCP_CLASS2_LEVEL1_RC5          =                  512 + 110
@@ -97,5 +103,7 @@ VSCP_CLASS2_INFORMATION         =                  1026
 VSCP_CLASS2_TEXT2SPEECH         =                  1028
 VSCP_CLASS2_CUSTOM              =                  1029
 VSCP_CLASS2_DISPLAY             =                  1030
+VSCP_CLASS2_MEASUREMENT_STR     =                  1040
+VSCP_CLASS2_MEASUREMENT_FLOAT   =                  1060
 VSCP_CLASS2_VSCPD               =                  65535
 

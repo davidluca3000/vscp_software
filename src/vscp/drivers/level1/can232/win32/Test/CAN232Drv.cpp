@@ -521,7 +521,7 @@ void workThread( void *pThreadObject )
 							dllnode *pNode = new dllnode; 
 							if ( NULL != pNode ) {
 							
-								if ( !can323ToCanal( pcan232obj->m_receiveBuf, pMsg ) ) {									
+								if ( can232ToCanal( pcan232obj->m_receiveBuf, pMsg ) ) {									
 									
 									pNode->pObject = pMsg;
 									dll_addNode( &pcan232obj->m_rcvList, pNode );
@@ -659,7 +659,7 @@ void workThread( void *pThreadObject )
 
 bool can323ToCanal( char * p, PCANALMSG pMsg )
 {
-	bool rv = false;
+	bool rv = true;
 	int val;
 	short data_offset;	// Offset to dlc byte
 	char save;

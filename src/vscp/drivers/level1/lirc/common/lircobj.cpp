@@ -1,6 +1,6 @@
 // LircInterface.cpp: implementation of the CLircObj class.
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2015 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 //////////////////////////////////////////////////////////////////////
 
@@ -24,7 +24,6 @@
 #include <expat.h>
 #include "lircobj.h"
 
-
 WX_DEFINE_LIST(EventList);
 WX_DEFINE_LIST(ReceiveQueue);
 WX_DEFINE_LIST(TransmitQueue);
@@ -39,7 +38,7 @@ void *workThreadReceive( void *pObject );
 #endif
 
 // Prototypes
-static void XMLCALL startElement( void *userData, const TCHAR *name, const char **atts );
+static void XMLCALL startElement( void *userData, const char *name, const char **atts );
 static void XMLCALL endElement( void *userData, const char *name );
 static void XMLCALL characterDataHandler( void *userData, const XML_Char *s, int len );
 static unsigned long getDataValue( const char *szData );
@@ -51,7 +50,7 @@ static unsigned long getDataValue( const char *szData );
 CLircObj::CLircObj()
 {
 	// Set default LIRC host
-	strcpy( m_lircHost, "localhost" );
+	strcpy( m_lircHost, "localhost" ); 
 
 	// Set default LIRC port
 	m_lircPort = LIRC_PORT;
@@ -88,8 +87,6 @@ CLircObj::~CLircObj()
 //
 void CLircObj::readConfigData()
 {
-
-
 	if ( !wxFileName::FileExists( m_pathToConfigFile ) ) return;
 	
 	// Init XML parser
@@ -171,7 +168,7 @@ bool CLircObj::open( const char *szFileName, unsigned long flags )
 	if ( m_bRun ) return true;
 
 	// Path to config file
-	TCHAR *p;
+	char *p;
  
 	
 	p = strtok( (char * )szDrvParams, ";" );
@@ -519,7 +516,7 @@ void CLircObj::parseLircLine( wxString &wxstr )
 //
 
 static void XMLCALL
-startElement( void *userData, const TCHAR *name, const char **atts )
+startElement( void *userData, const char *name, const char **atts )
 {
 	CLircObj *pworkObj = (CLircObj *)userData;
 	if ( NULL == pworkObj ) return;
@@ -527,28 +524,28 @@ startElement( void *userData, const TCHAR *name, const char **atts )
 	pworkObj->m_depth += 1;
 
 	// canallirc
-	if ( 0 == strcmp( name, wxT("lirc") ) ) {
+	if ( 0 == strcmp( name, _("lirc") ) ) {
 		pworkObj->m_bCanalLirc = true;
 		// We set a tagname as dummy incase there is some problem or a
 		// missing "codetag". This way elements with no code tag are
 		// added to this list
-		strcpy( pworkObj->m_keytag, "dummy" );  
+		strcpy( pworkObj->m_keytag, _("dummy") );  
 	}
 
 	// object
-	if ( 0 == strcmp( name, wxT("object") ) ) {
+	if ( 0 == strcmp( name, _("object") ) ) {
 		pworkObj->m_bObject = true; 
 	}
 	
 	// vscp
-	else if ( 0 == strcmp( name, wxT("vscp") ) ) {			
+	else if ( 0 == strcmp( name, _("vscp") ) ) {			
 		pworkObj->m_bVscpObject = true;
 		// Nill the message
 		memset( &pworkObj->m_workMsg, 0, sizeof( canalMsg ) );
 	}
 
 	// can
-	else if ( 0 == strcmp( name, wxT("can") ) ) {			
+	else if ( 0 == strcmp( name, _("can") ) ) {			
 		pworkObj->m_bCanObject = true;
 		// Nill the message
 		memset( &pworkObj->m_workMsg, 0, sizeof( canalMsg ) );
@@ -581,24 +578,24 @@ endElement( void *userData, const char *name )
 	pworkObj->m_depth -= 1;
 
 	// lirc - next object
-	if ( 0 == strcmp( name, wxT("lirc") ) ) {
+	if ( 0 == strcmp( name, _("lirc") ) ) {
 		pworkObj->m_bCanalLirc = false;
 	}
 
 	// object - done
-	if ( 0 == strcmp( name, wxT("object") ) ) { 
+	if ( 0 == strcmp( name, _("object") ) ) { 
 		pworkObj->m_bObject = false;
 	}
 
 	// keytag
-	else if ( 0 == strcmp( pworkObj->m_curtagname, wxT("codetag") ) ) { 
+	else if ( 0 == strcmp( pworkObj->m_curtagname, _("codetag") ) ) { 
 		strncpy( pworkObj->m_keytag, pworkObj->m_xmlbuf, sizeof( pworkObj->m_keytag ) );
 		_strupr( pworkObj->m_keytag ); 
 	}
 
 
 	// VSCP object 
-	else if ( 0 == strcmp( name, wxT("vscp") ) ) {
+	else if ( 0 == strcmp( name, _("vscp") ) ) {
 
 		pworkObj->m_bVscpObject = false;
 
@@ -614,7 +611,7 @@ endElement( void *userData, const char *name )
 	}
 
 	// CAN object - next object
-	else if ( 0 == strcmp( name, wxT("can") ) ) {
+	else if ( 0 == strcmp( name, _("can") ) ) {
 
 		pworkObj->m_bCanObject = false;
 		canalMsg *pmsg = new canalMsg;
@@ -632,39 +629,39 @@ endElement( void *userData, const char *name )
 		if ( pworkObj->m_bVscpObject ) {
 
 			// class
-			if ( 0 == strcmp( pworkObj->m_curtagname, wxT("class") ) ) { 				
+			if ( 0 == strcmp( pworkObj->m_curtagname, _("class") ) ) { 				
 				pworkObj->m_workMsg.id |= 
 								( getDataValue( pworkObj->m_xmlbuf ) << 16 );
 			}
 
 			// type
-			else if ( 0 == strcmp( pworkObj->m_curtagname, wxT("type") ) ) { 
+			else if ( 0 == strcmp( pworkObj->m_curtagname, _("type") ) ) { 
 				pworkObj->m_workMsg.id |=  
 								( getDataValue( pworkObj->m_xmlbuf ) << 8 );
 			}
 
 			// priority
-			else if ( 0 == strcmp( pworkObj->m_curtagname, wxT("priority") ) ) { 
+			else if ( 0 == strcmp( pworkObj->m_curtagname, _("priority") ) ) { 
 				pworkObj->m_workMsg.id |= 
 								( getDataValue( pworkObj->m_xmlbuf ) << 26 );
 			}
 
 			// nickname
-			else if ( 0 == strcmp( pworkObj->m_curtagname, wxT("nickname") ) ) { 
+			else if ( 0 == strcmp( pworkObj->m_curtagname, _("nickname") ) ) { 
 				pworkObj->m_workMsg.id |= getDataValue( pworkObj->m_xmlbuf );
 			}
 
 			// sizeData
-			else if ( 0 == strcmp( pworkObj->m_curtagname, wxT("sizedata") ) ) { 
+			else if ( 0 == strcmp( pworkObj->m_curtagname, _("sizedata") ) ) { 
 				pworkObj->m_workMsg.sizeData = getDataValue( pworkObj->m_xmlbuf );
 			}
 
 			// Data "val1,val2,val3,val4...."
-			else if ( 0 == strcmp( pworkObj->m_curtagname, wxT("data") ) ) { 
+			else if ( 0 == strcmp( pworkObj->m_curtagname, _("data") ) ) { 
 				
 				int idx = 0;
 				wxStringTokenizer tok;
-				tok.SetString( pworkObj->m_xmlbuf, wxT(",\r\n") );
+				tok.SetString( pworkObj->m_xmlbuf, _(",\r\n") );
 			
 				while( ( idx < 8 ) && tok.HasMoreTokens() ) {
 
@@ -680,7 +677,7 @@ endElement( void *userData, const char *name )
 		else if ( pworkObj->m_bCanObject ) {
 		
 			// extended
-			if ( 0 == strcmp( pworkObj->m_curtagname, wxT("extended") ) ) { 
+			if ( 0 == strcmp( pworkObj->m_curtagname, _("extended") ) ) { 
 				_strupr( pworkObj->m_xmlbuf );
 				if ( ( 1 == atoi( pworkObj->m_xmlbuf ) ) || 
 							( NULL != strstr( pworkObj->m_xmlbuf, "TRUE" ) ) ) { 
@@ -689,20 +686,20 @@ endElement( void *userData, const char *name )
 			}
 			
 			// id
-			if ( 0 == strcmp( pworkObj->m_curtagname, wxT("id") ) ) { 
+			if ( 0 == strcmp( pworkObj->m_curtagname, _("id") ) ) { 
 				pworkObj->m_workMsg.id = getDataValue( pworkObj->m_xmlbuf );
 			}
 			
 			// sizeData
-			else if ( 0 == strcmp( pworkObj->m_curtagname, wxT("sizedata") ) ) { 
+			else if ( 0 == strcmp( pworkObj->m_curtagname, _("sizedata") ) ) { 
 				pworkObj->m_workMsg.sizeData = getDataValue( pworkObj->m_xmlbuf );
 			}
 
 			// Data  "val1,val2,val3,val4...."
-			else if ( 0 == strcmp( pworkObj->m_curtagname, wxT("data") ) ) { 
+			else if ( 0 == strcmp( pworkObj->m_curtagname, _("data") ) ) { 
 				int idx = 0;
 				wxStringTokenizer tok;
-				tok.SetString( pworkObj->m_xmlbuf, wxT(",\r\n") );
+				tok.SetString( pworkObj->m_xmlbuf, _(",\r\n") );
 			
 				while( ( idx < 8 ) && tok.HasMoreTokens() ) {
 

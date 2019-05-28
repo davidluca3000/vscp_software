@@ -1,24 +1,28 @@
 // File: hashtable.c
 //
-// Copyright (C) 2000-2008 Ake Hedman, eurosource, <akhe@eurosource.se>
+// This file is part of the VSCP (http://www.vscp.org) 
 //
-// This software is placed into
-// the public domain and may be used for any purpose.  However, this
-// notice must not be changed or removed and no warranty is either
-// expressed or implied by its publication or distribution.
-//
-// $RCSfile: hashtable.c,v $                                       
-// $Date: 2005/08/30 11:00:13 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.33 $ 
-//
-// akhe@eurosource.se  Sun Feb 3 2002  started this project-file.
-// 020523 AKHE Converted to plain C
-//
-// $RCSfile: hashtable.c,v $                                       
-// $Date: 2005/08/30 11:00:13 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.33 $  
+// The MIT License (MIT)
+// 
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB <info@grodansparadis.com>
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 //
 
 #include <stdlib.h>
@@ -42,7 +46,7 @@ void hash_init( struct HashTable *pht )
   // Create the id list
   pht->pidlist = 
     (struct DoubleLinkedList *)malloc( sizeof( struct DoubleLinkedList ) );
-  pht->hashtbl[ i ]->nSortOrder = SORT_NUMERIC;
+  pht->pidlist->nSortOrder = SORT_NUMERIC;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -73,7 +77,7 @@ void hash_cleanup( struct HashTable *pht )
 unsigned short hash( struct HashTable *pht, char * p )
 {
   int h = 0;
-	
+    
   while ( *p ) {
     h = ( (64*h + *p ) % HASH_TABLE_SIZE_PRIME );
     p++;
@@ -97,7 +101,7 @@ BOOL hash_addNode(  struct HashTable *pht, struct dllnode *pNode )
 {
   // Must be valid object
   if ( NULL == pNode ) return FALSE;
-	
+    
   /*if ( NULL != dll_findNodeFromString( pNode ) ) {
     // Node is already there
     return FALSE;
@@ -129,12 +133,12 @@ struct Node *hash_findNode( struct HashTable *pht, struct node *pNode )
 // findNode - find node form numeric id
 
 struct Node *hash_findNodeFromNumericID(  struct HashTable *pht,
-				     unsigned long nID )
+                     unsigned long nID )
 {	
   //return pht->pidlist->dll_findNodeFromID( nID );
   return NULL;
 }
-	
+    
 //////////////////////////////////////////////////////////////////////////////
 // findNode -  find node form string ID
 
@@ -151,7 +155,7 @@ BOOL hash_removeNode( struct HashTable *pht, struct dllnode *pNode )
 {
   // Must have something to work on
   if ( NULL == pNode ) return FALSE;
-	
+    
   // Get and remove the object
   if ( NULL != pNode->pObject ) {
     free( pNode->pObject );
@@ -206,7 +210,7 @@ void hash_removeAllNodes( struct HashTable *pht )
 {
   //struct node *pNode;
   int i;
-	
+    
   // Remove the numerical id double linked list
   if ( NULL != pht->pidlist ) {
 

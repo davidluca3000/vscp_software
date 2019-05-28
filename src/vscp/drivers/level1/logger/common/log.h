@@ -7,7 +7,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +20,8 @@
 // Boston, MA 02111-1307, USA.
 //
 
-#if !defined(AFX_LOG_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
-#define AFX_LOG_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_
+#if !defined(LOG_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
+#define LOG_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_
 
 #ifdef WIN32
 #include <windows.h>
@@ -46,12 +46,12 @@
 
 #endif
 
-#include "../../../../common/canal.h"
-#include "../../../../common/vscp.h"
-#include "../../../../common/canal_macro.h"
-#include "../../../../../common/dllist.h"
+#include <canal.h>
+#include <vscp.h>
+#include <canal_macro.h>
+#include <dllist.h>
 
-#define CANAL_DLL_LOGGER_OBJ_MUTEX	"___CANAL__DLL_LOGGER_OBJ_MUTEX____"
+#define CANAL_DLL_LOGGER_OBJ_MUTEX	TEXT("___CANAL__DLL_LOGGER_OBJ_MUTEX____")
 
 #define CANAL_LOG_LIST_MAX_MSG		2048
 
@@ -171,4 +171,4 @@ public:
 	uint32_t m_mask;
 };
 
-#endif // !defined(AFX_LOG_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
+#endif // !defined(LOG_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)

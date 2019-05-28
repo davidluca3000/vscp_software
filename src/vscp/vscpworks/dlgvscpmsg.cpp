@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     25/02/2007 22:46:25
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -37,7 +37,7 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+// 
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
 #pragma implementation "dlgvscpmsg.h"
@@ -57,8 +57,8 @@
 ////@begin includes
 ////@end includes
 
-#include "../common/vscphelper.h"
-#include "../common/vscpeventhelper.h"
+#include <vscphelper.h>
+#include <vscpeventhelper.h>
 #include "dlgvscpmsg.h"
 
 extern VSCPInformation g_vscpinfo;  // VSCP class type information
@@ -387,7 +387,12 @@ dlgVSCPMsg::dlgVSCPMsg()
     Init();
 }
 
-dlgVSCPMsg::dlgVSCPMsg( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+dlgVSCPMsg::dlgVSCPMsg( wxWindow* parent, 
+                            wxWindowID id, 
+                            const wxString& caption, 
+                            const wxPoint& pos, 
+                            const wxSize& size, 
+                            long style )
 {
     Init();
     Create(parent, id, caption, pos, size, style);
@@ -397,7 +402,12 @@ dlgVSCPMsg::dlgVSCPMsg( wxWindow* parent, wxWindowID id, const wxString& caption
  * DlgVSCPMsg creator
  */
 
-bool dlgVSCPMsg::Create( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+bool dlgVSCPMsg::Create( wxWindow* parent, 
+                            wxWindowID id, 
+                            const wxString& caption, 
+                            const wxPoint& pos, 
+                            const wxSize& size, 
+                            long style )
 {
 ////@begin dlgVSCPMsg creation
   SetExtraStyle(wxWS_EX_BLOCK_EVENTS);
@@ -482,7 +492,11 @@ void dlgVSCPMsg::CreateControls()
 
   wxStaticText* itemStaticText8 = new wxStaticText;
   itemStaticText8->Create( itemDialog1, wxID_STATIC, _("Class :"), wxDefaultPosition, wxDefaultSize, 0 );
+  #if ( ( wxMAJOR_VERSION >= 3 ) && ( wxMINOR_VERSION >= 1 ) )
+  itemStaticText8->SetFont(wxFont( wxFontInfo(8).FaceName("Tahoma").Bold() ) );    
+  #else    
   itemStaticText8->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+  #endif
   itemFlexGridSizer7->Add(itemStaticText8, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   wxArrayString m_choiceVscpClassStrings;
@@ -492,7 +506,11 @@ void dlgVSCPMsg::CreateControls()
 
   wxStaticText* itemStaticText10 = new wxStaticText;
   itemStaticText10->Create( itemDialog1, wxID_STATIC, _("Type :"), wxDefaultPosition, wxDefaultSize, 0 );
+  #if ( ( wxMAJOR_VERSION >= 3 ) && ( wxMINOR_VERSION >= 1 ) )
+  itemStaticText10->SetFont(wxFont( wxFontInfo(8).FaceName("Tahoma").Bold() ) );    
+  #else 
   itemStaticText10->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+  #endif
   itemFlexGridSizer7->Add(itemStaticText10, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   wxArrayString m_wxChoiceVscpTypeStrings;
@@ -502,7 +520,11 @@ void dlgVSCPMsg::CreateControls()
 
   wxStaticText* itemStaticText12 = new wxStaticText;
   itemStaticText12->Create( itemDialog1, wxID_STATIC, _("Priority :"), wxDefaultPosition, wxDefaultSize, 0 );
+  #if ( ( wxMAJOR_VERSION >= 3 ) && ( wxMINOR_VERSION >= 1 ) )
+  itemStaticText12->SetFont(wxFont( wxFontInfo(8).FaceName("Tahoma").Bold() ) );    
+  #else
   itemStaticText12->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+  #endif
   itemFlexGridSizer7->Add(itemStaticText12, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   wxArrayString m_wxChoicePriorityStrings;
@@ -527,12 +549,20 @@ void dlgVSCPMsg::CreateControls()
 
   wxStaticText* itemStaticText17 = new wxStaticText;
   itemStaticText17->Create( itemDialog1, wxID_STATIC, _("GUID"), wxDefaultPosition, wxDefaultSize, 0 );
+  #if ( ( wxMAJOR_VERSION >= 3 ) && ( wxMINOR_VERSION >= 1 ) )
+  itemStaticText17->SetFont(wxFont( wxFontInfo(8).FaceName("Tahoma").Bold() ) );    
+  #else
   itemStaticText17->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+  #endif
   itemFlexGridSizer7->Add(itemStaticText17, 1, wxALIGN_LEFT|wxALIGN_TOP|wxALL, 0);
 
   wxStaticText* itemStaticText18 = new wxStaticText;
   itemStaticText18->Create( itemDialog1, wxID_STATIC, _("15 - 8 :"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT );
+  #if ( ( wxMAJOR_VERSION >= 3 ) && ( wxMINOR_VERSION >= 1 ) )
+  itemStaticText18->SetFont(wxFont( wxFontInfo(8).FaceName("Tahoma").Bold() ) );    
+  #else
   itemStaticText18->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+  #endif
   itemFlexGridSizer7->Add(itemStaticText18, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   wxBoxSizer* itemBoxSizer19 = new wxBoxSizer(wxHORIZONTAL);
@@ -572,7 +602,11 @@ void dlgVSCPMsg::CreateControls()
 
   wxStaticText* itemStaticText28 = new wxStaticText;
   itemStaticText28->Create( itemDialog1, wxID_STATIC, _("7 - 0 :"), wxDefaultPosition, wxDefaultSize, 0 );
+  #if ( ( wxMAJOR_VERSION >= 3 ) && ( wxMINOR_VERSION >= 1 ) )
+  itemStaticText28->SetFont(wxFont( wxFontInfo(8).FaceName("Tahoma").Bold() ) );    
+  #else
   itemStaticText28->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+  #endif
   itemFlexGridSizer7->Add(itemStaticText28, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   wxBoxSizer* itemBoxSizer29 = new wxBoxSizer(wxHORIZONTAL);
@@ -612,7 +646,11 @@ void dlgVSCPMsg::CreateControls()
 
   wxStaticText* itemStaticText38 = new wxStaticText;
   itemStaticText38->Create( itemDialog1, wxID_STATIC, _("Data :"), wxDefaultPosition, wxDefaultSize, 0 );
+  #if ( ( wxMAJOR_VERSION >= 3 ) && ( wxMINOR_VERSION >= 1 ) )
+  itemStaticText38->SetFont(wxFont( wxFontInfo(8).FaceName("Tahoma").Bold() ) );    
+  #else
   itemStaticText38->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+  #endif
   itemFlexGridSizer7->Add(itemStaticText38, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   m_strVscpData = new wxTextCtrl;
@@ -627,7 +665,11 @@ void dlgVSCPMsg::CreateControls()
 
   wxStaticText* itemStaticText42 = new wxStaticText;
   itemStaticText42->Create( itemDialog1, wxID_STATIC, _("Note :"), wxDefaultPosition, wxDefaultSize, 0 );
+  #if ( ( wxMAJOR_VERSION >= 3 ) && ( wxMINOR_VERSION >= 1 ) )
+  itemStaticText42->SetFont(wxFont( wxFontInfo(8).FaceName("Tahoma").Bold() ) );    
+  #else
   itemStaticText42->SetFont(wxFont(8, wxSWISS, wxNORMAL, wxBOLD, false, wxT("Tahoma")));
+  #endif
   itemFlexGridSizer7->Add(itemStaticText42, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL, 1);
 
   m_strNote = new wxTextCtrl;

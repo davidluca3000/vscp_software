@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     16/12/2009 22:26:09
 // RCS-ID:      
-// Copyright:   (C) 2009-2014 
+// Copyright:   (C) 2009-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -37,10 +37,14 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+// 
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
 #pragma implementation "devicebootloaderwizard.h"
+#endif
+
+#ifdef WIN32
+#include <winsock2.h>
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
@@ -54,35 +58,51 @@
 #include "wx/wx.h"
 #endif
 
-////@begin includes
-////@end includes
-
-
 #include "bootdevice.h"
 
-CBootDevice::CBootDevice( CCanalSuperWrapper *pcsw, cguid &guid )
+
+///////////////////////////////////////////////////////////////////////////////
+// Ctor
+//
+
+CBootDevice::CBootDevice( CDllWrapper *pdll, uint8_t nodeid, bool bDeviceFound )
 {
-    m_minFlashAddr = 0;
-	m_maxFlashAddr = 0xffffffff;
-	m_totalCntData = 0;
+    init();
 
-    m_pbufPrg = NULL;
-    m_pbufCfg = NULL;
-    m_pbufEEPROM = NULL;
-
-    m_responseTimeout = BOOT_COMMAND_DEFAULT_RESPONSE_TIMEOUT;
-
-    m_pCanalSuperWrapper = pcsw;
-
+    m_type = USE_DLL_INTERFACE;
+    m_pdll = pdll;
+    m_nodeid = nodeid;
+    m_bDeviceFound = bDeviceFound;
 }
 
-CBootDevice::~CBootDevice(void)
+CBootDevice::CBootDevice( VscpRemoteTcpIf *ptcpip, cguid &guid, cguid &ifguid, bool bDeviceFound )
+{
+    init();
+
+    m_type = USE_TCPIP_INTERFACE;
+    m_ptcpip = ptcpip;
+    m_guid = guid;
+    m_ifguid = ifguid;
+    m_bDeviceFound = bDeviceFound;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Dtor
+//
+
+CBootDevice::~CBootDevice( void )
 {
     if ( NULL != m_pbufPrg ) {
         delete [] m_pbufPrg;
         m_pbufPrg = NULL;
     }
 
+    if ( NULL != m_pbufUserID ) {
+        delete [] m_pbufUserID;
+        m_pbufUserID = NULL;
+    }
+    
     if ( NULL != m_pbufCfg ) {
         delete [] m_pbufCfg;
         m_pbufCfg = NULL;
@@ -93,6 +113,27 @@ CBootDevice::~CBootDevice(void)
         m_pbufEEPROM = NULL;
     }
 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// init
+//
+
+void CBootDevice::init( void )
+{
+    m_minFlashAddr = 0;
+    m_maxFlashAddr = 0xffffffff;
+    m_totalCntData = 0;
+
+    m_pbufPrg = NULL;
+    m_pbufUserID = NULL;
+    m_pbufCfg = NULL;
+    m_pbufEEPROM = NULL;
+
+    m_pdll = NULL;
+    m_ptcpip = NULL;
+
+    m_bDeviceFound = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

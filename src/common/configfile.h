@@ -1,22 +1,27 @@
+// This file is part of the VSCP (http://www.vscp.org) 
 //
-// config.h	
-//			class Config - Read parameters from config file.
+// The MIT License (MIT)
+// 
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB <info@grodansparadis.com>
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 //
-//
-// Copyright (C) 2000-2008 Ake Hedman, eurosource, <akhe@eurosource.se>
-//
-// This software is placed into
-// the public domain and may be used for any purpose.  However, this
-// notice must not be changed or removed and no warranty is either
-// expressed or implied by its publication or distribution.
-//
-//  AH  981224  started this project.
-//
-//
-// $RCSfile: configfile.h,v $
-// $Date: 2005/08/30 11:00:13 $
-// $Author: akhe $
-// $Revision: 1.17 $
 //
 
 #ifndef H_CONFIG_H
@@ -27,44 +32,44 @@
 #include <stdlib.h>
 
 /**
-	A class for configure file handling
+    A class for configure file handling
 */
 
 class Config
 {
 
 public:
-	/**
-		Constructor
+    /**
+        Constructor
 
-		@param name Name (including path) of configuration file.
-	*/
-	Config( char *name = NULL );
-	/// Destructor
-	virtual ~Config();
-	
-	/// Open Configuration filr
-	FILE * open( char *name );
-	
-	/**
-		Load a string with a maximum length from a key
+        @param name Name (including path) of configuration file.
+    */
+    Config( char *name = NULL );
+    /// Destructor
+    virtual ~Config();
+    
+    /// Open Configuration filr
+    FILE * open( char *name );
+    
+    /**
+        Load a string with a maximum length from a key
 
-		@param key pointer to string containing key name
-		@param value pointer to buffer to hold string value of key
-		@param max Buffer size for value.
-	*/
-	bool LoadKey( char *key, char *value, int max );
-	
-	bool LoadKey( char *key, int &value );
-	bool LoadKey( char *key, long &value );
+        @param key pointer to string containing key name
+        @param value pointer to buffer to hold string value of key
+        @param max Buffer size for value.
+    */
+    bool LoadKey( char *key, char *value, int max );
+    
+    bool LoadKey( char *key, int &value );
+    bool LoadKey( char *key, long &value );
 
 private:
-	char *ScanKey( char *key );
-	void Clean( void );
-	
+    char *ScanKey( char *key );
+    void Clean( void );
+    
 private:	
-	FILE *m_fIn;
-	char *m_pBuffer;
+    FILE *m_fIn;
+    char *m_pBuffer;
 };
 
 

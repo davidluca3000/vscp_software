@@ -1,52 +1,42 @@
 // interfacelist.cpp
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version
-// 2 of the License, or (at your option) any later version.
-// 
-// This file is part of the VSCP (http://can.sourceforge.net) 
+// This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 
-// Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
+// The MIT License (MIT)
 // 
-// This file is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB <info@grodansparadis.com>
 // 
-// You should have received a copy of the GNU General Public License
-// along with this file see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330,
-// Boston, MA 02111-1307, USA.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright ncat /sys/class/net/eth0/addressotice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 //
 
 #ifdef __GNUG__
     //#pragma implementation
 #endif
 
-// For compilers that support precompilation, includes "wx.h".
-#include "wx/wxprec.h"
+#include <string>
+#include <deque>
 
-#ifdef __BORLANDC__
-    #pragma hdrstop
-#endif
-
-#ifndef WX_PRECOMP
-#include "wx/wx.h"
-#endif
-
-
-#include "wx/defs.h"
-#include "wx/app.h"
-#include <wx/wfstream.h>
-#include <wx/xml/xml.h>
-#include <wx/tokenzr.h>
-#include <wx/listimpl.cpp>
-
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include "interfacelist.h"
 
-WX_DEFINE_LIST(TCPClientList);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Constructor
@@ -54,9 +44,8 @@ WX_DEFINE_LIST(TCPClientList);
 
 CInterfaceItem::CInterfaceItem( void )
 {
-	m_ipaddress.Hostname(_("127.0.0.1"));
-	m_macaddress = _("");
-	memset( m_GUID, 0, sizeof( m_GUID ) );
+    m_ipaddress = "127.0.0.1";
+    m_macaddress = "";
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -70,7 +59,7 @@ CInterfaceItem::~CInterfaceItem( void )
 
 
 //*****************************************************************************
-//							 CInterfaceList
+//                          CInterfaceList
 //*****************************************************************************
 
 
@@ -80,7 +69,7 @@ CInterfaceItem::~CInterfaceItem( void )
 
 CInterfaceList::CInterfaceList( void )
 {
-  m_tcpclientlist.DeleteContents ( true );
+  m_tcpclientlist.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -95,26 +84,40 @@ CInterfaceList::~CInterfaceList( void )
 ///////////////////////////////////////////////////////////////////////////////
 // addInterface
 //
-bool CInterfaceList::addInterface( wxString ip, wxString mac, wxString guid )
+bool CInterfaceList::addInterface( const std::string& ip, const std::string& mac, const std::string& guid )
 {
-	unsigned long var;
+    unsigned long var;
 
-	CInterfaceItem *pItem = new CInterfaceItem;
-	if ( NULL == pItem ) return false;
+    CInterfaceItem *pItem = new CInterfaceItem;
+    if ( NULL == pItem ) return false;
 
-	pItem->m_ipaddress.Hostname( ip );
-	pItem->m_macaddress = mac;
-	
-	wxStringTokenizer tkz( guid , wxT(":") );
-	for ( int i=0; i<16; i++ ) {
-		tkz.GetNextToken().ToULong( &var, 16 );
-		pItem->m_GUID[ i ] = (uint8_t)var;
-		// If no tokens left no use to continue
-		if ( !tkz.HasMoreTokens() ) break;
-	}
+    pItem->m_ipaddress = ip ;
+    pItem->m_macaddress = mac;
+    pItem->m_guid.getFromString( guid );
 
-	// Add the user
-	m_tcpclientlist.Append( pItem );
-	
-	return true;
+    // Add the user
+    m_tcpclientlist.push_back( pItem );
+    
+    return true;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// addInterface
+//
+bool CInterfaceList::addInterface( const std::string& ip, const std::string& mac, const cguid& guid )
+{
+    unsigned long var;
+
+    CInterfaceItem *pItem = new CInterfaceItem;
+    if ( NULL == pItem ) return false;
+
+    pItem->m_ipaddress = ip ;
+    pItem->m_macaddress = mac;
+    pItem->m_guid = guid;
+
+    // Add the user
+    m_tcpclientlist.push_back( pItem );
+    
+    return true;
 }

@@ -521,7 +521,7 @@ void workThread( void *pThreadObject )
 							dllnode *pNode = new dllnode; 
 							if ( NULL != pNode ) {
 							
-								if ( !can323ToCanal( pcan232obj->m_receiveBuf, pMsg ) ) {									
+								if ( can232ToCanal( pcan232obj->m_receiveBuf, pMsg ) ) {									
 									
 									pNode->pObject = pMsg;
 									dll_addNode( &pcan232obj->m_rcvList, pNode );
@@ -659,7 +659,7 @@ void workThread( void *pThreadObject )
 
 bool can323ToCanal( char * p, PCANALMSG pMsg )
 {
-	bool rv = false;
+	bool rv = true;
 	int val;
 	short data_offset;	// Offset to dlc byte
 	char save;
@@ -700,28 +700,34 @@ bool can323ToCanal( char * p, PCANALMSG pMsg )
 		sscanf( p + 1, "%lx", &pMsg->id );	
 		p[ 9 ] = save;
 	}
+    else {
+        rv = false;
+    }
+    
+    if ( false != rv ) {
 	
-	save = *(p + data_offset + 2 * pMsg->sizeData );
-	
-	if ( !( pMsg->flags & CANAL_IDFLAG_RTR ) ) {
-		for ( int i= pMsg->sizeData; i > 0; i-- ) {
-			*(p + data_offset + 2 * (i-1) + 2 )	= 0;
-			sscanf( p + data_offset + 2 * (i-1), "%x", &val );
-			pMsg->data[ i - 1 ] = val;
-		}
-	}
+        save = *(p + data_offset + 2 * pMsg->sizeData );
+        
+        if ( !( pMsg->flags & CANAL_IDFLAG_RTR ) ) {
+            for ( int i= pMsg->sizeData; i > 0; i-- ) {
+                *(p + data_offset + 2 * (i-1) + 2 )	= 0;
+                sscanf( p + data_offset + 2 * (i-1), "%x", &val );
+                pMsg->data[ i - 1 ] = val;
+            }
+        }
 
-	*(p + data_offset + 2 * pMsg->sizeData ) = save;
+        *(p + data_offset + 2 * pMsg->sizeData ) = save;
 
-	// If timestamp is actve - fetch it
-	if ( 0x0d != *( p + data_offset + 2 * pMsg->sizeData ) ) {
-		p[ data_offset + 2 * ( pMsg->sizeData ) + 4 ] = 0;
-		sscanf( ( p + data_offset + 2 * ( pMsg->sizeData ) ), "%x", &val );
-		pMsg->timestamp = val * 1000;	// microseconds 
-	}
-	else {
-		pMsg->timestamp = 0;	
-	}
+        // If timestamp is actve - fetch it
+        if ( 0x0d != *( p + data_offset + 2 * pMsg->sizeData ) ) {
+            p[ data_offset + 2 * ( pMsg->sizeData ) + 4 ] = 0;
+            sscanf( ( p + data_offset + 2 * ( pMsg->sizeData ) ), "%x", &val );
+            pMsg->timestamp = val * 1000;	// microseconds 
+        }
+        else {
+            pMsg->timestamp = 0;	
+        }
+    }
 
 	return rv;
 }

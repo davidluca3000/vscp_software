@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     24/10/2012 14:35:37
 // RCS-ID:      
-// Copyright:   (C) 2012-2014 
+// Copyright:   (C) 2012-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -36,8 +36,8 @@
 //  this file might be covered by the GNU General Public License.
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
-//  eurosource at info@eurosource.se, http://www.eurosource.se
-/////////////////////////////////////////////////////////////////////////////
+//  Ake Hedman, Grodans Paradis AB, akhe@grodansparadis.com
+// 
 
 #ifndef _FRMSIMPLEUSERINTERFACEGENERATOR_H_
 #define _FRMSIMPLEUSERINTERFACEGENERATOR_H_
@@ -91,9 +91,19 @@ class SimpleUserInterfaceGenerator: public wxFrame
 public:
   /// Constructors
   SimpleUserInterfaceGenerator();
-  SimpleUserInterfaceGenerator( wxWindow* parent, wxWindowID id = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_IDNAME, const wxString& caption = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_TITLE, const wxPoint& pos = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_POSITION, const wxSize& size = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_SIZE, long style = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_STYLE );
+  SimpleUserInterfaceGenerator( wxWindow* parent, 
+                                    wxWindowID id = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_IDNAME, 
+                                    const wxString& caption = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_TITLE, 
+                                    const wxPoint& pos = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_POSITION, 
+                                    const wxSize& size = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_SIZE, 
+                                    long style = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_STYLE );
 
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_IDNAME, const wxString& caption = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_TITLE, const wxPoint& pos = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_POSITION, const wxSize& size = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_SIZE, long style = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_IDNAME, 
+                    const wxString& caption = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_TITLE, 
+                    const wxPoint& pos = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_POSITION, 
+                    const wxSize& size = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_SIZE, 
+                    long style = SYMBOL_SIMPLEUSERINTERFACEGENERATOR_STYLE );
 
   /// Destructor
   ~SimpleUserInterfaceGenerator();

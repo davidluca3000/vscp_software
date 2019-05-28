@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     30/09/2009 20:08:53
 // RCS-ID:      
-// Copyright:   (C) 2009-2014
+// Copyright:   (C) 2009-2017
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -54,7 +54,7 @@
 #define ID_FRMVSCPSESSION_SYMBOL_12 _("Message Log")
 #define ID_FRMVSCPSESSION_SYMBOL_13 _("Message Count")
 #define ID_FRMVSCPSESSION_SYMBOL_14 _("View")
-#define ID_FRMVSCPSESSION_SYMBOL_15 _("Read Regiister...")
+#define ID_FRMVSCPSESSION_SYMBOL_15 _("Read Register...")
 #define ID_FRMVSCPSESSION_SYMBOL_16 _("Write Register...")
 #define ID_FRMVSCPSESSION_SYMBOL_17 _("Read all registers...")
 #define ID_FRMVSCPSESSION_SYMBOL_18 _("Get GUID for node...")

@@ -19,10 +19,6 @@
 // the Free Software Foundation, 59 Temple Place - Suite 330,
 // Boston, MA 02111-1307, USA.
 //
-// $RCSfile: dlldrvobj.cpp,v $                                       
-// $Date: 2005/01/05 12:16:16 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.2 $ 
 //
 // Linux
 // =====
@@ -31,6 +27,10 @@
 // WIN32
 // =====
 // device1 = logger,c:\vscp_log,txt,d:\winnr\system32\vscplogger.dll,64,64,1
+
+#ifdef WIN32
+#include <winsock2.h>
+#endif
 
 #include "stdio.h"
 #include "stdlib.h"
@@ -59,7 +59,7 @@ CDllDrvObj::CDllDrvObj()
 {
 	m_instanceCounter = 0;
 #ifdef WIN32
-	m_objMutex = CreateMutex( NULL, true, "__VSCP_VSCPLOGGER_MUTEX__" );
+	m_objMutex = CreateMutex( NULL, true, _("__VSCP_VSCPLOGGER_MUTEX__") );
 #else
 	pthread_mutex_init( &m_objMutex, NULL );
 #endif
@@ -79,7 +79,7 @@ CDllDrvObj::~CDllDrvObj()
 	
 	for ( int i = 0; i<VSCP_LOGGER_DRIVER_MAX_OPEN; i++ ) {
 		
-		if ( NULL == m_drvObjArray[ i ] ) {
+		if ( NULL != m_drvObjArray[ i ] ) {
 			
 			CVSCPLog *pdrvObj =  getDriverObject( i );
 			if ( NULL != pdrvObj ) { 

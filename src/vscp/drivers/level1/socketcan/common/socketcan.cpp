@@ -96,7 +96,7 @@ long CCAN232Obj::open( const char *pDevice, unsigned long flags )
 	p = strtok( NULL, ";" );
 	if ( NULL != p ) {		
 		if ( ( NULL != strstr( p, "0x" ) ) || ( NULL != strstr( p, "0X" ) )  ) {
-			sscanf( p + 2, "%x", &nMask );
+			sscanf( p + 2, "%lx", &nMask );
 		}
 		else {
 			nMask = atol( p );
@@ -107,7 +107,7 @@ long CCAN232Obj::open( const char *pDevice, unsigned long flags )
 	p = strtok( NULL, ";" );
 	if ( NULL != p ) {		
 		if ( ( NULL != strstr( p, "0x" ) ) || ( NULL != strstr( p, "0X" ) )  ) {
-			sscanf( p + 2, "%x", &nFilter );
+			sscanf( p + 2, "%lx", &nFilter );
 		}
 		else {
 			nFilter = atol( p );
@@ -515,7 +515,7 @@ bool CCAN232Obj::getStatus( PCANALSTATUS pCanalStatus )
 	*rBuf = 0;
 	m_can232obj.m_comm.readBuf( rBuf, sizeof( rBuf ), -1 );
 	if ( 0x07 != *rBuf ) {
-		int flags;
+		unsigned int flags;
 
 		rBuf[ 3 ] = 0;				
 		sscanf( rBuf, "F%x", &flags );
@@ -761,8 +761,8 @@ void workThread( void *pThreadObject )
 bool can323ToCanal( char * p, PCANALMSG pMsg )
 {
 	bool rv = false;
-	int val;
-	short data_offset;	// Offset to dlc byte
+	unsigned int val;
+	short data_offset = 0;	// Offset to dlc byte
 	char save;
 
 	if ( 't' == *p ) {

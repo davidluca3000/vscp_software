@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     Tue 17 Apr 2007 13:38:08 CEST
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2017 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -435,7 +435,12 @@ frmCANSession::frmCANSession()
     Init();
 }
 
-frmCANSession::frmCANSession( wxMDIParentFrame* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+frmCANSession::frmCANSession( wxMDIParentFrame* parent, 
+                                wxWindowID id, 
+                                const wxString& caption, 
+                                const wxPoint& pos, 
+                                const wxSize& size, 
+                                long style )
 {
     Init();
     Create( parent, id, caption, pos, size, style );
@@ -445,7 +450,12 @@ frmCANSession::frmCANSession( wxMDIParentFrame* parent, wxWindowID id, const wxS
  * frmCANSession creator
  */
 
-bool frmCANSession::Create( wxMDIParentFrame* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+bool frmCANSession::Create( wxMDIParentFrame* parent, 
+                                wxWindowID id, 
+                                const wxString& caption, 
+                                const wxPoint& pos, 
+                                const wxSize& size, 
+                                long style )
 {
 ////@begin frmCANSession creation
     wxMDIChildFrame::Create( parent, id, caption, pos, size, style );

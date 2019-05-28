@@ -1,103 +1,97 @@
 // interfacelist.h
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version
-// 2 of the License, or (at your option) any later version.
-// 
-// This file is part of the VSCP (http://can.sourceforge.net) 
+// This file is part of the VSCP (http://www.vscp.org)
 //
-// Copyright (C) 2000-2014 
-// Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
-// 
-// This file is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with this file see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330,
-// Boston, MA 02111-1307, USA.
+// The MIT License (MIT)
 //
-// $RCSfile: dm.cpp,v $                                       
-// $Date: 2005/08/30 11:00:04 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.2 $ 
-
-
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB
+// <info@grodansparadis.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #if !defined(INTERFACELIST__INCLUDED_)
 #define INTERFACELIST__INCLUDED_
 
-#include <wx/socket.h>
-
-#include "vscp.h"
-#include "../../common/dllist.h"
+#include <guid.h>
 
 class CInterfaceItem
 {
 
-public:
+  public:
+    /// Constructor
+    CInterfaceItem(void);
 
-	/// Constructor
-	CInterfaceItem( void );
+    /// Destructor
+    virtual ~CInterfaceItem(void);
 
-	/// Destructor
-	virtual ~CInterfaceItem( void );
+    /// IP Address for interface
+    std::string m_ipaddress;
 
-	/// IP Address for interface
-	wxIPV4address m_ipaddress;
+    /// MAC address for interface
+    std::string m_macaddress;
 
-	/// MAC address for interface
-	wxString m_macaddress;
+    /// GUID for interface
+    cguid m_guid;
 
-	/// GUID for interface
-	uint8_t m_GUID[16];
-
-protected:
-
-	/*!
-		System assigned ID for interface
-	*/
-	uint32_t m_interfaceID;
-
+  protected:
+    /*!
+        System assigned ID for interface
+    */
+    uint32_t m_interfaceID;
 };
 
-
-WX_DECLARE_LIST ( CInterfaceItem, TCPClientList );
-
-
-class CInterfaceList  
+class CInterfaceList
 {
-public:
+  public:
+    /// Constructor
+    CInterfaceList(void);
 
-	/// Constructor
-	CInterfaceList( void );
+    /// Destructor
+    virtual ~CInterfaceList(void);
 
-	/// Destructor
-	virtual ~CInterfaceList( void );
+    /*!
+        Add interface
+        @param ip IP address for interface.
+        @param mac MAC address for interface.
+        @param guid GUID for interface in string form.
+        @return true on success, false on failure.
+    */
+    bool addInterface(const std::string &ip,
+                      const std::string &mac,
+                      const std::string &guid);
 
-	/*!
-		Add interface
-		@param ip IP address for interface.
-		@param mac MAC address for interface.
-		@param guid GUID for interface.
-		@return true on sucess, false on failure.
-	*/
-	bool addInterface( wxString ip, wxString mac, wxString guid );
+    /*!
+        Add interface
+        @param ip IP address for interface.
+        @param mac MAC address for interface.
+        @param guid GUID for interface.
+        @return true on success, false on failure.
+    */
+    bool addInterface(const std::string &ip,
+                      const std::string &mac,
+                      const cguid &guid);
 
-protected:
-
-	/*!
-		List with interface items
-	*/
-	TCPClientList m_tcpclientlist;
-
+  protected:
+    /*!
+        List with interface items
+    */
+    std::deque<CInterfaceItem *> m_tcpclientlist;
 };
-
-
 
 #endif
-
-

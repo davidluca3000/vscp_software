@@ -8,7 +8,7 @@
 //
 // This file is part of the CANAL (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2012 Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
+// Copyright (C) 2000-2017 Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,9 +21,17 @@
 // Boston, MA 02111-1307, USA.
 //
 
+#define XSTR(x) STR(x)
+//#define STR(x) #x
+
+#ifdef WIN32
+#include <winsock2.h>
+#include <wx/msw/winundef.h>    // https://wiki.wxwidgets.org/WxMSW_Issues
+#endif
+
 #include <signal.h>
 
-#include "wx/wxprec.h"
+//#include "wx/wxprec.h"
 #include "wx/wx.h"
 #include "wx/defs.h"
 #include "wx/app.h"
@@ -31,31 +39,34 @@
 #include "wx/tokenzr.h"
 #include <wx/stdpaths.h>
  
-#include "../../common/canal_macro.h"
-#include "../../common/controlobject.h"
-#include "../../common/version.h"
+#include <canal_macro.h>
+#include <controlobject.h>
+#include <version.h>
+
+// The global control object
+CControlObject *gpobj;
 
 static const wxCmdLineEntryDesc cmdLineDesc[] = { 
   { 
     wxCMD_LINE_OPTION, 
-    _T("c"), 
-    _T("configpath"), 
-    _T("Path to configuration file"), 
+    _("c"), 
+    _("configpath"), 
+    _("Path to configuration file"), 
     wxCMD_LINE_VAL_STRING, 
     wxCMD_LINE_PARAM_OPTIONAL 
   },
  { 
     wxCMD_LINE_OPTION, 
-    _T("d"), 
-    _T("debuglevel"), 
-    _T("Debug Level."), 
+    _("d"), 
+    _("debuglevel"), 
+    _("Debug Level."), 
     wxCMD_LINE_VAL_NUMBER, 
     wxCMD_LINE_PARAM_OPTIONAL 
   },
-  { wxCMD_LINE_SWITCH, _T("h"), _T("help"), _T("Shows this message"), wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL | wxCMD_LINE_OPTION_HELP  },
-  { wxCMD_LINE_SWITCH, _T("v"), _T("verbose"), _T("Vebose mode"), wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL },
-  { wxCMD_LINE_SWITCH, _T("w"), _T("hide"), _T("Hide debug window"), wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL },
-  { wxCMD_LINE_SWITCH, _T("g"), _T("gnu"), _T("Copyleft"), wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL },
+  { wxCMD_LINE_SWITCH, _("h"), _("help"), _("Shows this message"), wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL | wxCMD_LINE_OPTION_HELP  },
+  { wxCMD_LINE_SWITCH, _("v"), _("verbose"), _("Vebose mode"), wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL },
+  { wxCMD_LINE_SWITCH, _("w"), _("hide"), _("Hide debug window"), wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL },
+  { wxCMD_LINE_SWITCH, _("g"), _("gnu"), _("Copyleft"), wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL },
   { wxCMD_LINE_NONE } 
 };
 
@@ -70,6 +81,10 @@ int main(int argc, char **argv)
     (void) signal( SIGABRT, doabort ); 
     (void) signal( SIGTERM, doabort );  
     (void) signal( SIGINT, doabort );
+
+#if defined( _MSC_VER ) && _MSC_VER < 1600
+#pragma message ( "Visual studio version = "  STR(_MSC_VER) )
+#endif
 
 #if wxUSE_UNICODE
     wxChar **wxArgv = new wxChar *[argc + 1];
@@ -91,28 +106,50 @@ int main(int argc, char **argv)
 
     if ( !::wxInitialize() ) {
         fprintf(stderr, "Failed to initialize the wxWindows library, aborting.");
+        
+#if wxUSE_UNICODE
+        /* Clean up */
+        {
+            for ( int n = 0; n < argc; n++ ) {
+                free(wxArgv[n]);
+            }
+
+            delete [] wxArgv;
+        }
+#endif // wxUSE_UNICODE
+        
         return -1;      
     }
 
-    int arg = 0;
-    unsigned char nDebugLevel = 0;
-    bool bVerbose = false;
-    bool bCopyLeft = false;
     bool bHideWindow = false;
-    wxStandardPaths stdPath;
     wxString strCfgFile;
+    wxString rootFolder;
     CControlObject ctrlobj;
 
-   
-    strCfgFile = stdPath.GetConfigDir();
+    rootFolder = wxStandardPaths::Get().GetUserDataDir();
+    strCfgFile = wxStandardPaths::Get().GetConfigDir();
+
+#ifdef WIN32
+    // The following needed because wx 3.1 add "vscpd" to standardpath
+    int pos;
+    if ( pos = strCfgFile.Find( _( "vscpd" ) ) ) {
+        strCfgFile = strCfgFile.Left( strCfgFile.Length() - 5 );
+        strCfgFile += _("vscp");
+    }
+    else if ( pos = strCfgFile.Find( _( "vscpd32" ) ) ) {
+        strCfgFile = strCfgFile.Left( strCfgFile.Length() - 7 );
+        strCfgFile += _( "vscp" );
+    }
+    strCfgFile += _( "\\vscpd.conf" );
+#else
     strCfgFile += _("/vscp/vscpd.conf");
+#endif
 
     wxCmdLineParser *pparser = new wxCmdLineParser( cmdLineDesc, argc, argv );
     
     if ( NULL != pparser ) {
 		
 		wxString wxstr;
-	
 		if ( pparser->Parse(false) > 0 ) {
 			printf("\n\nUsage for vscpd.exe\n");
 			printf("-------------------------\n");
@@ -129,11 +166,8 @@ int main(int argc, char **argv)
 
         // * * * Verbose * * *
         if ( pparser->Found( wxT("verbose") ) ) {
-            bVerbose = true;
-            {
-	            wxString wxstr;
-	            wxstr.Printf(wxT("Verbose mode set\n"));
-            }
+            wxString wxstr;
+            wxstr.Printf(wxT("Verbose mode set\n"));
         }
 
         // * * * Hide debug window * * *
@@ -147,11 +181,8 @@ int main(int argc, char **argv)
 
         // * * * Copyleft * * *
         if ( pparser->Found( wxT("gnu") ) ) {
-            bCopyLeft = true;
-            {
-                wxString wxstr;
-                wxstr.Printf(wxT("Verbose mode set\n"));
-            }
+            wxString wxstr;
+            wxstr.Printf(wxT("Verbose mode set\n"));
         }
 
         // * * * Path to configuration file * * *
@@ -184,23 +215,34 @@ int main(int argc, char **argv)
         SetConsoleTitle( savetitle );
     }
 
-
-    if ( !ctrlobj.init( strCfgFile ) ) {
+    if ( !ctrlobj.init( strCfgFile, rootFolder ) ) {
 		ctrlobj.logMsg( _("Unable to initialize the vscpd application."), 
-                          DAEMON_LOGMSG_CRITICAL );
+                          DAEMON_LOGMSG_NORMAL );
+                          
+#if wxUSE_UNICODE
+        /* Clean up */
+        {
+            for ( int n = 0; n < argc; n++ ) {
+                free(wxArgv[n]);
+            }
+
+            delete [] wxArgv;
+        }
+#endif // wxUSE_UNICODE
+
 		::wxUninitialize();
 		return FALSE;
 	}
 
 	if ( !ctrlobj.run() ) {
 		ctrlobj.logMsg( _("Unable to start the vscpd application."), 
-                          DAEMON_LOGMSG_CRITICAL );
+                        DAEMON_LOGMSG_NORMAL );
 	}
 
 
     if ( !ctrlobj.cleanup() ) {
         ctrlobj.logMsg( _("Unable to clean up the vscpd application."), 
-                        DAEMON_LOGMSG_CRITICAL );
+                        DAEMON_LOGMSG_NORMAL );
     }
 
 #if wxUSE_UNICODE

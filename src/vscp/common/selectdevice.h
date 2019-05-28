@@ -1,55 +1,54 @@
 ///////////////////////////////////////////////////////////////////////////////
 // SelectDevice.h: interface for the CSelectDevice class.
 //
-// This file is part is part of CANAL (CAN Abstraction Layer)
-// http://www.vscp.org)
+// This file is part of the VSCP (http://www.vscp.org)
 //
-// Copyright (C) 2000-2014 
-// Grodans Paradis AB, <akhe@grodansparadis.com>
+// The MIT License (MIT)
 //
-// This library is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 2.1 of the License, or (at your option) any later version.
+// Copyright (c) 2000-2017 Ake Hedman, Grodans Paradis AB
+// <info@grodansparadis.com>
 //
-// This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// Lesser General Public License for more details.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-// You should have received a copy of the GNU Lesser General Public
-// License along with this library; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// $RCSfile: SelectDevice.h,v $                                       
-// $Date: 2005/09/25 13:37:00 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.4 $ 
-///////////////////////////////////////////////////////////////////////////////
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
-#if !defined(AFX_SELECTDEVICE_H__FC69EC9B_C8E4_4EBD_AEE6_1E0C277D5820__INCLUDED_)
-#define AFX_SELECTDEVICE_H__FC69EC9B_C8E4_4EBD_AEE6_1E0C277D5820__INCLUDED_
+#if !defined(SELECTDEVICE_H__FC69EC9B_C8E4_4EBD_AEE6_1E0C277D5820__INCLUDED_)
+#define SELECTDEVICE_H__FC69EC9B_C8E4_4EBD_AEE6_1E0C277D5820__INCLUDED_
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-    #pragma implementation "BootHexFileInfo.cpp"
-    #pragma interface "BootHexFileInfo.cpp"
+#pragma implementation "BootHexFileInfo.cpp"
+#pragma interface "BootHexFileInfo.cpp"
 #endif
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
-    #pragma hdrstop
+#pragma hdrstop
 #endif
 
 // for all others, include the necessary headers (this file is usually all you
 // need because it includes almost all "standard" wxWindows headers
 #ifndef WX_PRECOMP
-    #include "wx/wx.h"
+#include "wx/wx.h"
 #endif
 
 #include "wx/progdlg.h"
@@ -60,77 +59,69 @@
 //    #include "wiztest2.xpm"
 #endif
 
-
 #include "../common/canalsuperwrapper.h"
 
-class CSelectDevice  
+class CSelectDevice
 {
-public:
-	
-	CSelectDevice( wxListBox* plist = NULL );
+  public:
+    CSelectDevice(wxListBox *plist = NULL);
 
-	virtual ~CSelectDevice();
+    virtual ~CSelectDevice();
 
-	/*!
-		Get a numerical data value (hex or decimal) from a string
-		@param szData Strng containing value in string form
-		@return The converted number
-	*/
-	unsigned long getDataValue( const char *szData );
+    /*!
+        Get a numerical data value (hex or decimal) from a string
+        @param szData Strng containing value in string form
+        @return The converted number
+    */
+    unsigned long getDataValue(const char *szData);
 
+    /*!
+        Fill the device listbox with availabe devices
+    */
+    void fillListBox(void);
 
-	/*!
-		Fill the device listbox with availabe devices
-	*/
-	void fillListBox( void );
+    /*!
+        Load device data from the registry
+    */
+    void loadRegistryDeviceData(void);
 
+    /*!
+        Get selected device
+    */
+    void getSelectedDevice(int idx, devItem **pItem);
 
-	/*!
-		Load device data from the registry
-	*/
-	void loadRegistryDeviceData( void );
+    /*!
+        Get device profile
+        @param pDev Device item structure
+        @return true on success.
+    */
+    bool getDeviceProfile(int idx, devItem *pDev);
 
+    /*!
+        Edit device
+    */
+    void OnButtonEditDevice();
 
-	/*!
-		Get selected device
-	*/
-	void getSelectedDevice( int idx, devItem** pItem );
+    /*!
+        Add device
+    */
+    void OnButtonAddDevice();
 
+    /*!
+        Remove device
+    */
+    void OnButtonRemoveDevice();
 
-	/*!
-		Get device profile
-		@param pDev Device item structure
-		@return true on success.
-	*/
-	bool getDeviceProfile( int idx, devItem* pDev );
+  private:
+    /*!
+        List with device profiles from the registry
+    */
+    devItem *m_deviceList[256];
 
-	/*!
-		Edit device
-	*/
-	void OnButtonEditDevice();
-
-	/*!
-		Add device
-	*/
-	void OnButtonAddDevice() ;
-
-	/*!
-		Remove device
-	*/
-	void OnButtonRemoveDevice();
-
-
-private:
-
-	/*!
-		List with device profiles from the registry
-	*/
-	devItem *m_deviceList[ 256 ];
-
-	/*!
-		Listbox for the devices
-	*/
-	wxListBox* m_plistBox;
+    /*!
+        Listbox for the devices
+    */
+    wxListBox *m_plistBox;
 };
 
-#endif // !defined(AFX_SELECTDEVICE_H__FC69EC9B_C8E4_4EBD_AEE6_1E0C277D5820__INCLUDED_)
+#endif // !defined(SELECTDEVICE_H__FC69EC9B_C8E4_4EBD_AEE6_1E0C277D5820__INCLUDED_)

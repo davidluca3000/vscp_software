@@ -1,97 +1,74 @@
 // dlldrvobj.cpp : Defines the initialization routines for the DLL.
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version
-// 2 of the License, or (at your option) any later version.
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 
-// Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
+// The MIT License (MIT)
 // 
-// This file is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Copyright (c) 2000-2017 Ake Hedman, Grodans Paradis AB <info@grodansparadis.com>
 // 
-// You should have received a copy of the GNU General Public License
-// along with this file see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330,
-// Boston, MA 02111-1307, USA.
-//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#ifdef WIN32
+#include <winsock2.h>
+#endif
 
 #include "stdio.h"
 #include "stdlib.h"
 #include "dlldrvobj.h"
-#include "can4vscpobj.h"
 
-#ifdef WIN32
 
-#else
-
-void _init() __attribute__((constructor));
-void _fini() __attribute__((destructor));
-
-void _init() {printf("initializing\n");}
-void _fini() {printf("finishing\n");}
-
-#endif
-
-/////////////////////////////////////////////////////////////////////////////
-// CDllDrvObj
 
 ////////////////////////////////////////////////////////////////////////////
-// CDllDrvObj construction
+// CHelpDllObj construction
 
-CDllDrvObj::CDllDrvObj()
+CHelpDllObj::CHelpDllObj()
 {
 	m_instanceCounter = 0;
-#ifdef WIN32
-	m_objMutex = CreateMutex( NULL, true, "__CANAL_CAN4VSCP_MUTEX__" );
-#else
-	pthread_mutex_init( &m_objMutex, NULL );
-#endif
 
 	// Init the driver array
-	for ( int i = 0; i<CANAL_CAN4VSCP_DRIVER_MAX_OPEN; i++ ) {
+	for ( int i = 0; i<VSCP_HELPER_MAX_OPEN; i++ ) {
 		m_drvObjArray[ i ] = NULL;
 	}
-
-	UNLOCK_MUTEX( m_objMutex );
 }
 
 
-CDllDrvObj::~CDllDrvObj()
+CHelpDllObj::~CHelpDllObj()
 {
-	LOCK_MUTEX( m_objMutex );
+    m_mutex.Lock();
 	
-	for ( int i = 0; i<CANAL_CAN4VSCP_DRIVER_MAX_OPEN; i++ ) {
+	for ( int i = 0; i<VSCP_HELPER_MAX_OPEN; i++ ) {
 		
-		if ( NULL == m_drvObjArray[ i ] ) {
+		if ( NULL != m_drvObjArray[ i ] ) {
 			
-			CCan4VSCPObj *pdrvObj =  getDriverObject( i );
+			VscpRemoteTcpIf *pdrvObj =  getDriverObject( i );
 			if ( NULL != pdrvObj ) { 
-				pdrvObj->close();	
+				pdrvObj->doCmdClose();	
 				delete m_drvObjArray[ i ];
 				m_drvObjArray[ i ] = NULL; 
 			}
 		}
 	}
 
-	UNLOCK_MUTEX( m_objMutex );
+    m_mutex.Unlock();
 
-#ifdef WIN32
-	CloseHandle( m_objMutex );
-#else	
-	pthread_mutex_destroy( &m_objMutex );
-#endif
 }
-
-/////////////////////////////////////////////////////////////////////////////
-// The one and only CDllDrvObjgerdllApp object
-
-//CDllDrvObj theApp;
 
 
 
@@ -99,12 +76,12 @@ CDllDrvObj::~CDllDrvObj()
 // addDriverObject
 //
 
-long CDllDrvObj::addDriverObject( CCan4VSCPObj *pdrvObj )
+long CHelpDllObj::addDriverObject( VscpRemoteTcpIf *pdrvObj )
 {
 	long h = 0;
 
-	LOCK_MUTEX( m_objMutex );
-	for ( int i=0; i<CANAL_CAN4VSCP_DRIVER_MAX_OPEN; i++ ) {
+    m_mutex.Lock();
+	for ( int i=0; i<VSCP_HELPER_MAX_OPEN; i++ ) {
 	
 		if ( NULL == m_drvObjArray[ i ] ) {
 		
@@ -116,7 +93,7 @@ long CDllDrvObj::addDriverObject( CCan4VSCPObj *pdrvObj )
 
 	}
 
-	UNLOCK_MUTEX( m_objMutex );
+    m_mutex.Unlock();
 
 	return h;
 }
@@ -126,13 +103,13 @@ long CDllDrvObj::addDriverObject( CCan4VSCPObj *pdrvObj )
 // getDriverObject
 //
 
-CCan4VSCPObj * CDllDrvObj::getDriverObject( long h )
+VscpRemoteTcpIf * CHelpDllObj::getDriverObject( long h )
 {
 	long idx = h - 1681;
 
 	// Check if valid handle
 	if ( idx < 0 ) return NULL;
-	if ( idx >= CANAL_CAN4VSCP_DRIVER_MAX_OPEN ) return NULL;
+	if ( idx >= VSCP_HELPER_MAX_OPEN ) return NULL;
 	return m_drvObjArray[ idx ];
 }
 
@@ -141,25 +118,33 @@ CCan4VSCPObj * CDllDrvObj::getDriverObject( long h )
 // removeDriverObject
 //
 
-void CDllDrvObj::removeDriverObject( long h )
+void CHelpDllObj::removeDriverObject( long h )
 {
 	long idx = h - 1681;
 
 	// Check if valid handle
 	if ( idx < 0 ) return;
-	if ( idx >= CANAL_CAN4VSCP_DRIVER_MAX_OPEN ) return;
+	if ( idx >= VSCP_HELPER_MAX_OPEN ) return;
 
-	LOCK_MUTEX( m_objMutex );
-	if ( NULL != m_drvObjArray[ idx ] ) delete m_drvObjArray[ idx ];
+	//LOCK_MUTEX( m_objMutex );
+    m_mutex.Lock();
+	if ( NULL != m_drvObjArray[ idx ] ) 
+    {
+        delete m_drvObjArray[ idx ];
+    }
 	m_drvObjArray[ idx ] = NULL;
-	UNLOCK_MUTEX( m_objMutex );
+	//UNLOCK_MUTEX( m_objMutex );
+    m_mutex.Unlock();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // InitInstance
 
-BOOL CDllDrvObj::InitInstance() 
+BOOL CHelpDllObj::InitInstance() 
 {
+    // http://osdir.com/ml/lib.wxwindows.general/2004-01/msg00759.html
+    // http://sudarsun.in/blog/2009/02/error-can-not-start-thread-error-writing-tls-error-87-the-parameter-is-incorrect/
+    //wxInitialize();
 	m_instanceCounter++;
 	return TRUE;
 }

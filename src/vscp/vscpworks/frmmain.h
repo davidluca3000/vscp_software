@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     Mon 16 Apr 2007 18:19:49 CEST
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -38,7 +38,7 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+// 
 
 #ifndef _FRMMAINNOMIDI_H_
 #define _FRMMAINNOMIDI_H_
@@ -51,45 +51,112 @@
  * Includes
  */
 
-////@begin includes
 #include "wx/frame.h"
 #include "wx/statusbr.h"
 #include "wx/toolbar.h"
-////@end includes
+#include "wx/treectrl.h"
+#include "wx/html/htmlwin.h"
+#include <wx/timer.h>
 
-#include "../common/canal.h"
+#include <canal.h>
+#include <vscpmulticast.h>
 
-/*!
- * Forward declarations
- */
-
-////@begin forward declarations
-////@end forward declarations
-
-/*!
- * Control identifiers
- */
-
-////@begin control identifiers
+// Control identifiers
 #define SYMBOL_FRMMAIN_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
 #define SYMBOL_FRMMAIN_TITLE _("VSCP-Works")
 #define SYMBOL_FRMMAIN_IDNAME ID_FRMMAIN
 #define SYMBOL_FRMMAIN_SIZE wxSize(600, 310)
 #define SYMBOL_FRMMAIN_POSITION wxPoint(1, 1)
-////@end control identifiers
 
-/*!
- * Compatibility
- */
 
+// Compatibility
 #ifndef wxCLOSE_BOX
 #define wxCLOSE_BOX 0x1000
 #endif
 
+// Forward declarations
+class frmMain;
 
-/*!
- * frmMain class declaration
- */
+enum clientdatatype {
+    CLIENT_SERVER = 0,
+    CLIENT_NODE
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// serverClientData
+//
+
+/*class serverClientData : public wxTreeItemData
+{
+
+public:
+
+    serverClientData( CVSCPServerInformation* psrv )
+        : wxTreeItemData()
+    {
+        m_serverInformation = *psrv;
+    };
+
+    CVSCPServerInformation m_serverInformation;
+};*/
+
+///////////////////////////////////////////////////////////////////////////////
+// nodeClientData
+//
+
+class  nodeClientData : public wxTreeItemData
+{
+
+public:
+
+    nodeClientData( clientdatatype type )
+        : wxTreeItemData()
+    {
+        m_type = type;
+    };
+
+public:
+
+    clientdatatype m_type;
+
+    //CNodeInformation m_nodeInformation; TODO
+    //CVSCPServerInformation m_serverInformation; TODO
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// RenderTimer
+//
+
+class RenderTimer : public wxTimer
+{
+
+public:
+    RenderTimer( frmMain *pwnd, worksMulticastThread  *pThread );
+
+    void Notify();
+    void start();
+
+    // Last number of known nodes if this differs with current
+    // number interface data should be updated
+    uint16_t m_nLastKnownNodes; 
+
+    // Last number of known servers if this differs with current
+    // number interface data should be updated
+    uint16_t m_nLastKnownServers;
+
+    frmMain* m_pwnd; // Main window
+
+    // The multicast thread
+    // The threadobject holds information about discovered nodes
+    // !!!! MUST BE protected by wxGetApp().m_mutexmulticastWorkerThread !!!!
+    worksMulticastThread* m_multicastThread;  
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// frmMain
+//
 
 class frmMain: public wxFrame
 {    
@@ -99,9 +166,19 @@ class frmMain: public wxFrame
 public:
     /// Constructors
     frmMain();
-    frmMain( wxWindow* parent, wxWindowID id = SYMBOL_FRMMAIN_IDNAME, const wxString& caption = SYMBOL_FRMMAIN_TITLE, const wxPoint& pos = SYMBOL_FRMMAIN_POSITION, const wxSize& size = SYMBOL_FRMMAIN_SIZE, long style = SYMBOL_FRMMAIN_STYLE );
+    frmMain( wxWindow* parent, 
+                wxWindowID id = SYMBOL_FRMMAIN_IDNAME, 
+                const wxString& caption = SYMBOL_FRMMAIN_TITLE, 
+                const wxPoint& pos = SYMBOL_FRMMAIN_POSITION, 
+                const wxSize& size = SYMBOL_FRMMAIN_SIZE, 
+                long style = SYMBOL_FRMMAIN_STYLE );
 
-    bool Create( wxWindow* parent, wxWindowID id = SYMBOL_FRMMAIN_IDNAME, const wxString& caption = SYMBOL_FRMMAIN_TITLE, const wxPoint& pos = SYMBOL_FRMMAIN_POSITION, const wxSize& size = SYMBOL_FRMMAIN_SIZE, long style = SYMBOL_FRMMAIN_STYLE );
+    bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_FRMMAIN_IDNAME, 
+                    const wxString& caption = SYMBOL_FRMMAIN_TITLE, 
+                    const wxPoint& pos = SYMBOL_FRMMAIN_POSITION, 
+                    const wxSize& size = SYMBOL_FRMMAIN_SIZE, 
+                    long style = SYMBOL_FRMMAIN_STYLE );
 
     /// Destructor
     ~frmMain();
@@ -112,83 +189,100 @@ public:
     /// Creates the controls and sizers
     void CreateControls();
 
-////@begin frmMain event handler declarations
 
-  /// wxEVT_CLOSE_WINDOW event handler for ID_FRMMAIN
-  void OnCloseWindow( wxCloseEvent& event );
+    /// wxEVT_CLOSE_WINDOW event handler for ID_FRMMAIN
+    void OnCloseWindow( wxCloseEvent& event );
 
-  /// wxEVT_PAINT event handler for ID_FRMMAIN
-  void OnPaint( wxPaintEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_OPEN_VSCP_SESSION
+    void OnMenuitemOpenVscpSessionClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_OPEN_VSCP_SESSION
-  void OnMenuitemOpenVscpSessionClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_DEVICE_CONFIGURATION
+    void OnMenuitemOpenConfigSessionClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_DEVICE_CONFIGURATION
-  void OnMenuitemOpenConfigSessionClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_MDF_EDITOR
+    void OnMenuitemMdfEditorClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_MDF_EDITOR
-  void OnMenuitemMdfEditorClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_DM_EDITOR
+    void OnMenuitemOpenDaemonDMEditorClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_DM_EDITOR
-  void OnMenuitemOpenDaemonDMEditorClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_VARIABLE_EDITOR
+    void OnMenuitemOpenDaemonVariableEditorClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_VARIABLE_EDITOR
-  void OnMenuitemOpenDaemonVariableEditorClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_SCAN
+    void OnMenuitemScanClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_SCAN
-  void OnMenuitemScanClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_BOOTLOADER_WIZARD
+    void OnMenuitemBootloaderWizardClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_BOOTLOADER_WIZARD
-  void OnMenuitemBootloaderWizardClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_SIMPLE_UI_DESIGNER
+    void OnMenuitemOpenSimpleUIdesignerClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_SIMPLE_UI_DESIGNER
-  void OnMenuitemOpenSimpleUIdesignerClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_MERLIN
+    void OnMenuitemMerlinClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_MERLIN
-  void OnMenuitemMerlinClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_VSCPWORKS_EXIT
+    void OnMenuitemAppExitClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENU_VSCPWORKS_EXIT
-  void OnMenuitemAppExitClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_CONFIGURATION
+    void OnMenuitemConfigurationClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_CONFIGURATION
-  void OnMenuitemConfigurationClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM33
+    void OnMenuitemHelpClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM33
-  void OnMenuitemHelpClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM34
+    void OnMenuitemFaqClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM34
-  void OnMenuitemFaqClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM35
+    void OnMenuitemShortcutsClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM35
-  void OnMenuitemShortcutsClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_THANKS
+    void OnMenuitemThanksClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_THANKS
-  void OnMenuitemThanksClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_CREDITS
+    void OnMenuitemCrediitsClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_CREDITS
-  void OnMenuitemCrediitsClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_VSCP_SITE
+    void OnMenuitemVSCPSiteClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_VSCP_SITE
-  void OnMenuitemVSCPSiteClick( wxCommandEvent& event );
+    /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_ABOUT
+    void OnMenuitemAboutClick( wxCommandEvent& event );
 
-  /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_MENUITEM_ABOUT
-  void OnMenuitemAboutClick( wxCommandEvent& event );
 
-////@end frmMain event handler declarations
+    /// Retrieves bitmap resources
+    wxBitmap GetBitmapResource( const wxString& name );
 
-////@begin frmMain member function declarations
+    /// Retrieves icon resources
+    wxIcon GetIconResource( const wxString& name );
 
-  /// Retrieves bitmap resources
-  wxBitmap GetBitmapResource( const wxString& name );
+    /*!
+        Fill default contents
+    */
+    void addDefaultContent( void );
 
-  /// Retrieves icon resources
-  wxIcon GetIconResource( const wxString& name );
-////@end frmMain member function declarations
+    /// wxEVT_COMMAND_TREE_SEL_CHANGED event handler for ID_TREECTRL
+    void OnTreectrlSelChanged( wxTreeEvent& event );
+
+    /// wxEVT_LEFT_DOWN event handler for ID_TREECTRL
+    void OnLeftDown( wxMouseEvent& event );
+
+    /// wxEVT_LEFT_DCLICK event handler for ID_TREECTRL
+    void OnLeftDClick( wxMouseEvent& event );
 
     /// Should we show tooltips?
     static bool ShowToolTips();
 
-////@begin frmMain member variables
+    /// Root item of the list
+    wxTreeItemId m_rootItem;
+
+    /// Module item of the list
+    wxTreeItemId m_moduleServerItem;
+
+    /// Module item of the list
+    wxTreeItemId m_moduleNodeItem;
+
+    /// Timer for discovery updates
+    RenderTimer* m_timerDiscovery;
+
   /// Control identifiers
   enum {
     ID_FRMMAIN = 12000,
@@ -213,9 +307,20 @@ public:
     ID_STATUSBAR = 12025,
     ID_TOOLBAR = 12026,
     ID_TOOL = 12027,
-    ID_PANEL1 = 10031
+    ID_PANEL1 = 10031,
+    ID_TREECTRL = 10032,
+    ID_HTMLWINDOW2 = 10033
   };
-////@end frmMain member variables
+
+
+  /*!
+    Bitmap for VSCP Logo
+  */
+  wxStaticBitmap* m_pStaticBitmapLogo;
+  wxStatusBar* m_pitemStatusBar;
+  wxTreeCtrl* m_nodeTree;
+  wxHtmlWindow* m_htmlInfoWnd;
+
 };
 
 #endif

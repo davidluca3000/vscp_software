@@ -4,7 +4,7 @@
 // This file is part is part of CANAL (CAN Abstraction Layer)
 // http://www.vscp.org)
 //
-// Copyright (C) 2000-2012 
+// Copyright (C) 2000-2019 Ake Hedman,
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 //
 // This library is free software; you can redistribute it and/or
@@ -73,7 +73,7 @@ bool CCAN232Obj::open(const char *pDevice, unsigned long flags)
     //----------------------------------------------------------------------
     //	Set default parameters
     //----------------------------------------------------------------------
-    char MODEMDEVICE[20] = "/dev/ttyS0";
+    char modemDevice[80] = "/dev/ttyS0";
     char nBaudRate[10] = "57600";
     unsigned long nMask = 0;
     unsigned long nFilter = 0;
@@ -83,7 +83,7 @@ bool CCAN232Obj::open(const char *pDevice, unsigned long flags)
 
 
     //----------------------------------------------------------------------
-    //	Accure Mutex
+    //	acquire Mutex
     //----------------------------------------------------------------------
     pthread_attr_t thread_attr;
     pthread_attr_init(&thread_attr);
@@ -99,7 +99,7 @@ bool CCAN232Obj::open(const char *pDevice, unsigned long flags)
     //----------------------------------------------------------------------
     // Port
     p = strtok((char *) pDevice, ";");
-    if (NULL != p) strncpy(MODEMDEVICE, p, strlen(p));
+    if (NULL != p) strncpy(modemDevice, p, strlen(p));
 
     // Baudrate
     p = strtok(NULL, ";");
@@ -142,18 +142,18 @@ bool CCAN232Obj::open(const char *pDevice, unsigned long flags)
     //----------------------------------------------------------------------
     // Open Serial Port
     //----------------------------------------------------------------------
-    if (!m_can232obj.m_comm.open(MODEMDEVICE)) {
-        syslog(LOG_CRIT, "can232obj: Open [%s] failed\n", MODEMDEVICE);
+    if (!m_can232obj.m_comm.open(modemDevice)) {
+        syslog(LOG_CRIT, "can232obj: Open [%s] failed\n", modemDevice);
         return 0;
     }
 
-    syslog(LOG_CRIT, "can232obj: Open [%s] successful\n", MODEMDEVICE);
+    syslog(LOG_CRIT, "can232obj: Open [%s] successful\n", modemDevice);
     rv = true;
 
     //----------------------------------------------------------------------
     // Comm::setParam( char *baud, char *parity, char *bits, int HWFlow, int SWFlow )
     //----------------------------------------------------------------------
-    m_can232obj.m_comm.setParam(nBaudRate, (char*) "N", (char*) "8", 0, 0);
+    m_can232obj.m_comm.setParam(nBaudRate, (char*)"N", (char*)"8", 0, 0);
 
     //----------------------------------------------------------------------
     //
@@ -420,6 +420,12 @@ int CCAN232Obj::close(void)
     }
 
     // Give the worker thread some time to terminate
+#ifdef WIN32
+	Sleep( 1000 );
+#else
+	sleep( 1 );
+#endif	
+	
     int *trv;
     pthread_join(m_threadId, (void **) &trv);
     pthread_mutex_destroy(&m_can232ObjMutex);
@@ -583,7 +589,7 @@ int CCAN232Obj::dataAvailable(void)
 //	getStatistics
 //------------------------------------------------------------------------------
 
-bool CCAN232Obj::getStatistics(PCANALSTATISTICS pCanalStatistics)
+bool CCAN232Obj::getStatistics(PCANALSTATISTICS& pCanalStatistics)
 {
     pCanalStatistics = &m_can232obj.m_stat;
     return true;
@@ -663,8 +669,8 @@ void *workThread(void *pObject)
                     // add message to it
                     if (pcan232obj->m_can232obj.m_rcvList.nCount < CAN232_MAX_RCVMSG) {
                         PCANALMSG pMsg = new canalMsg;
-                        pMsg->flags = 0;
                         if (NULL != pMsg) {
+                            pMsg->flags = 0;
                             dllnode *pNode = new dllnode;
                             if (NULL != pNode) {
                                 printf("workThread R - m_receiveBuf = [%s]\n", pcan232obj->m_can232obj.m_receiveBuf);
@@ -674,7 +680,7 @@ void *workThread(void *pObject)
                                     printf("%02X ", pcan232obj->m_can232obj.m_receiveBuf[i]);
                                 }
                                 printf("]\n");
-                                if (!can232ToCanal(pcan232obj->m_can232obj.m_receiveBuf, pMsg)) {
+                                if (can232ToCanal(pcan232obj->m_can232obj.m_receiveBuf, pMsg)) {
                                     pNode->pObject = pMsg;
                                     dll_addNode(&pcan232obj->m_can232obj.m_rcvList, pNode);
                                     // Update statistics
@@ -810,7 +816,7 @@ void *workThread(void *pObject)
 
 bool can232ToCanal(char * p, PCANALMSG pMsg)
 {
-    bool rv = false;
+    bool rv = true;
     int val;
     short data_offset; // Offset to dlc byte
     char save;
@@ -848,26 +854,32 @@ bool can232ToCanal(char * p, PCANALMSG pMsg)
         sscanf(p + 1, "%lx", &pMsg->id);
         p[ 9 ] = save;
     }
-
-    save = *(p + data_offset + 2 * pMsg->sizeData);
-
-    if (!(pMsg->flags & CANAL_IDFLAG_RTR)) {
-        for (int i = pMsg->sizeData; i > 0; i--) {
-            *(p + data_offset + 2 * (i - 1) + 2) = 0;
-            sscanf(p + data_offset + 2 * (i - 1), "%x", &val);
-            pMsg->data[ i - 1 ] = val;
-        }
+    else {
+        rv = false;
     }
+    
+    if ( false != rv ) {
 
-    *(p + data_offset + 2 * pMsg->sizeData) = save;
+        save = *(p + data_offset + 2 * pMsg->sizeData);
 
-    // If timestamp is actve - fetch it
-    if (0x0d != *(p + data_offset + 2 * pMsg->sizeData)) {
-        p[ data_offset + 2 * (pMsg->sizeData) + 4 ] = 0;
-        sscanf((p + data_offset + 2 * (pMsg->sizeData)), "%x", &val);
-        pMsg->timestamp = val * 1000; // microseconds 
-    } else {
-        pMsg->timestamp = 0;
+        if (!(pMsg->flags & CANAL_IDFLAG_RTR)) {
+            for (int i = pMsg->sizeData; i > 0; i--) {
+                *(p + data_offset + 2 * (i - 1) + 2) = 0;
+                sscanf(p + data_offset + 2 * (i - 1), "%x", &val);
+                pMsg->data[ i - 1 ] = val;
+            }
+        }
+
+        *(p + data_offset + 2 * pMsg->sizeData) = save;
+
+        // If timestamp is actve - fetch it
+        if (0x0d != *(p + data_offset + 2 * pMsg->sizeData)) {
+            p[ data_offset + 2 * (pMsg->sizeData) + 4 ] = 0;
+            sscanf((p + data_offset + 2 * (pMsg->sizeData)), "%x", &val);
+            pMsg->timestamp = val * 1000; // microseconds 
+        } else {
+            pMsg->timestamp = 0;
+        }
     }
 
     return rv;

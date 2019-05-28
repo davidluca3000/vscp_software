@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     18/05/2009 17:14:13
 // RCS-ID:      
-// Copyright:   (C) 2009-2014 
+// Copyright:   (C) 2009-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -37,7 +37,7 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+//
 
 #ifndef _DLGABOUT_H_
 #define _DLGABOUT_H_
@@ -50,31 +50,24 @@
  * Includes
  */
 
-////@begin includes
 #include "dlgabout_symbols.h"
 #include "wx/html/htmlwin.h"
-////@end includes
 
 /*!
  * Forward declarations
  */
 
-////@begin forward declarations
-////@end forward declarations
+
 
 /*!
  * Control identifiers
  */
 
-////@begin control identifiers
 #define SYMBOL_DLGABOUT_STYLE wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX|wxTAB_TRAVERSAL
 #define SYMBOL_DLGABOUT_TITLE _("About VSCP Works...")
 #define SYMBOL_DLGABOUT_IDNAME ID_DLGABOUT
 #define SYMBOL_DLGABOUT_SIZE wxSize(400, 500)
 #define SYMBOL_DLGABOUT_POSITION wxDefaultPosition
-////@end control identifiers
-
-
 
 
 /*!
@@ -89,10 +82,20 @@ class dlgAbout: public wxDialog
 public:
   /// Constructors
   dlgAbout();
-  dlgAbout( wxWindow* parent, wxWindowID id = SYMBOL_DLGABOUT_IDNAME, const wxString& caption = SYMBOL_DLGABOUT_TITLE, const wxPoint& pos = SYMBOL_DLGABOUT_POSITION, const wxSize& size = SYMBOL_DLGABOUT_SIZE, long style = SYMBOL_DLGABOUT_STYLE );
+  dlgAbout( wxWindow* parent, 
+                wxWindowID id = SYMBOL_DLGABOUT_IDNAME, 
+                const wxString& caption = SYMBOL_DLGABOUT_TITLE, 
+                const wxPoint& pos = SYMBOL_DLGABOUT_POSITION, 
+                const wxSize& size = SYMBOL_DLGABOUT_SIZE, 
+                long style = SYMBOL_DLGABOUT_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DLGABOUT_IDNAME, const wxString& caption = SYMBOL_DLGABOUT_TITLE, const wxPoint& pos = SYMBOL_DLGABOUT_POSITION, const wxSize& size = SYMBOL_DLGABOUT_SIZE, long style = SYMBOL_DLGABOUT_STYLE );
+  bool Create( wxWindow* parent, 
+                wxWindowID id = SYMBOL_DLGABOUT_IDNAME, 
+                const wxString& caption = SYMBOL_DLGABOUT_TITLE, 
+                const wxPoint& pos = SYMBOL_DLGABOUT_POSITION, 
+                const wxSize& size = SYMBOL_DLGABOUT_SIZE, 
+                long style = SYMBOL_DLGABOUT_STYLE );
 
   /// Destructor
   ~dlgAbout();
@@ -103,29 +106,21 @@ public:
   /// Creates the controls and sizers
   void CreateControls();
 
-////@begin dlgAbout event handler declarations
-
-////@end dlgAbout event handler declarations
-
-////@begin dlgAbout member function declarations
-
   /// Retrieves bitmap resources
   wxBitmap GetBitmapResource( const wxString& name );
 
   /// Retrieves icon resources
   wxIcon GetIconResource( const wxString& name );
-////@end dlgAbout member function declarations
 
   /// Should we show tooltips?
   static bool ShowToolTips();
 
-////@begin dlgAbout member variables
   /// Control identifiers
   enum {
     ID_DLGABOUT = 26000,
     ID_HTMLWINDOW = 26001
   };
-////@end dlgAbout member variables
+
 };
 
 #endif

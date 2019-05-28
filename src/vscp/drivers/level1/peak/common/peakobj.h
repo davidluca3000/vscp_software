@@ -7,7 +7,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2015 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
@@ -20,13 +20,10 @@
 // the Free Software Foundation, 59 Temple Place - Suite 330,
 // Boston, MA 02111-1307, USA.
 //
-// $RCSfile: peakobj.h,v $                                       
-// $Date: 2005/08/10 18:15:09 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.6 $ 
+//  
 
-#if !defined(AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
-#define AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_
+#if !defined(IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
+#define IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_
 
 #ifdef WIN32
 
@@ -46,10 +43,10 @@
 
 #endif
 
-#include "../../../../common/canal.h"
-#include "../../../../common/vscp.h"
-#include "../../../../common/canal_macro.h"
-#include "../../../../../common/dllist.h"
+#include <canal.h>
+#include <vscp.h>
+#include <canal_macro.h>
+#include <dllist.h>
 
 // PEAK Defines
 
@@ -95,9 +92,9 @@ typedef DWORD (__stdcall *LPFNDLL_WRITE )( PeakCanMsg* pMsgBuff );
 typedef DWORD (__stdcall *LPFNDLL_READ )( PeakCanMsg* pMsgBuff );
 typedef DWORD (__stdcall *LPFNDLL_VERSIONINFO )( LPSTR lpversioninfo );
 
-#define CANAL_DLL_PEAKDRV_OBJ_MUTEX	"___CANAL__DLL_PEAKDRV_OBJ_MUTEX____"
-#define CANAL_DLL_PEAKDRV_RECEIVE_MUTEX	"___CANAL__DLL_PEAKDRV_RECEIVE_MUTEX____"
-#define CANAL_DLL_PEAKDRV_TRANSMIT_MUTEX "___CANAL__DLL_PEAKDRV_TRANSMIT_MUTEX____"
+#define CANAL_DLL_PEAKDRV_OBJ_MUTEX			TEXT("___CANAL__DLL_PEAKDRV_OBJ_MUTEX____")
+#define CANAL_DLL_PEAKDRV_RECEIVE_MUTEX		TEXT("___CANAL__DLL_PEAKDRV_RECEIVE_MUTEX____")
+#define CANAL_DLL_PEAKDRV_TRANSMIT_MUTEX	TEXT("___CANAL__DLL_PEAKDRV_TRANSMIT_MUTEX____")
 
 
 
@@ -494,4 +491,4 @@ public:
  
 };
 
-#endif // !defined(AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
+#endif // !defined(IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)

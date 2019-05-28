@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     04/01/2009 11:55:25
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -86,10 +86,20 @@ class dlgSelectDaemonInterface: public wxDialog
 public:
   /// Constructors
   dlgSelectDaemonInterface();
-  dlgSelectDaemonInterface( wxWindow* parent, wxWindowID id = SYMBOL_DLGSELECTDAEMONINTERFACE_IDNAME, const wxString& caption = SYMBOL_DLGSELECTDAEMONINTERFACE_TITLE, const wxPoint& pos = SYMBOL_DLGSELECTDAEMONINTERFACE_POSITION, const wxSize& size = SYMBOL_DLGSELECTDAEMONINTERFACE_SIZE, long style = SYMBOL_DLGSELECTDAEMONINTERFACE_STYLE );
+  dlgSelectDaemonInterface( wxWindow* parent, 
+                                wxWindowID id = SYMBOL_DLGSELECTDAEMONINTERFACE_IDNAME, 
+                                const wxString& caption = SYMBOL_DLGSELECTDAEMONINTERFACE_TITLE, 
+                                const wxPoint& pos = SYMBOL_DLGSELECTDAEMONINTERFACE_POSITION, 
+                                const wxSize& size = SYMBOL_DLGSELECTDAEMONINTERFACE_SIZE, 
+                                long style = SYMBOL_DLGSELECTDAEMONINTERFACE_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DLGSELECTDAEMONINTERFACE_IDNAME, const wxString& caption = SYMBOL_DLGSELECTDAEMONINTERFACE_TITLE, const wxPoint& pos = SYMBOL_DLGSELECTDAEMONINTERFACE_POSITION, const wxSize& size = SYMBOL_DLGSELECTDAEMONINTERFACE_SIZE, long style = SYMBOL_DLGSELECTDAEMONINTERFACE_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DLGSELECTDAEMONINTERFACE_IDNAME, 
+                    const wxString& caption = SYMBOL_DLGSELECTDAEMONINTERFACE_TITLE, 
+                    const wxPoint& pos = SYMBOL_DLGSELECTDAEMONINTERFACE_POSITION, 
+                    const wxSize& size = SYMBOL_DLGSELECTDAEMONINTERFACE_SIZE, 
+                    long style = SYMBOL_DLGSELECTDAEMONINTERFACE_STYLE );
 
   /// Destructor
   ~dlgSelectDaemonInterface();

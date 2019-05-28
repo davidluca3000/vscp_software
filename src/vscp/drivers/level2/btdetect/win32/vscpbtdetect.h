@@ -4,7 +4,7 @@
 // This file is part is part of CANAL (CAN Abstraction Layer)
 // http://can.sourceforge.net)
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2019 Ake Hedman, 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 //
 // This library is free software; you can redistribute it and/or
@@ -51,11 +51,16 @@
 #include <wx/file.h>
 #include <wx/wfstream.h>
 
-#include "../../../../common/canal.h"
-#include "../../../../common/vscp.h"
-#include "../../../../common/canal_macro.h"
-#include "../../../../../common/dllist.h"
-#include "../../../../common/vscptcpif.h"
+#include <canal.h>
+#include <vscp.h>
+#include <canal_macro.h>
+#include <dllist.h>
+#include <vscpremotetcpif.h>
+
+#include <list>
+#include <string>
+
+using namespace std;
 
 // Forward declarations
 class CVSCPBTDetectWrkTread;
@@ -99,7 +104,7 @@ public:
 	/// Destructor
 	virtual ~CVSCPBTDetect();
 
-    	/*! 
+    /*! 
 		Open the Bluetooth detecter
 
 		@param Configuration string
@@ -118,6 +123,13 @@ public:
 		Flush and close the log file
 	*/
 	void close( void );
+
+    /*!
+        Add event to send queue
+        @param pEvent Event to add to queue
+        @return True on success
+    */
+    bool addEvent2SendQueue( const vscpEvent *pEvent );
 
 public:
 
@@ -145,6 +157,19 @@ public:
     /// Pointer to worker thread
     CVSCPBTDetectWrkTread *m_pthreadWork;
 
+    // Queue
+    std::list<vscpEvent*> m_sendList;
+    std::list<vscpEvent*> m_receiveList;
+
+    /*!
+    Event object to indicate that there is an event in the output queue
+    */
+    wxSemaphore m_semSendQueue;
+    wxSemaphore m_semReceiveQueue;
+
+    // Mutex to protect the output queue
+    pthread_mutex_t m_mutexSendQueue;
+    pthread_mutex_t m_mutexReceiveQueue;
 };
 
 
@@ -176,11 +201,14 @@ public:
 	*/
  	virtual void OnExit();
 
+    /// Send event
+    bool CVSCPBTDetectWrkTread::sendEvent( vscpEventEx& eventEx );
+
     /// VSCP server interface
-    VscpTcpIf m_srv;
+    VscpRemoteTcpIf m_srv;
 
     /// Mama pointer
-    CVSCPBTDetect *m_pobj;
+    CVSCPBTDetect *m_pObj;
 };
 
 

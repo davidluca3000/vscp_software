@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     18/05/2009 17:14:13
 // RCS-ID:      
-// Copyright:   (C) 2009-2014 
+// Copyright:   (C) 2009-2018
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -37,7 +37,7 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+//
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
 #pragma implementation "dlgabout.h"
@@ -54,18 +54,17 @@
 #include "wx/wx.h"
 #endif
 
-////@begin includes
-////@end includes
 
-#include "../common/version.h"
+
+#include "version.h"
 #include "dlgabout.h"
 
-#define HTML _("<html><head><meta content=\"text/html; charset=ISO-8859-1\"  http-equiv=\"content-type\"><title></title></head><body><h1 style=\"text-align: center;\">VSCP Works</h1><div style=\"text-align: center;\"><span style=\"font-weight: bold;\">Copyright (c) 2000-2014</span><br> Ake Hedman, Grodans Paradis AB &lt;<a href=\"mailto:akhe@grodansparadis.com\">akhe@grodansparadis.com</a>&gt;<br>Copyright (c) 2012</span> Dinesh Guleria</br>. <a href=\"http://www.grodansparadis.com\">http://www.grodansparadis.com</a><br><br>Part of the VSCP &amp; friends package.<br><span style=\"font-weight: bold;\">VSCP site:</span> <a href=\"http://www.vscp.org\">http://www.vscp.org</a><br><br><h3><span style=\"font-weight: bold;\">Version</span>:%d.%d.%d.%d</h3></div></body></html>") 
+#define HTML _("<html><head><meta content=\"text/html; charset=ISO-8859-1\"  http-equiv=\"content-type\"><title></title></head><body><h1 style=\"text-align: center;\">VSCP Works</h1><div style=\"text-align: center;\"><span style=\"font-weight: bold;\">\
+        Copyright (c) 2000-2017</span><br> Grodans Paradis AB &lt;<a href=\"mailto:info@grodansparadis.com\">info@grodansparadis.com</a>&gt<br><a href=\"http://www.grodansparadis.com\">http://www.grodansparadis.com</a>\
+        <br><br>Part of the VSCP &amp; friends package.<br><span style=\"font-weight: bold;\">VSCP site:</span> <a href=\"http://www.vscp.org\">http://www.vscp.org</a><br><br><h3><span style=\"font-weight: bold;\">Version</span>:%s</h3></div></body></html>") 
 
 static const wxChar *about_html[] = { HTML  };
 
-
-////@begin XPM images
 /* XPM */
 static const char *fatbee_v2_xpm[] = {
 /* columns rows colors chars-per-pixel */
@@ -358,7 +357,6 @@ static const char *fatbee_v2_xpm[] = {
 "                                                                "
 };
 
-////@end XPM images
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -374,8 +372,6 @@ IMPLEMENT_DYNAMIC_CLASS( dlgAbout, wxDialog )
 
 BEGIN_EVENT_TABLE( dlgAbout, wxDialog )
 
-////@begin dlgAbout event table entries
-////@end dlgAbout event table entries
 
 END_EVENT_TABLE()
 
@@ -386,13 +382,18 @@ END_EVENT_TABLE()
 
 dlgAbout::dlgAbout()
 {
-  Init();
+    Init();
 }
 
-dlgAbout::dlgAbout( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+dlgAbout::dlgAbout( wxWindow* parent, 
+                        wxWindowID id, 
+                        const wxString& caption, 
+                        const wxPoint& pos, 
+                        const wxSize& size, 
+                        long style )
 {
-  Init();
-  Create(parent, id, caption, pos, size, style);
+    Init();
+    Create(parent, id, caption, pos, size, style);
 }
 
 
@@ -400,21 +401,24 @@ dlgAbout::dlgAbout( wxWindow* parent, wxWindowID id, const wxString& caption, co
 // dlgAbout creator
 //
 
-bool dlgAbout::Create( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+bool dlgAbout::Create( wxWindow* parent, 
+                        wxWindowID id, 
+                        const wxString& caption, 
+                        const wxPoint& pos, 
+                        const wxSize& size, 
+                        long style )
 {
-////@begin dlgAbout creation
-  SetExtraStyle(wxWS_EX_BLOCK_EVENTS);
-  wxDialog::Create( parent, id, caption, pos, size, style );
+    SetExtraStyle(wxWS_EX_BLOCK_EVENTS);
+    wxDialog::Create( parent, id, caption, pos, size, style );
 
-  CreateControls();
-  SetIcon(GetIconResource(wxT("../../../docs/vscp/logo/fatbee_v2.ico")));
-  if (GetSizer())
-  {
-    GetSizer()->SetSizeHints(this);
-  }
-  Centre();
-////@end dlgAbout creation
-  return true;
+    CreateControls();
+    SetIcon(GetIconResource(wxT("../../../docs/vscp/logo/fatbee_v2.ico")));
+    if ( GetSizer() ) {
+        GetSizer()->SetSizeHints(this);
+    }
+    Centre();
+
+    return true;
 }
 
 
@@ -424,8 +428,7 @@ bool dlgAbout::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
 dlgAbout::~dlgAbout()
 {
-////@begin dlgAbout destruction
-////@end dlgAbout destruction
+
 }
 
 
@@ -435,8 +438,7 @@ dlgAbout::~dlgAbout()
 
 void dlgAbout::Init()
 {
-////@begin dlgAbout member initialisation
-////@end dlgAbout member initialisation
+
 
 }
 
@@ -447,33 +449,32 @@ void dlgAbout::Init()
 
 void dlgAbout::CreateControls()
 {    
-////@begin dlgAbout content construction
-  dlgAbout* itemDialog1 = this;
+    dlgAbout* itemDialog1 = this;
 
-  wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxVERTICAL);
-  itemDialog1->SetSizer(itemBoxSizer2);
+    wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxVERTICAL);
+    itemDialog1->SetSizer(itemBoxSizer2);
 
-  wxHtmlWindow* itemHtmlWindow3 = new wxHtmlWindow;
-  itemHtmlWindow3->Create( itemDialog1, ID_HTMLWINDOW, wxDefaultPosition, wxSize(500, 300), wxHW_SCROLLBAR_AUTO|wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
-  itemBoxSizer2->Add(itemHtmlWindow3, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
+    wxHtmlWindow* itemHtmlWindow3 = new wxHtmlWindow;
+    itemHtmlWindow3->Create( itemDialog1, 
+                                ID_HTMLWINDOW, 
+                                wxDefaultPosition, 
+                                wxSize(500, 300), 
+                                wxHW_SCROLLBAR_AUTO|wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
+    itemBoxSizer2->Add(itemHtmlWindow3, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
-  itemBoxSizer2->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
+    itemBoxSizer2->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
-  wxButton* itemButton5 = new wxButton;
-  itemButton5->Create( itemDialog1, wxID_OK, _("&OK"), wxDefaultPosition, wxDefaultSize, 0 );
-  itemBoxSizer2->Add(itemButton5, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
+    wxButton* itemButton5 = new wxButton;
+    itemButton5->Create( itemDialog1, wxID_OK, _("&OK"), wxDefaultPosition, wxDefaultSize, 0 );
+    itemBoxSizer2->Add(itemButton5, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
 
-////@end dlgAbout content construction
-
-  wxString html( *about_html, wxConvUTF8 );
-  //wxString wxStringhtml = itemHtmlWindow3->ToText();
-  wxString out;
-  out.Printf( html, VSCPD_MAJOR_VERSION,
-                    VSCPD_MINOR_VERSION,
-                    VSCPD_SUB_VERSION,
-					VSCPD_SUB_SUB_VERSION );
+    wxString html( *about_html, wxConvUTF8 );
+    //wxString wxStringhtml = itemHtmlWindow3->ToText();
+    wxString out;
+    wxString versionstr( _(VSCPD_DISPLAY_VERSION) );
+    out.Printf( html, (const char *)versionstr.c_str() );
   
-  itemHtmlWindow3->SetPage( out );
+    itemHtmlWindow3->SetPage( out );
 
 }
 
@@ -484,7 +485,7 @@ void dlgAbout::CreateControls()
 
 bool dlgAbout::ShowToolTips()
 {
-  return true;
+    return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -493,11 +494,9 @@ bool dlgAbout::ShowToolTips()
 
 wxBitmap dlgAbout::GetBitmapResource( const wxString& name )
 {
-  // Bitmap retrieval
-////@begin dlgAbout bitmap retrieval
-  wxUnusedVar(name);
-  return wxNullBitmap;
-////@end dlgAbout bitmap retrieval
+    // Bitmap retrieval
+    wxUnusedVar(name);
+    return wxNullBitmap;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -506,14 +505,12 @@ wxBitmap dlgAbout::GetBitmapResource( const wxString& name )
 
 wxIcon dlgAbout::GetIconResource( const wxString& name )
 {
-  // Icon retrieval
-////@begin dlgAbout icon retrieval
-  wxUnusedVar(name);
-  if (name == _T("../../../docs/vscp/logo/fatbee_v2.ico"))
-  {
-    wxIcon icon(fatbee_v2_xpm);
-    return icon;
-  }
-  return wxNullIcon;
-////@end dlgAbout icon retrieval
+    // Icon retrieval
+    wxUnusedVar(name);
+    if ( name == _T("../../../docs/vscp/logo/fatbee_v2.ico") ) {
+        wxIcon icon(fatbee_v2_xpm);
+        return icon;
+    }
+
+    return wxNullIcon;
 }

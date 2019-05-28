@@ -1,55 +1,61 @@
 // dlldrvobj.h
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version
-// 2 of the License, or (at your option) any later version.
-// 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014
-// Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
+// The MIT License (MIT)
 // 
-// This file is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Copyright (c) 2000-2017 Ake Hedman, Grodans Paradis AB <info@grodansparadis.com>
 // 
-// You should have received a copy of the GNU General Public License
-// along with this file see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330,
-// Boston, MA 02111-1307, USA.
-//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
-#if !defined(AFX_DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_)
-#define AFX_DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_
+#if !defined(CHELPDLLOBJ__INCLUDED_)
+#define CHELPDLLOBJ__INCLUDED_
 
 
 // This is the version info for this DLL - Change to your own value
 #define DLL_VERSION		0x000001
 
 // This is the vendor string - Change to your own value
-#define CANAL_DLL_VENDOR "eurosource, Sweden, http://www.grodanspaadis.com"
+#define DLL_VENDOR "Grodans Paradis AB, Sweden, http://www.grodansparaids.com"
 							
-
 // Max number of open connections
-#define CANAL_CAN4VSCP_DRIVER_MAX_OPEN	256
+#define VSCP_HELPER_MAX_OPEN	256
+
+#include <canal_macro.h>
+//#include <canalsuperwrapper.h>
+#include <vscpremotetcpif.h>
 
 /////////////////////////////////////////////////////////////////////////////
-// CDllDrvObj
-// See loggerdll.cpp for the implementation of this class
+// CHelpDllObj
+// 
 //
 
-class CDllDrvObj
+class CHelpDllObj
 {
 
 public:
 
 	/// Constructor
-	CDllDrvObj();
+	CHelpDllObj();
 	
 	/// Destructor
-	~CDllDrvObj();
+	~CHelpDllObj();
 
 	/*!
 		Add a driver object
@@ -57,7 +63,7 @@ public:
 		@parm plog Object to add
 		@return handle or 0 for error
 	*/
-	long addDriverObject( CCan4VSCPObj *pObj );
+	long addDriverObject( VscpRemoteTcpIf *pObj );
 
 	/*!
 		Get a driver object from its handle
@@ -66,7 +72,7 @@ public:
 		@return pointer to object or NULL if invalid
 				handle.
 	*/
-	CCan4VSCPObj *getDriverObject( long h );
+	VscpRemoteTcpIf *getDriverObject( long h );
 
 	/*!
 		Remove a driver object
@@ -79,14 +85,10 @@ public:
 		The log file object
 		This is the array with driver objects (max 256 objects
 	*/
-	CCan4VSCPObj *m_drvObjArray[ CANAL_CAN4VSCP_DRIVER_MAX_OPEN ];
+	VscpRemoteTcpIf *m_drvObjArray[ VSCP_HELPER_MAX_OPEN ];
 
-	/// Mutex for open/close
-#ifdef WIN32	
-	HANDLE m_objMutex;
-#else
-	pthread_mutex_t m_objMutex;
-#endif
+	/// Mutex for open/close	
+    pthread_mutex_t m_mutex;
 
 	/// Counter for users of the interface
 	unsigned long m_instanceCounter;
@@ -98,4 +100,4 @@ public:
 
 
 
-#endif // !defined(AFX_DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_)
+#endif // !defined(DLLDRVOBJ_H__A388C093_AD35_4672_8BF7_DBC702C6B0C8__INCLUDED_)

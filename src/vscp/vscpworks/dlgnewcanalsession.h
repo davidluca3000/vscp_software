@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     Thu 28 Jun 2007 12:10:45 CEST
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -86,10 +86,20 @@ class dlgNewCanalSession: public wxDialog
 public:
   /// Constructors
   dlgNewCanalSession();
-  dlgNewCanalSession( wxWindow* parent, wxWindowID id = SYMBOL_DLGNEWCANALSESSION_IDNAME, const wxString& caption = SYMBOL_DLGNEWCANALSESSION_TITLE, const wxPoint& pos = SYMBOL_DLGNEWCANALSESSION_POSITION, const wxSize& size = SYMBOL_DLGNEWCANALSESSION_SIZE, long style = SYMBOL_DLGNEWCANALSESSION_STYLE );
+  dlgNewCanalSession( wxWindow* parent, 
+                        wxWindowID id = SYMBOL_DLGNEWCANALSESSION_IDNAME, 
+                        const wxString& caption = SYMBOL_DLGNEWCANALSESSION_TITLE, 
+                        const wxPoint& pos = SYMBOL_DLGNEWCANALSESSION_POSITION, 
+                        const wxSize& size = SYMBOL_DLGNEWCANALSESSION_SIZE, 
+                        long style = SYMBOL_DLGNEWCANALSESSION_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DLGNEWCANALSESSION_IDNAME, const wxString& caption = SYMBOL_DLGNEWCANALSESSION_TITLE, const wxPoint& pos = SYMBOL_DLGNEWCANALSESSION_POSITION, const wxSize& size = SYMBOL_DLGNEWCANALSESSION_SIZE, long style = SYMBOL_DLGNEWCANALSESSION_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DLGNEWCANALSESSION_IDNAME, 
+                    const wxString& caption = SYMBOL_DLGNEWCANALSESSION_TITLE, 
+                    const wxPoint& pos = SYMBOL_DLGNEWCANALSESSION_POSITION, 
+                    const wxSize& size = SYMBOL_DLGNEWCANALSESSION_SIZE, 
+                    long style = SYMBOL_DLGNEWCANALSESSION_STYLE );
 
   /// Destructor
   ~dlgNewCanalSession();

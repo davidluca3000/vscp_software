@@ -1,11 +1,11 @@
 // syslogobj.h: interface for the CSysLogObj class.
 //
-// Copyright (C) 2000-2014
+// Copyright (C) 2000-2015
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_SYSLOGOBJ_H__212CD7A3_785B_4444_82A6_D876E36BFCB1__INCLUDED_)
-#define AFX_SYSLOGOBJ_H__212CD7A3_785B_4444_82A6_D876E36BFCB1__INCLUDED_
+#if !defined(SYSLOGOBJ_H__212CD7A3_785B_4444_82A6_D876E36BFCB1__INCLUDED_)
+#define SYSLOGOBJ_H__212CD7A3_785B_4444_82A6_D876E36BFCB1__INCLUDED_
 
 #if _MSC_VER > 1000
 #pragma once
@@ -42,10 +42,10 @@
 #include "wx/msw/ole/automtn.h"
 #include "wx/tokenzr.h"
 
-#include "../../../../common/canal.h"
-#include "../../../../common/vscp.h"
-#include "../../../../common/canal_macro.h"
-#include "../../../../../common/dllist.h"
+#include <canal.h>
+#include <vscp.h>
+#include <canal_macro.h>
+#include <dllist.h>
 #include "wx/hashmap.h"
 #include <wx/listimpl.cpp>
 
@@ -61,8 +61,8 @@
 #define SYSLOG_MAX_SNDMSG		1024
 
 
-#define CANAL_DLL_SYSLOG_OBJ_MUTEX		"___CANAL__DLL_SYSLOG_OBJ_MUTEX____"
-#define CANAL_DLL_SYSLOG_RECEIVE_MUTEX	"___CANAL__DLL_SYSLOG_RECEIVE_MUTEX____"
+#define CANAL_DLL_SYSLOG_OBJ_MUTEX		TEXT("___CANAL__DLL_SYSLOG_OBJ_MUTEX____")
+#define CANAL_DLL_SYSLOG_RECEIVE_MUTEX	TEXT("___CANAL__DLL_SYSLOG_RECEIVE_MUTEX____")
 
 
 class CWorkThread;
@@ -277,7 +277,7 @@ public:
 			1				1					0			Reject
 			1				1					1			Accept
 
-		Formula is !( ( filter îd ) & mask )
+		Formula is !( ( filter ï¿½d ) & mask )
 	*/
 	uint32_t m_filter;
 
@@ -311,4 +311,4 @@ private:
 };
 
 
-#endif // !defined(AFX_LIRCINTERFACE_H__212CD7A3_785B_4444_82A6_D876E36BFCB1__INCLUDED_)
+#endif // !defined(LIRCINTERFACE_H__212CD7A3_785B_4444_82A6_D876E36BFCB1__INCLUDED_)

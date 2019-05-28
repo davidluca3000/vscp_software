@@ -7,7 +7,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2015 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
@@ -20,13 +20,9 @@
 // the Free Software Foundation, 59 Temple Place - Suite 330,
 // Boston, MA 02111-1307, USA.
 //
-// $RCSfile: tellstickobj.h,v $                                       
-// $Date: 2005/05/29 19:20:08 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.5 $ 
 
-#if !defined(AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
-#define AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_
+#if !defined(IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
+#define IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_
 
 #ifdef WIN32
 
@@ -35,7 +31,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "../../../../../common/com_win32.h"
+#include <com_win32.h>
 
 #else
 
@@ -51,12 +47,12 @@
 #include <stdio.h>
 #include <wx/thread.h>
 
-#include "../../../../common/canal.h"
-#include "../../../../common/canal_macro.h"
-#include "../../../../common/vscp_class.h"
-#include "../../../../common/vscp_type.h"
-#include "../../../../common/vscphelper.h"
-#include "../../../../../common/dllist.h"
+#include <canal.h>
+#include <canal_macro.h>
+#include <vscp_class.h>
+#include <vscp_type.h>
+#include <vscphelper.h>
+#include <dllist.h>
 
 
 #ifdef WIN32
@@ -64,10 +60,10 @@
 #include "FTD2XX.h"		// from ftdi-site http://www.ftdichip.com/
 #endif 
 
-#define CANAL_DLL_TELLSTICKOBJ_OBJ_MUTEX		"___CANAL__DLL_TELLSTICKOBJ_OBJ_MUTEX____"
-#define CANAL_DLL_TELLSTICKOBJ_RECEIVE_MUTEX	"___CANAL__DLL_TELLSTICKOBJ_RECEIVE_MUTEX____"
-#define CANAL_DLL_TELLSTICKOBJ_TRANSMIT_MUTEX	"___CANAL__DLL_TELLSTICKOBJ_TRANSMIT_MUTEX____"
-#define CANAL_DLL_TELLSTICKOBJ_RESPONSE_MUTEX	"___CANAL__DLL_TELLSTICKOBJ_RESPONSE_MUTEX____"
+#define CANAL_DLL_TELLSTICKOBJ_OBJ_MUTEX		TEXT("___CANAL__DLL_TELLSTICKOBJ_OBJ_MUTEX____")
+#define CANAL_DLL_TELLSTICKOBJ_RECEIVE_MUTEX	TEXT("___CANAL__DLL_TELLSTICKOBJ_RECEIVE_MUTEX____")
+#define CANAL_DLL_TELLSTICKOBJ_TRANSMIT_MUTEX	TEXT("___CANAL__DLL_TELLSTICKOBJ_TRANSMIT_MUTEX____")
+#define CANAL_DLL_TELLSTICKOBJ_RESPONSE_MUTEX	TEXT("___CANAL__DLL_TELLSTICKOBJ_RESPONSE_MUTEX____")
 
 
 // Max messages in output queue
@@ -471,7 +467,7 @@ public:
 	/*!
 		Mutex for receive queue.
 	*/
-	wxMutex m_receiveMutex;
+	pthread_mutex_t m_receiveMutex;
 
 	
 	/*!
@@ -482,13 +478,13 @@ public:
 	/*!
 		Mutex for the Tellstick channel.
 	*/
-	wxMutex m_tellstickMutex;
+	pthread_mutex_t m_tellstickMutex;
 
 	
 	/*!
 		Protects the tx list
 	*/
-	wxMutex m_txMutex;
+	pthread_mutex_t m_txMutex;
 
 	/*!
 		List with events that should be handled
@@ -661,4 +657,4 @@ public:
 };
 
 
-#endif // !defined(AFX_IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)
+#endif // !defined(IXXATVCI_H__6F5CD90E_ACF7_459A_9ACB_849A57595639__INCLUDED_)

@@ -1,313 +1,113 @@
-// ControlObject.cpp: implementation of the CControlObject class.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version
-// 2 of the License, or (at your option) any later version.
+// ControlObject.cpp: m_path_db_vscp_logimplementation of the CControlObject
+// class.
 //
 // This file is part of the VSCP (http://www.vscp.org)
 //
-// Copyright (C) 2000-2014 Ake Hedman, 
-// Grodans Paradis AB, <akhe@grodansparadis.com>
+// The MIT License (MIT)
 //
-// This file is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB
+// <info@grodansparadis.com>
 //
-// You should have received a copy of the GNU General Public License
-// along with this file see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330,
-// Boston, MA 02111-1307, USA.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-// As a special exception, if other files instantiate templates or use macros
-// or inline functions from this file, or you compile this file and link it
-// with other works to produce a work based on this file, this file does not
-// by itself cause the resulting work to be covered by the GNU General Public
-// License. However the source code for this file must still be made available
-// in accordance with section (3) of the GNU General Public License.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// This exception does not invalidate any other reasons why a work based on
-// this file might be covered by the GNU General Public License.
-//
-// Alternative licenses for VSCP & Friends may be arranged by contacting
-// Grodans Paradis AB at http://www.grodansparadis.com
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 //
 //
-// TraceMasks:
-// ===========
-//
-//   wxTRACE_doWorkLoop - Workloop messages 
-//   wxTRACE_vscpd_Msg - Received messages.
-//   wxTRACE_vscpd_ReceiveMutex  - Mutex lock
-//   wxTRACE_VSCP_Msg - VSCP message mechanism
-//
-
-#ifdef __GNUG__
-//#pragma implementation
-#endif
-
-// For compilers that support precompilation, includes "wx.h".
-#include "wx/wxprec.h"
-
-#ifdef __BORLANDC__
-#pragma hdrstop
-#endif
-
-#ifndef WX_PRECOMP
-#include "wx/wx.h"
-#endif
-
-
-#include "wx/defs.h"
-#include "wx/app.h"
-#include <wx/xml/xml.h>
-
-#ifdef WIN32
-
-//#include <winsock.h>
-#include "canal_win32_ipc.h"
-
-#else 	// UNIX
 
 #define _POSIX
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <signal.h>
+
+#include <deque>
+#include <list>
+#include <string>
+
+#include <arpa/inet.h>
 #include <errno.h>
-#include <syslog.h>
-#include <sys/msg.h>
+#include <linux/if_ether.h>
+#include <linux/if_packet.h>
+#include <linux/sockios.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <pthread.h>
+#include <pwd.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/msg.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <string.h>
-#include <netdb.h>
-#include <linux/if_packet.h>
-#include <linux/if_ether.h>
-#include <net/if_arp.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <linux/sockios.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include "wx/wx.h"
-#include "wx/defs.h"
-#include "wx/log.h"
-#include "wx/socket.h"
-
-#endif
-
-#include <wx/config.h>
-#include <wx/wfstream.h>
-#include <wx/fileconf.h>
-#include <wx/tokenzr.h>
-#include <wx/listimpl.cpp>
-#include <wx/xml/xml.h>
-#include <wx/mimetype.h>
-#include <wx/filename.h>
+#include <sys/types.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "web_css.h"
 #include "web_js.h"
 #include "web_template.h"
 
-#include "canal_macro.h"
-#include "../common/vscp.h"
-#include "../common/vscphelper.h"
-#include "../common/vscpeventhelper.h"
-#include "../../common/configfile.h"
-#include "../../common/crc.h"
-#include "../../common/md5.h"
-#include "../../common/randpassword.h"
-#include "../common/version.h"
-#include "variablecodes.h"
-#include "actioncodes.h"
-#include "devicelist.h"
-#include "devicethread.h"
-#include "dm.h"
-#include "vscpeventhelper.h"
-#include "controlobject.h"
-#include "../common/webserver.h"
-#ifndef WIN32
-#include <microhttpd.h>
-#endif
-#include <libwebsockets.h>
+#include <expat.h>
+#include <sqlite3.h>
 
-// List for websocket triggers
-WX_DEFINE_LIST(TRIGGERLIST);
+#include <fastpbkdf2.h>
+#include <vscp_aes.h>
 
-//#define DEBUGPRINT
+#include <actioncodes.h>
+#include <canal_macro.h>
+#include <configfile.h>
+#include <crc.h>
+#include <devicelist.h>
+#include <devicethread.h>
+#include <dm.h>
+#include <httpd.h>
+#include <randpassword.h>
+#include <tables.h>
+#include <variablecodes.h>
+#include <version.h>
+#include <vscp.h>
+#include <vscp_debug.h>
+#include <vscpd_caps.h>
+#include <vscpdb.h>
+#include <vscpeventhelper.h>
+#include <vscphelper.h>
+#include <vscpmd5.h>
+#include <websocket.h>
+#include <websrv.h>
 
-static CControlObject *gpctrlObj;
+#include <controlobject.h>
 
-#ifdef WIN32
-
-typedef struct _ASTAT_ {
-    ADAPTER_STATUS adapt;
-    NAME_BUFFER NameBuff [30];
-
-} ASTAT, * PASTAT;
-
-ASTAT Adapter;
-
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #endif
 
+#define XML_BUFF_SIZE 0xffff
 
-#ifdef WIN32
+// Prototypes
+void
+createFolderStuct(std::string &rootFolder); // from vscpd.cpp
 
-WORD wVersionRequested = MAKEWORD(1, 1); // WSA functions
-WSADATA wsaData; // WSA functions
-
-#endif
-
-///////////////////////////////////////////////////
-//		     WEBSOCKETS
-///////////////////////////////////////////////////
-
-
-static int gbClose;
-
-// lws http
-
-struct per_session_data__http {
-    int fd;
-};
-
-struct per_session_data__dumb_increment {
-    int number;
-};
-
-// lws-mirror_protocol 
-
-#define MAX_MIRROR_MESSAGE_QUEUE 64
-
-struct per_session_data__lws_mirror {
-    struct libwebsocket *wsi;
-    int ringbuffer_tail;
-};
-
-struct mirrorws_message {
-    void *payload;
-    size_t len;
-};
-
-static struct mirrorws_message mirrorws_ringbuffer[ MAX_MIRROR_MESSAGE_QUEUE ];
-static int mirrorws_ringbuffer_head;
-
-// vscp websocket_protocol
-
-#define MAX_VSCPWS_MESSAGE_QUEUE 512
-
-struct per_session_data__lws_vscp {
-    struct libwebsocket *wsi; // The websocket.
-    wxArrayString *pMessageList; // Messages (not events) to client.
-    CClientItem *pClientItem; // Client structure for websocket in VSCP world
-    bool bTrigger; // True to activate trigger functionality.
-    uint32_t triggerTimeout; // Time out before trigg (or errror) must occur.
-    TRIGGERLIST listTriggerOK; // List with positive triggers.
-    TRIGGERLIST listTriggerERR; // List with negative triggers.
-};
-
-
-// list of supported websocket protocols and callbacks 
-
-static struct libwebsocket_protocols protocols[] = {
-
-    // first protocol must always be HTTP handler 
-
-    {
-        "http-only", // name 
-        CControlObject::callback_http, // callback 
-        sizeof(struct per_session_data__http), // per_session_data_size 
-        0, // max frame size / rx buffer 
-    },
-    {
-        "dumb-increment-protocol",
-        CControlObject::callback_dumb_increment,
-        sizeof( struct per_session_data__dumb_increment),
-        10,
-    },
-    {
-        "lws-mirror-protocol",
-        CControlObject::callback_lws_mirror,
-        sizeof(struct per_session_data__lws_mirror),
-        128,
-    },
-    {
-        "very-simple-control-protocol",
-        CControlObject::callback_lws_vscp,
-        sizeof( struct per_session_data__lws_vscp),
-        128
-    },
-    {
-        NULL, NULL, 0, 0 // End of list 
-    }
-};
-
-struct libwebsocket_extension libwebsocket_internal_extensions[] = {
-    { /* terminator */
-        NULL, NULL, 0
-    }
-};
-
-
-
-
-///////////////////////////////////////////////////
-//		          WEBSERVER
-///////////////////////////////////////////////////
-
-
-
-
-/**
- * Linked list of all active sessions.  Yes, O(n) but a
- * hash table would be overkill for a simple example...
- */
-static struct websrv_Session *websrv_sessions;
-
-
-
-
-
-
-
-// List of all pages served by this HTTP server.
-// If URL is NULL a coded page should be delivered. If it's there a
-// static page is delivered
-static struct Page pages[] = 
-  {
-    { "/vscp", "text/html",  &CControlObject::websrv_serve_mainpage, NULL },
-    { "/vscp/", "text/html",  &CControlObject::websrv_serve_mainpage, NULL },
-    { "/vscp/interfaces", "text/html", &CControlObject::websrv_serve_interfaces, NULL },
-    { "/vscp/dm", "text/html", &CControlObject::websrv_serve_dmlist, NULL },
-    { "/vscp/dmedit", "text/html", &CControlObject::websrv_serve_dmedit, NULL },
-    { "/vscp/dmpost", "text/html", &CControlObject::websrv_serve_dmpost, NULL },
-    { "/vscp/dmdelete", "text/html", &CControlObject::websrv_serve_dmdelete, NULL },
-    { "/vscp/discovery", "text/html", &CControlObject::websrv_serve_simple_page, NEXTVERSION_PAGE },
-    { "/vscp/session", "text/html", &CControlObject::websrv_serve_simple_page, NEXTVERSION_PAGE },
-    { "/vscp/configure", "text/html", &CControlObject::websrv_serve_simple_page, NEXTVERSION_PAGE },
-    { "/vscp/variables", "text/html", &CControlObject::websrv_serve_variables_list, NULL },
-    { "/vscp/varedit", "text/html", &CControlObject::websrv_serve_variables_edit, NULL },
-    { "/vscp/varpost", "text/html", &CControlObject::websrv_serve_variables_post, NULL },
-    { "/vscp/vardelete", "text/html", &CControlObject::websrv_serve_variables_delete, NULL },
-    { "/vscp/varnew", "text/html", &CControlObject::websrv_serve_variables_new, NULL },
-    { "/vscp/bootload", "text/html", &CControlObject::websrv_serve_simple_page, NEXTVERSION_PAGE },
-    { "/m2m", "text/html", &CControlObject::websrv_serve_simple_page, NEXTVERSION_PAGE },
-    { NULL, NULL, &CControlObject::websrv_not_found_page, NULL } /* 404 */
-  };
-
-
-WX_DEFINE_LIST(CanalMsgList);
-WX_DEFINE_LIST(VSCPEventList);
-
-
-// Initialize statics
-wxString CControlObject::m_pathRoot = _("/srv/vscp/www");
-
+void *
+clientMsgWorkerThread(void *userdata); // this
+void *
+tcpipListenThread(void *pData); // tcpipsev.cpp
+void *
+UDPThread(void *pData); // udpsrv.cpp
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -316,184 +116,492 @@ wxString CControlObject::m_pathRoot = _("/srv/vscp/www");
 CControlObject::CControlObject()
 {
     int i;
-    m_bQuit = false; // true if we should quit
-    gpctrlObj = this; // needed by websocket static callbacks
 
+    m_bQuit = false; // true  for app termination
+    m_bQuit_clientMsgWorkerThread =
+      false; // true for clientWorkerThread termination
+
+    // Debug flags
+    // m_debugFlags[0] = VSCP_DEBUG1_ALL;
+    m_debugFlags[0] = 0;
+    // m_debugFlags[0] |= VSCP_DEBUG1_DM;
+    // m_debugFlags[0] |= VSCP_DEBUG1_AUTOMATION;
+    // m_debugFlags[0] |= VSCP_DEBUG1_VARIABLE;
+    // m_debugFlags[0] |= VSCP_DEBUG1_MULTICAST;
+    // m_debugFlags[0] |= VSCP_DEBUG1_UDP;
+    // m_debugFlags[0] |= VSCP_DEBUG1_TCP;
+    // m_debugFlags[0] |= VSCP_DEBUG1_DRIVER
+
+    m_rootFolder = "/srv/vscp/";
+
+    // Default admin user credentials
+    m_admin_user     = "admin";
+    m_admin_password = "450ADCE88F2FDBB20F3318B65E53CA4A;"
+                       "06D3311CC2195E80BE4F8EB12931BFEB5C"
+                       "630F6B154B2D644ABE29CEBDBFB545";
+    m_admin_allowfrom = "*";
+    m_vscptoken       = "Carpe diem quam minimum credula postero";
+    vscp_hexStr2ByteArray(m_systemKey,
+                          32,
+                          "A4A86F7D7E119BA3F0CD06881E371B989B"
+                          "33B6D606A863B633EF529D64544F8E");
+
+    m_nConfiguration = 1; // Default configuration record is read.
+
+    m_automation.setControlObject(this);
     m_maxItemsInClientReceiveQueue = MAX_ITEMS_CLIENT_RECEIVE_QUEUE;
 
     // Nill the GUID
-    //memset(m_GUID, 0, 16);
     m_guid.clear();
 
-    // Initialize the client map
-    // to all unused
-    for (i = 0; i < VSCP_MAX_CLIENTS; i++) {
-        m_clientMap[ i ] = 0;
-    }
-
-
-    // Set default TCP Port
-    m_tcpport = VSCP_LEVEL2_TCP_PORT;
-
-    // Set default UDP port
-    m_UDPPort = VSCP_LEVEL2_UDP_PORT;
+    // Local domain
+    m_web_authentication_domain = "mydomain.com";
 
     // Set Default Log Level
-    m_logLevel = 0;
+    m_logLevel = DAEMON_LOGMSG_NORMAL;
 
+    m_path_db_vscp_daemon = m_rootFolder + "vscpd.sqlite3";
+    m_path_db_vscp_data   = m_rootFolder + "vscp_data.sqlite3";
 
-    // Control TCP/IP Interface
-    m_bTCPInterface = true;
+    // No databases opened yet
+    m_db_vscp_daemon = NULL;
+    m_db_vscp_data   = NULL;
 
-    // Default TCP/IP interface
-    m_strTcpInterfaceAddress = _("");
+    // Control UDP Interface
+    m_udpSrvObj.setControlObjectPointer(this);
+    m_udpSrvObj.m_bEnable = false;
+    m_udpSrvObj.m_interface.empty();
+    m_udpSrvObj.m_guid.clear();
+    vscp_clearVSCPFilter(&m_udpSrvObj.m_filter);
+    m_udpSrvObj.m_bAllowUnsecure = false;
+    m_udpSrvObj.m_bAck           = false;
 
-    // Canaldriver
-    m_bCanalDrivers = true;
+    // Default TCP/IP interface settings
+    m_enableTcpip            = true;
+    m_strTcpInterfaceAddress = "9598";
+    m_encryptionTcpip        = 0;
+    m_tcpip_ssl_certificate.clear();
+    m_tcpip_ssl_certificate_chain.clear();
+    m_tcpip_ssl_verify_peer = 0; // no=0, optional=1, yes=2
+    m_tcpip_ssl_ca_path.clear();
+    m_tcpip_ssl_ca_file.clear();
+    m_tcpip_ssl_verify_depth         = 9;
+    m_tcpip_ssl_default_verify_paths = false;
+    m_tcpip_ssl_cipher_list.clear();
+    m_tcpip_ssl_protocol_version = 0;
+    m_tcpip_ssl_short_trust      = false;
 
-    // Control VSCP
-    m_bVSCPDaemon = true;
+    // Default multicast announce port
+    m_strMulticastAnnounceAddress =
+      vscp_str_format("udp://:%d", VSCP_ANNOUNCE_MULTICAST_PORT);
 
-    // Control DM
-    m_bDM = true;
+    // default multicast announce ttl
+    m_ttlMultiCastAnnounce = IP_MULTICAST_DEFAULT_TTL;
 
-    // Use variables
-    m_bVariables = true;
+    // Default UDP interface
+    m_udpSrvObj.m_interface =
+      vscp_str_format("udp://:%d", VSCP_DEFAULT_UDP_PORT);
 
-    m_pclientMsgWorkerThread = NULL;
-    m_pTcpClientListenThread = NULL;
-    m_pdaemonVSCPThread = NULL;
-    m_pudpSendThread = NULL;
-    m_pudpReceiveThread = NULL;
-    
-    // Websocket interface
-    m_portWebsockets = 7681;
-    m_bWebSockets = true;
-    m_pathCert.Empty();
-    m_pathKey.Empty();
-    
+    // Web server SSL settings
+    m_web_ssl_certificate          = m_rootFolder + "certs/server.pem";
+    m_web_ssl_certificate_chain    = "";
+    m_web_ssl_verify_peer          = false;
+    m_web_ssl_ca_path              = "";
+    m_web_ssl_ca_file              = "";
+    m_web_ssl_verify_depth         = 9;
+    m_web_ssl_default_verify_paths = true;
+    m_web_ssl_cipher_list      = "DES-CBC3-SHA:AES128-SHA:AES128-GCM-SHA256";
+    m_web_ssl_protocol_version = 3;
+    m_web_ssl_short_trust      = false;
+
     // Webserver interface
-    m_portWebServer = 8080;
-    m_bWebServer = true;
+    m_web_bEnable         = true;
+    m_web_listening_ports = "[::]:9999r,[::]:8843s,8884";
 
-    // Set control object
-    m_dm.setControlObject(this);
+    m_web_index_files = "index.xhtml,index.html,index.htm,"
+                        "index.lp,index.lsp,index.lua,index.cgi,"
+                        "index.shtml,index.php";
 
-#ifdef WIN32
+    m_web_document_root = m_rootFolder + "www";
 
-    // Initialize winsock layer
-    WSAStartup(wVersionRequested, &wsaData);
+    // Directory listings on by default
+    m_web_enable_directory_listing          = true;
+    m_web_enable_keep_alive                 = false;
+    m_web_keep_alive_timeout_ms             = 0;
+    m_web_access_control_list               = "";
+    m_web_extra_mime_types                  = "";
+    m_web_num_threads                       = 50;
+    m_web_run_as_user                       = "";
+    m_web_url_rewrite_patterns              = "";
+    m_web_hide_file_patterns                = "";
+    m_web_global_auth_file                  = "";
+    m_web_per_directory_auth_file           = "";
+    m_web_ssi_patterns                      = "";
+    m_web_url_rewrite_patterns              = "";
+    m_web_request_timeout_ms                = 10000;
+    m_web_linger_timeout_ms                 = -1; // Do not set
+    m_web_decode_url                        = true;
+    m_web_ssi_patterns                      = "";
+    m_web_access_control_allow_origin       = "*";
+    m_web_access_control_allow_methods      = "*";
+    m_web_access_control_allow_headers      = "*";
+    m_web_error_pages                       = "";
+    m_web_tcp_nodelay                       = 0;
+    m_web_static_file_max_age               = 3600;
+    m_web_strict_transport_security_max_age = -1;
+    m_web_allow_sendfile_call               = true;
+    m_web_additional_header                 = "";
+    m_web_max_request_size                  = 16384;
+    m_web_allow_index_script_resource       = false;
+    m_web_duktape_script_patterns           = "**.ssjs$";
+    m_web_lua_preload_file                  = "";
+    m_web_lua_script_patterns               = "**.lua$";
+    m_web_lua_server_page_patterns          = "**.lp$|**.lsp$";
+    m_web_lua_websocket_patterns            = "**.lua$";
+    m_web_lua_background_script             = "";
+    m_web_lua_background_script_params      = "";
 
-    // Also for wx
-    wxSocketBase::Initialize();
-
-#ifdef BUILD_VSCPD_SERVICE
-    if (!m_hEventSource) {
-        m_hEvntSource = ::RegisterEventSource(NULL, // local machine
-                _("vscpservice")); // source name
+    // Init. web server subsystem - All features enabled
+    // ssl mt locks will we initiated here for openssl 1.0
+    if (0 == web_init(0xffff)) {
+        syslog(LOG_ERR, "Failed to initialize webserver subsystem.");
     }
-
-#endif // windows service
-
-    CControlObject::m_pathRoot = _("c:\\temp");
-
-#else
-
-    CControlObject::m_pathRoot = _("/srv/vscp/www");
-
-#endif
 
     // Initialize the CRC
     crcInit();
-
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Destructor
+//
 
 CControlObject::~CControlObject()
 {
-    // Remove objects in Client send queue
-    VSCPEventList::iterator iterVSCP;
+    syslog(LOG_INFO, "ControlObject: Going away...");
 
-    m_mutexClientOutputQueue.Lock();
+    // Remove objects in Client send queue
+    std::list<vscpEvent *>::iterator iterVSCP;
+
+    pthread_mutex_lock(&m_mutexClientOutputQueue);
     for (iterVSCP = m_clientOutputQueue.begin();
-            iterVSCP != m_clientOutputQueue.end(); ++iterVSCP) {
+         iterVSCP != m_clientOutputQueue.end();
+         ++iterVSCP) {
         vscpEvent *pEvent = *iterVSCP;
-        deleteVSCPevent(pEvent);
+        vscp_deleteVSCPevent(pEvent);
     }
 
-    m_clientOutputQueue.Clear();
-    m_mutexClientOutputQueue.Unlock();
+    m_clientOutputQueue.clear();
+    pthread_mutex_unlock(&m_mutexClientOutputQueue);
 
+    pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+    std::deque<udpRemoteClientInfo *>::iterator iterUDP;
+    for (iterUDP = m_udpSrvObj.m_remotes.begin();
+         iterUDP != m_udpSrvObj.m_remotes.end();
+         ++iterUDP) {
+        if (NULL != *iterUDP) {
+            delete *iterUDP;
+            *iterUDP = NULL;
+        }
+    }
+    m_udpSrvObj.m_remotes.clear();
+    pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+
+    syslog(LOG_INFO, "ControlObject: Gone!");
 }
-
-
 
 /////////////////////////////////////////////////////////////////////////////
 // init
+//
 
-bool CControlObject::init(wxString& strcfgfile)
+bool
+CControlObject::init(std::string &strcfgfile, std::string &rootFolder)
 {
-    //wxLog::AddTraceMask( "wxTRACE_doWorkLoop" );
-    //wxLog::AddTraceMask(_("wxTRACE_vscpd_receiveQueue")); // Receive queue
-    wxLog::AddTraceMask(_("wxTRACE_vscpd_Msg"));
-    wxLog::AddTraceMask(_("wxTRACE_VSCP_Msg"));
-    //wxLog::AddTraceMask(_("wxTRACE_vscpd_ReceiveMutex"));
-    //wxLog::AddTraceMask(_("wxTRACE_vscpd_sendMutexLevel1"));
-    //wxLog::AddTraceMask(_("wxTRACE_vscpd_LevelII"));
-    //wxLog::AddTraceMask( _( "wxTRACE_vscpd_dm" ) );
+    std::string str;
 
-    wxString str = _("VSCP Daemon started\n");
-    str += _("Version: ");
-    str += _(VSCPD_DISPLAY_VERSION);
-    str += _("\n");
-    str += _(VSCPD_COPYRIGHT);
-    str += _("\n");
-    logMsg(str);
+    // Save root folder for later use.
+    m_rootFolder = rootFolder;
+
+    // Root folder must exist
+    if (!vscp_fileExists(m_rootFolder.c_str())) {
+        syslog(LOG_CRIT,
+               "The specified rootfolder does not exist (%s).",
+               (const char *)m_rootFolder.c_str());
+        return false;
+    }
+
+    m_path_db_vscp_daemon  = m_rootFolder + "vscpd.sqlite3";
+    m_path_db_vscp_data    = m_rootFolder + "vscp_data.sqlite3";
+    std::string strRootwww = m_rootFolder + "www";
+    m_web_document_root    = strRootwww;
+
+    // Change locale to get the correct decimal point "."
+    setlocale(LC_NUMERIC, "C");
 
     // A configuration file must be available
-    if (!wxFile::Exists(strcfgfile)) {
-        logMsg(_("No configuration file given. Can't initialise!.\n"), DAEMON_LOGMSG_CRITICAL);
-        logMsg(_("Path = .") + strcfgfile + _("\n"), DAEMON_LOGMSG_CRITICAL);
+    if (!vscp_fileExists(strcfgfile.c_str())) {
+        printf("No configuration file. Can't initialize!.");
+        syslog(LOG_CRIT,
+               "No configuration file. Can't initialize!. Path=%s",
+               strcfgfile.c_str());
+        return false;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    //                  Read XML configuration GENERAL section
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Read XML configuration
+    if (!readXMLConfigurationGeneral(strcfgfile)) {
+        syslog(LOG_CRIT,
+               "General: Unable to open/parse configuration file [%s]. Can't "
+               "initialize!",
+               strcfgfile.c_str());
         return FALSE;
     }
 
-    //::wxLogDebug(_("Using configuration file: ") + strcfgfile + _("\n"));
-    
-    // Generate username and password for drivers
-    char buf[ 64 ];
-    randPassword pw(3);
+#ifndef WIN32
+    if (m_runAsUser.length()) {
+        struct passwd *pw;
+        if (NULL == (pw = getpwnam(m_runAsUser.c_str()))) {
+            syslog(LOG_ERR, "Unknown user.");
+        } else if (setgid(pw->pw_gid) != 0) {
+            syslog(LOG_ERR, "setgid() failed.");
+        } else if (setuid(pw->pw_uid) != 0) {
+            syslog(LOG_ERR, "setuid() failed.");
+        }
+    }
+#endif
 
+    // Initialize the SQLite library
+    if (SQLITE_OK != sqlite3_initialize()) {
+        syslog(LOG_CRIT, "Unable to initialize SQLite library!.");
+        return false;
+    }
+
+    // The root folder is the basis for the configuration file
+    m_path_db_vscp_daemon = m_rootFolder + "/vscpd.sqlite3";
+
+    // ======================================
+    // * * * Open/Create database files * * *
+    // ======================================
+
+    // * * * VSCP Daemon configuration database * * *
+
+    // Check filename
+    if (vscp_fileExists(m_path_db_vscp_daemon)) {
+
+        if (SQLITE_OK !=
+            sqlite3_open((const char *)m_path_db_vscp_daemon.c_str(),
+                         &m_db_vscp_daemon)) {
+
+            // Failed to open/create the database file
+            syslog(LOG_CRIT,
+                   "VSCP Daemon configuration database could not be opened. - "
+                   "Will exit.");
+            vscp_str_format(str,
+                            "Path=%s error=%s",
+                            (const char *)m_path_db_vscp_daemon.c_str(),
+                            sqlite3_errmsg(m_db_vscp_daemon));
+            syslog(LOG_CRIT, "%s", (const char *)str.c_str());
+            if (NULL != m_db_vscp_daemon) sqlite3_close(m_db_vscp_daemon);
+            m_db_vscp_daemon = NULL;
+            return false;
+        } else {
+
+            // Database is open.
+
+            // Update the configuration database if it has evolved
+            updateConfigDb();
+
+            // Add possible missing configuration values
+            addDefaultConfigValues();
+
+            // Read configuration data
+            readConfigurationDB();
+        }
+    } else {
+
+        if (1) {
+
+            // We need to create the database from scratch. This may not work if
+            // the database is in a read only location.
+            syslog(LOG_CRIT,
+                   "VSCP Daemon configuration database does not exist - will "
+                   "be created. Path=%s",
+                   m_path_db_vscp_daemon.c_str());
+
+            if (SQLITE_OK ==
+                sqlite3_open((const char *)m_path_db_vscp_daemon.c_str(),
+                             &m_db_vscp_daemon)) {
+
+                // create the configuration database.
+                if (!doCreateConfigurationTable()) {
+                    syslog(LOG_ERR, "Failed to create configuration table.");
+                }
+
+                // Create the UDP node database
+                if (!doCreateUdpNodeTable()) {
+                    syslog(LOG_ERR, "Failed to create udpnode table.");
+                }
+
+                // Create the multicast database
+                if (!doCreateMulticastTable()) {
+                    syslog(LOG_ERR, "Failed to create multicast table.");
+                }
+
+                // Create user table
+                if (!doCreateUserTable()) {
+                    syslog(LOG_ERR, "Failed to create user table.");
+                }
+
+                // Create driver table
+                if (!doCreateDriverTable()) {
+                    syslog(LOG_ERR, "Failed to create driver table.");
+                }
+
+                // Create guid table
+                if (!doCreateGuidTable()) {
+                    syslog(LOG_ERR, "Failed to create GUID table.");
+                }
+
+                // Create location table
+                if (!doCreateLocationTable()) {
+                    syslog(LOG_ERR, "Failed to create location table.");
+                }
+
+                // Create mdf table
+                if (!doCreateMdfCacheTable()) {
+                    syslog(LOG_ERR, "Failed to create MDF cache table.");
+                }
+
+                // Create simpleui table
+                if (!doCreateSimpleUiTable()) {
+                    syslog(LOG_ERR, "Failed to create Simple UI table.");
+                }
+
+                // Create simpleui item table
+                if (!doCreateSimpleUiItemTable()) {
+                    syslog(LOG_ERR, "Failed to create Simple UI item table.");
+                }
+
+                // Create zone table
+                if (!doCreateZoneTable()) {
+                    syslog(LOG_ERR, "Failed to create zone table.");
+                }
+
+                // Create subzone table
+                if (!doCreateSubZoneTable()) {
+                    syslog(LOG_ERR, "Failed to create sub zone table.");
+                }
+
+                // Create userdef table
+                if (!doCreateUserdefTableTable()) {
+                    syslog(LOG_ERR, "Failed to create user defined table.");
+                }
+
+                // * * * All created * * *
+
+                // Database is open. Read configuration data from it
+                if (!readConfigurationDB()) {
+                    syslog(LOG_ERR,
+                           "Failed to read configuration from "
+                           "configuration database.");
+                }
+            }
+        } else {
+            syslog(LOG_CRIT,
+                   "VSCP Server configuration database path invalid - will "
+                   "exit. Path=%s",
+                   m_path_db_vscp_daemon.c_str());
+            return false;
+        }
+    }
+
+    // Read UDP nodes
+    readUdpNodes();
+
+    // Read multicast channels
+    readMulticastChannels();
+
+    // * * * VSCP Server data database - NEVER created * * *
+
+    if (SQLITE_OK !=
+        sqlite3_open(m_path_db_vscp_data.c_str(), &m_db_vscp_data)) {
+
+        // Failed to open/create the database file
+        syslog(LOG_ERR,
+               "The VSCP data database could not be opened. - Will not be "
+               "used. Path=%s error=%s",
+               m_path_db_vscp_data.c_str(),
+               sqlite3_errmsg(m_db_vscp_data));
+        if (NULL != m_db_vscp_data) sqlite3_close(m_db_vscp_data);
+        m_db_vscp_data = NULL;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    //                      Read full XML configuration
+    ////////////////////////////////////////////////////////////////////////////
+
+    syslog(LOG_DEBUG, "Using configuration file: %s", strcfgfile.c_str());
+
+    // Read XML configuration
+    if (!readConfigurationXML(strcfgfile)) {
+        syslog(
+          LOG_ERR,
+          "Unable to open/parse configuration file. Can't initialize! Path =%s",
+          strcfgfile.c_str());
+        return FALSE;
+    }
+
+    // Read users from database
+    syslog(LOG_DEBUG, "loading users from users db...");
+    m_userList.loadUsers();
+
+    //==========================================================================
+    //                           Add admin user
+    //==========================================================================
+
+    m_userList.addSuperUser(m_admin_user,
+                            m_admin_password,
+                            m_admin_allowfrom); // Remotes allows to connect
+
+    //==========================================================================
+    //                           Add driver user
+    //==========================================================================
+
+    // Generate username and password for drivers
+    char buf[128];
+    randPassword pw(4);
+
+    // Level II Driver Username
+    memset(buf, 0, sizeof(buf));
     pw.generatePassword(32, buf);
-    m_driverUsername = wxString::FromAscii(buf);
+    m_driverUsername = "drv_";
+    m_driverUsername += std::string(buf);
+
+    // Level II Driver Password (can't contain ";" character)
+    memset(buf, 0, sizeof(buf));
     pw.generatePassword(32, buf);
-    Cmd5 md5((unsigned char *) buf);
-    m_driverPassword = wxString::FromAscii(buf);
+    m_driverPassword = buf;
+
+    std::string drvhash;
+    vscp_makePasswordHash(drvhash, std::string(buf));
 
     m_userList.addUser(m_driverUsername,
-            wxString::FromAscii(md5.getDigest()),
-            _T("admin"),
-            NULL,
-            _T(""),
-            _T(""));
+                       drvhash,                     // salt;hash
+                       "System added driver user.", // full name
+                       "System added driver user.", // note
+                       NULL,
+                       "driver",
+                       "+127.0.0.0/24", // Only local
+                       "*:*",           // All events
+                       VSCP_ADD_USER_FLAG_LOCAL);
 
-    // Read configuration
-    if (!readConfiguration(strcfgfile)) {
-        logMsg(_("Unable to open/parse configuration file. Can't initialize!.\n"), DAEMON_LOGMSG_CRITICAL);
-        logMsg(_("Path = .") + strcfgfile + _("\n"), DAEMON_LOGMSG_CRITICAL);
-        return FALSE;
-    }
-    
-    // Read mime types
-    if (!readMimeTypes(m_pathToMimeTypeFile)) {
-        logMsg(_("Unable to open/parse mime type file.\n"), DAEMON_LOGMSG_CRITICAL);
-        logMsg(_("Path = .") + m_pathToMimeTypeFile + _("\n"), DAEMON_LOGMSG_CRITICAL);
-    }
-    
-    str.Printf(_("Log Level = %d\n"), m_logLevel );
-    logMsg(str);
-    //printf("Loglevel=%n\n",m_logLevel);
+    // Calculate sunset etc
+    m_automation.calcSun();
 
     // Get GUID
-    if ( m_guid.isNULL() ) {
+    if (m_guid.isNULL()) {
         if (!getMacAddress(m_guid)) {
             // We failed to create GUID from MAC address use
             // 'localhost' IP instead as the base.
@@ -501,62 +609,78 @@ bool CControlObject::init(wxString& strcfgfile)
         }
     }
 
-    // Load decision matrix if mechanism is enabled
-    if (m_bDM) {
-        logMsg(_("DM enabled.\n"), DAEMON_LOGMSG_INFO);
-        m_dm.load();
+    // If no server name set construct one
+    if (0 == m_strServerName.length()) {
+        m_strServerName = "VSCP Server @ ";
+        ;
+        std::string strguid;
+        m_guid.toString(strguid);
+        m_strServerName += std::string(strguid);
     }
-    else {
-        logMsg(_("DM disabled.\n"), DAEMON_LOGMSG_INFO);
-    }
+
+    str = "VSCP Server started - ";
+    str += "Version: ";
+    str += VSCPD_DISPLAY_VERSION;
+    str += " - ";
+    str += VSCPD_COPYRIGHT;
+    syslog(LOG_INFO, "%s", str.c_str());
+
+    syslog(LOG_DEBUG, "Log Level=%d", m_logLevel);
+
+    // Load tables from database
+    syslog(LOG_DEBUG, "Reading in user tables from DB.");
+    m_userTableObjects.loadTablesFromDB();
+
+    syslog(LOG_DEBUG, "Initializing user tables.");
+    m_userTableObjects.init();
+
+    // Initialize DM storage
+    syslog(LOG_DEBUG, "Initializing DM.");
+    m_dm.init();
+
+    // Load decision matrix from XML file if mechanism is enabled
+    syslog(LOG_DEBUG, "Loading DM from XML file.");
+    m_dm.loadFromXML();
+
+    // Load decision matrix from db if mechanism is enabled
+    syslog(LOG_DEBUG, "Loading DM from database.");
+    m_dm.loadFromDatabase();
+
+    // Initialize variable storage
+    syslog(LOG_DEBUG, "Initialize variables.");
+    m_variables.init();
 
     // Load variables if mechanism is enabled
-    if (m_bVariables) {
-        logMsg(_("Variables enabled.\n"), DAEMON_LOGMSG_INFO);
-        m_VSCP_Variables.load();
-    }
-    else {
-        logMsg(_("Variables disabled.\n"), DAEMON_LOGMSG_INFO);
-    }
+    syslog(LOG_DEBUG,
+           "Loading persistent variables from XML variable default path.");
+    m_variables.loadFromXML();
 
-    startClientWorkerThread();
+    // Start daemon internal client worker thread
+    startClientMsgWorkerThread();
 
-    if (m_bCanalDrivers) {
-        logMsg(_("Level I drivers enabled.\n"), DAEMON_LOGMSG_INFO);
-        startDeviceWorkerThreads();
-    }
-    else {
-        logMsg(_("Level I drivers disabled.\n"), DAEMON_LOGMSG_INFO);
-    }
+    // Start webserver and websockets
+    // IMPORTANT!!!!!!!!
+    // Must be started before the tcp/ip server as
+    // ssl initializarion is done here
+    start_webserver();
 
-    if (m_bTCPInterface) {
-        logMsg(_("TCP/IP interface enabled.\n"), DAEMON_LOGMSG_INFO);
-        startTcpWorkerThread();
-    }
-    else {
-        logMsg(_("TCP/IP interface disabled.\n"), DAEMON_LOGMSG_INFO);
-    }
+    // Start TCP/IP interface
+    startTcpipSrvThread();
 
+    // Start UDP interface
+    startUDPSrvThread();
+
+    // Start Multicast interface
+    startMulticastWorkerThreads();
+
+    // Load drivers
+    startDeviceWorkerThreads();
+
+    // Start daemon worker thread
     startDaemonWorkerThread();
-    
-    if ( m_bWebSockets ) {
-        logMsg(_("WebSocket interface active.\n"), DAEMON_LOGMSG_INFO);
-    }
-    else {
-        logMsg(_("WebSocket interface disabled.\n"), DAEMON_LOGMSG_INFO);
-    }
-    
-    if ( m_bWebServer ) {
-        logMsg(_("WebServer interface active.\n"), DAEMON_LOGMSG_INFO);
-    }
-    else {
-        logMsg(_("WebServer interface disabled.\n"), DAEMON_LOGMSG_INFO);
-    }
 
     return true;
-
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // run - Program main loop
@@ -564,33 +688,33 @@ bool CControlObject::init(wxString& strcfgfile)
 // Most work is done in the threads at the moment
 //
 
-bool CControlObject::run(void)
+bool
+CControlObject::run(void)
 {
-    CLIENTEVENTLIST::compatibility_iterator nodeClient;
+    std::deque<CClientItem *>::iterator nodeClient;
 
     vscpEvent EventLoop;
     EventLoop.vscp_class = VSCP_CLASS2_VSCPD;
-    EventLoop.vscp_type = VSCP2_TYPE_VSCPD_LOOP;
-    EventLoop.sizeData = 0;
-    EventLoop.pdata = NULL;
+    EventLoop.vscp_type  = VSCP2_TYPE_VSCPD_LOOP;
+    EventLoop.sizeData   = 0;
+    EventLoop.pdata      = NULL;
 
     vscpEvent EventStartUp;
     EventStartUp.vscp_class = VSCP_CLASS2_VSCPD;
-    EventStartUp.vscp_type = VSCP2_TYPE_VSCPD_STARTING_UP;
-    EventStartUp.sizeData = 0;
-    EventStartUp.pdata = NULL;
+    EventStartUp.vscp_type  = VSCP2_TYPE_VSCPD_STARTING_UP;
+    EventStartUp.sizeData   = 0;
+    EventStartUp.pdata      = NULL;
 
     vscpEvent EventShutDown;
     EventShutDown.vscp_class = VSCP_CLASS2_VSCPD;
-    EventShutDown.vscp_type = VSCP2_TYPE_VSCPD_SHUTTING_DOWN;
-    EventShutDown.sizeData = 0;
-    EventShutDown.pdata = NULL;
+    EventShutDown.vscp_type  = VSCP2_TYPE_VSCPD_SHUTTING_DOWN;
+    EventShutDown.sizeData   = 0;
+    EventShutDown.pdata      = NULL;
 
     // We need to create a clientItem and add this object to the list
     CClientItem *pClientItem = new CClientItem;
     if (NULL == pClientItem) {
-        wxLogDebug(_("ControlObject: Unable to allocate Client item, Ending"));
-        logMsg(_("Unable to allocate Client item, Ending."), DAEMON_LOGMSG_CRITICAL);
+        syslog(LOG_CRIT, "Unable to allocate Client item, Ending.");
         return false;
     }
 
@@ -598,96 +722,43 @@ bool CControlObject::run(void)
     m_dm.m_pClientItem = pClientItem;
 
     // Set Filter/Mask for full DM table
-    memcpy(&pClientItem->m_filterVSCP, &m_dm.m_DM_Table_filter, sizeof( vscpEventFilter));
+    memcpy(&pClientItem->m_filter,
+           &m_dm.m_DM_Table_filter,
+           sizeof(vscpEventFilter));
 
     // This is an active client
-    pClientItem->m_bOpen = true;
-    pClientItem->m_type = CLIENT_ITEM_INTERFACE_TYPE_CLIENT_INTERNAL;
-    pClientItem->m_strDeviceName = _("Internal Daemon DM Client. Started at ");
-    wxDateTime now = wxDateTime::Now();
-    pClientItem->m_strDeviceName += now.FormatISODate();
-    pClientItem->m_strDeviceName += _(" ");
-    pClientItem->m_strDeviceName += now.FormatISOTime();
+    pClientItem->m_bOpen         = true;
+    pClientItem->m_type          = CLIENT_ITEM_INTERFACE_TYPE_CLIENT_INTERNAL;
+    pClientItem->m_strDeviceName = "Internal Server DM Client.|Started at ";
+    pClientItem->m_strDeviceName += vscpdatetime::Now().getISODateTime();
 
     // Add the client to the Client List
-    m_wxClientMutex.Lock();
-    addClient(pClientItem);
-    m_wxClientMutex.Unlock();
+    pthread_mutex_lock(&m_clientList.m_mutexItemList);
+    if (!addClient(pClientItem, CLIENT_ID_DM)) {
+        // Failed to add client
+        delete pClientItem;
+        m_dm.m_pClientItem = pClientItem = NULL;
+        syslog(LOG_ERR, "ControlObject: Failed to add internal client.");
+        pthread_mutex_unlock(&m_clientList.m_mutexItemList);
+    }
+    pthread_mutex_unlock(&m_clientList.m_mutexItemList);
 
     // Feed startup event
     m_dm.feed(&EventStartUp);
 
-    // Initialize websockets
-    int opts = 0;
-    unsigned int oldus = 0;
+    //-------------------------------------------------------------------------
+    //                            MAIN - LOOP
+    //-------------------------------------------------------------------------
 
-    //char interface_name[ 128 ] = "";
-    const char *websockif = NULL;
-    struct libwebsocket_context *pcontext;
-    unsigned char buf[ LWS_SEND_BUFFER_PRE_PADDING + 1024 +
-            LWS_SEND_BUFFER_POST_PADDING ];
-
-#ifdef WIN32
-    m_context = libwebsocket_create_context(m_portWebsockets,
-            websockif,
-            protocols,
-            libwebsocket_internal_extensions,
-            NULL,
-            NULL,
-            -1,
-            -1,
-            opts);
-#else
-    lws_context_creation_info info;
-    info.port = m_portWebsockets;
-    info.iface = websockif;
-    info.protocols = protocols;
-    info.extensions = libwebsocket_get_internal_extensions();
-    info.ssl_ca_filepath = NULL;
-    info.ssl_cert_filepath = NULL;
-    info.ssl_cipher_list = NULL;
-    info.ssl_private_key_filepath = NULL;
-    info.gid = -1;
-    info.uid = -1;
-    info.options = opts;
-    info.user = NULL;
-    info.ka_time = 0;
-    info.ka_probes = 0;
-    info.ka_interval = 0;
-
-	if ( m_bWebSockets ) {	
-		pcontext = libwebsocket_create_context(&info);
-		if (NULL == pcontext) {
-			logMsg(_("Unable to initialize websockets. Terminating!\n"), DAEMON_LOGMSG_CRITICAL);
-			return FALSE;
-		}
-	}
-
-#endif
-    
-    // Web server
-    struct MHD_Daemon *pwebserver;
-
-    pwebserver = MHD_start_daemon(
-            MHD_USE_THREAD_PER_CONNECTION | MHD_USE_DEBUG /*| MHD_USE_SSL*/,
-            m_portWebServer,
-            &websrv_callback_check_address,
-            (void *) this,
-            &websrv_callback_webpage,
-            (void *) this,
-            MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t)(256 * 1024),
-            MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int)(64),
-            MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int)(120 /* seconds */),
-            MHD_OPTION_NOTIFY_COMPLETED, &websrv_request_callback_completed, NULL,
-            MHD_OPTION_END);
-    
     // DM Loop
+    int cnt = 0;
     while (!m_bQuit) {
 
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
+        // CLOCKS_PER_SEC
+        clock_t ticks, oldus;
+        oldus = ticks = clock();
 
-        // Feed possible perodic event
+        // Feed possible periodic event
         m_dm.feedPeriodicEvent();
 
         // Put the LOOP event on the queue
@@ -695,264 +766,153 @@ bool CControlObject::run(void)
         // event feed to the queue
         m_dm.feed(&EventLoop);
 
-        // tcp/ip clients uses joinable treads and therefor does not
-        // delete themseves.  This is a garbage collect for unterminated 
-        // tcp/ip connection threads.
-        TCPCLIENTS::iterator iter;
-        for (iter = m_pTcpClientListenThread->m_tcpclients.begin();
-                iter != m_pTcpClientListenThread->m_tcpclients.end(); ++iter) {
-            TcpClientThread *pThread = *iter;
-            if ((NULL != pThread)) {
-                if (pThread->m_bQuit) {
-                    pThread->Wait();
-                    m_pTcpClientListenThread->m_tcpclients.remove(pThread);
-                    delete pThread;
-                    break;
-                }
-            }
-        }
-
-        /*
-         * This broadcasts to all dumb-increment-protocol connections
-         * at 20Hz.
-         *
-         * We're just sending a character 'x', in these examples the
-         * callbacks send their own per-connection content.
-         *
-         * You have to send something with nonzero length to get the
-         * callback actions delivered.
-         *
-         * We take care of pre-and-post padding allocation.
-         */
-
-        if (((unsigned int) tv.tv_usec - oldus) > 50000) {
-            
-            if (m_bWebSockets) {
-                /*
-                    libwebsockets_broadcast( &protocols[ PROTOCOL_DUMB_INCREMENT ],
-                                    &buf[ LWS_SEND_BUFFER_PRE_PADDING ], 
-                                    1 );
-                    libwebsockets_broadcast( &protocols[ PROTOCOL_VSCP ],
-                                    &buf[ LWS_SEND_BUFFER_PRE_PADDING ], 
-                                    1 );
-                 */
-                libwebsocket_callback_on_writable_all_protocol(
-                        &protocols[ PROTOCOL_DUMB_INCREMENT ]);
-
-                libwebsocket_callback_on_writable_all_protocol(
-                        &protocols[ PROTOCOL_VSCP ]);
-            }
-            oldus = tv.tv_usec;
-        }
-
-
-        /*
-         * This html server does not fork or create a thread for
-         * websocket service, it all runs in this single loop.  So,
-         * we have to give the websockets an opportunity to service
-         * "manually".
-         *
-         * If no socket is needing service, the call below returns
-         * immediately and quickly.
-         */
-
-        if ( m_bWebSockets ) libwebsocket_service(pcontext, 50);
-
         // Wait for event
-        if (wxSEMA_TIMEOUT == pClientItem->m_semClientInputQueue.WaitTimeout(10)) {
+        if ((-1 == vscp_sem_wait(&pClientItem->m_semClientInputQueue, 10)) &&
+            errno == ETIMEDOUT) {
+
+            if (m_bQuit) continue; // Make quit request as fast as possible
 
             // Put the LOOP event on the queue
             m_dm.feed(&EventLoop);
             continue;
-
         }
 
-        //---------------------------------------------------------------------------
+        //----------------------------------------------------------------------
         //                         Event received here
-        //---------------------------------------------------------------------------
+        //                   from one of the incoming source
+        //----------------------------------------------------------------------
 
-        if (pClientItem->m_clientInputQueue.GetCount()) {
+        if (pClientItem->m_clientInputQueue.size()) {
 
             vscpEvent *pEvent;
 
-            pClientItem->m_mutexClientInputQueue.Lock();
-            nodeClient = pClientItem->m_clientInputQueue.GetFirst();
-            pEvent = nodeClient->GetData();
-            pClientItem->m_clientInputQueue.DeleteNode(nodeClient);
-            pClientItem->m_mutexClientInputQueue.Unlock();
+            pthread_mutex_lock(&pClientItem->m_mutexClientInputQueue);
+            pEvent = pClientItem->m_clientInputQueue.front();
+            pClientItem->m_clientInputQueue.pop_front();
+            pthread_mutex_unlock(&pClientItem->m_mutexClientInputQueue);
 
             if (NULL != pEvent) {
 
-                if (doLevel2Filter(pEvent, &m_dm.m_DM_Table_filter)) {
+                if (vscp_doLevel2Filter(pEvent, &m_dm.m_DM_Table_filter)) {
                     // Feed event through matrix
                     m_dm.feed(pEvent);
                 }
 
                 // Remove the event
-                deleteVSCPevent(pEvent);
+                vscp_deleteVSCPevent(pEvent);
 
             } // Valid pEvent pointer
 
+            // Send events to websocket clients
+            websock_post_incomingEvents();
+
         } // Event in queue
 
-    }
+    } // while
 
     // Do shutdown event
     m_dm.feed(&EventShutDown);
 
     // Remove messages in the client queues
-    m_wxClientMutex.Lock();
+    pthread_mutex_lock(&m_clientList.m_mutexItemList);
     removeClient(pClientItem);
-    m_wxClientMutex.Unlock();
+    pthread_mutex_unlock(&m_clientList.m_mutexItemList);
 
-    if ( m_bWebSockets ) libwebsocket_context_destroy(pcontext);
+    syslog(LOG_DEBUG, "ControlObject: Run - Done");
 
-    wxLogDebug(_("ControlObject: Done"));
+    cleanup();
+
     return true;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // cleanup
 
-bool CControlObject::cleanup(void)
+bool
+CControlObject::cleanup(void)
 {
+
+    syslog(LOG_DEBUG,
+           "ControlObject: cleanup - Giving worker threads time to stop "
+           "operations...");
+    sleep(2); // Give threads some time to end
+
+    syslog(LOG_DEBUG,
+           "ControlObject: cleanup - Stopping device worker thread...");
     stopDeviceWorkerThreads();
-    stopTcpWorkerThread();
-    stopClientWorkerThread();
+
+    syslog(LOG_DEBUG,
+           "ControlObject: cleanup - Stopping VSCP Server worker thread...");
     stopDaemonWorkerThread();
 
-    wxLogDebug(_("ControlObject: Cleanup done"));
+    syslog(LOG_DEBUG,
+           "ControlObject: cleanup - Stopping client worker thread...");
+    stopClientMsgWorkerThread();
+
+    m_dm.cleanup();
+
+    syslog(LOG_DEBUG,
+           "ControlObject: cleanup - Stopping Web Server worker thread...");
+    stop_webserver();
+
+    syslog(LOG_DEBUG, "ControlObject: cleanup - Stopping UDP worker thread...");
+    stopUDPSrvThread();
+
+    syslog(LOG_DEBUG,
+           "ControlObject: cleanup - Stopping Multicast worker threads...");
+    stopMulticastWorkerThreads();
+
+    syslog(LOG_DEBUG,
+           "ControlObject: cleanup - Stopping TCP/IP worker thread...");
+    stopTcpipSrvThread();
+
+    syslog(LOG_DEBUG, "ControlObject: cleanup - Closing databases.");
+
+    // Close the vscpd database
+    if (NULL != m_db_vscp_daemon) sqlite3_close(m_db_vscp_daemon);
+    m_db_vscp_daemon = NULL;
+
+    // Close the VSCP data database
+    if (NULL != m_db_vscp_data) sqlite3_close(m_db_vscp_data);
+    m_db_vscp_data = NULL;
+
+    // Clean up SQLite lib allocations
+    sqlite3_shutdown();
+
+    syslog(LOG_INFO, "Controlobject: ControlObject: Cleanup done.");
     return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// logMsg
+// startClientMsgWorkerThread
 //
 
-void CControlObject::logMsg(const wxString& wxstr, unsigned char level)
+bool
+CControlObject::startClientMsgWorkerThread(void)
 {
+    syslog(LOG_INFO, "Controlobject: Starting client worker thread...");
 
-    wxString wxdebugmsg = wxstr;
+    if (pthread_create(
+          &m_clientMsgWorkerThread, NULL, clientMsgWorkerThread, this)) {
 
-#ifdef WIN32
-#ifdef BUILD_VSCPD_SERVICE
-
-    const char* ps[3];
-    ps[ 0 ] = wxstr;
-    ps[ 1 ] = NULL;
-    ps[ 2 ] = NULL;
-
-    int iStr = 0;
-    for (int i = 0; i < 3; i++) {
-        if (ps[i] != NULL) {
-            iStr++;
-        }
-    }
-
-    ::ReportEvent(m_hEventSource,
-            EVENTLOG_INFORMATION_TYPE,
-            0,
-            (1L << 30),
-            NULL, // sid
-            iStr,
-            0,
-            ps,
-            NULL);
-#else
-    //printf( wxdebugmsg.mb_str( wxConvUTF8 ) );
-    if (m_logLevel >= level) {
-        wxPrintf(wxdebugmsg);
-    }
-#endif
-#else
-
-    //::wxLogDebug(wxdebugmsg);
-
-    if (m_logLevel >= level) {
-        wxPrintf(wxdebugmsg);
-    }
-
-    switch (level) {
-    case DAEMON_LOGMSG_DEBUG:
-        syslog(LOG_DEBUG, "%s", (const char *) wxdebugmsg.ToAscii());
-        break;
-
-    case DAEMON_LOGMSG_INFO:
-        syslog(LOG_INFO, "%s", (const char *) wxdebugmsg.ToAscii());
-        break;
-
-    case DAEMON_LOGMSG_NOTICE:
-        syslog(LOG_NOTICE, "%s", (const char *) wxdebugmsg.ToAscii());
-        break;
-
-    case DAEMON_LOGMSG_WARNING:
-        syslog(LOG_WARNING, "%s", (const char *) wxdebugmsg.ToAscii());
-        break;
-
-    case DAEMON_LOGMSG_ERROR:
-        syslog(LOG_ERR, "%s", (const char *) wxdebugmsg.ToAscii());
-        break;
-
-    case DAEMON_LOGMSG_CRITICAL:
-        syslog(LOG_CRIT, "%s", (const char *) wxdebugmsg.ToAscii());
-        break;
-
-    case DAEMON_LOGMSG_ALERT:
-        syslog(LOG_ALERT, "%s", (const char *) wxdebugmsg.ToAscii());
-        break;
-
-    case DAEMON_LOGMSG_EMERGENCY:
-        syslog(LOG_EMERG, "%s", (const char *) wxdebugmsg.ToAscii());
-        break;
-
-    };
-#endif
-}
-
-
-/////////////////////////////////////////////////////////////////////////////
-// startClientWorkerThread
-//
-
-bool CControlObject::startClientWorkerThread(void)
-{
-    /////////////////////////////////////////////////////////////////////////////
-    // Load controlobject client message handler
-    /////////////////////////////////////////////////////////////////////////////
-    m_pclientMsgWorkerThread = new clientMsgWorkerThread;
-
-    if (NULL != m_pclientMsgWorkerThread) {
-        m_pclientMsgWorkerThread->m_pCtrlObject = this;
-        wxThreadError err;
-        if (wxTHREAD_NO_ERROR == (err = m_pclientMsgWorkerThread->Create())) {
-            //m_ptcpListenThread->SetPriority( WXTHREAD_DEFAULT_PRIORITY );
-            if (wxTHREAD_NO_ERROR != (err = m_pclientMsgWorkerThread->Run())) {
-                logMsg(_("Unable to run controlobject client thread."), DAEMON_LOGMSG_CRITICAL);
-            }
-        } else {
-            logMsg(_("Unable to create controlobject client thread."), DAEMON_LOGMSG_CRITICAL);
-        }
-    } else {
-        logMsg(_("Unable to allocate memory for controlobject client thread."), DAEMON_LOGMSG_CRITICAL);
+        syslog(LOG_CRIT, "Controlobject: Unable to start client thread.");
+        return false;
     }
 
     return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// stopTcpWorkerThread
+// stopClientMsgWorkerThread
 //
 
-bool CControlObject::stopClientWorkerThread(void)
+bool
+CControlObject::stopClientMsgWorkerThread(void)
 {
-    if (NULL != m_pclientMsgWorkerThread) {
-        m_mutexclientMsgWorkerThread.Lock();
-        m_pclientMsgWorkerThread->m_bQuit = true;
-        m_pclientMsgWorkerThread->Wait();
-        delete m_pclientMsgWorkerThread;
-        m_mutexclientMsgWorkerThread.Unlock();
-    }
+    // Request therad to terminate
+    m_bQuit_clientMsgWorkerThread = true;
+    pthread_join(m_clientMsgWorkerThread, NULL);
+
     return true;
 }
 
@@ -960,82 +920,202 @@ bool CControlObject::stopClientWorkerThread(void)
 // startTcpWorkerThread
 //
 
-bool CControlObject::startTcpWorkerThread(void)
+bool
+CControlObject::startTcpipSrvThread(void)
 {
-    /////////////////////////////////////////////////////////////////////////////
-    // Run the TCP server thread   --   TODO - multiport
-    /////////////////////////////////////////////////////////////////////////////
-    if (m_bTCPInterface) {
-        
-        m_pTcpClientListenThread = new TcpClientListenThread;
+    if (!m_enableTcpip) {
+        syslog(LOG_DEBUG, "Controlobject: TCP/IP interface disabled.");
+        return true;
+    }
 
-        if (NULL != m_pTcpClientListenThread) {
-            m_pTcpClientListenThread->m_pCtrlObject = this;
-            wxThreadError err;
-            if (wxTHREAD_NO_ERROR == (err = m_pTcpClientListenThread->Create())) {
-                //m_ptcpListenThread->SetPriority( WXTHREAD_DEFAULT_PRIORITY );
-                if (wxTHREAD_NO_ERROR != (err = m_pTcpClientListenThread->Run())) {
-                    logMsg(_("Unable to run TCP thread."), DAEMON_LOGMSG_CRITICAL);
-                }
-            } else {
-                logMsg(_("Unable to create TCP thread."), DAEMON_LOGMSG_CRITICAL);
-            }
-        } else {
-            logMsg(_("Unable to allocate memory for TCP thread."), DAEMON_LOGMSG_CRITICAL);
-        }
+    syslog(LOG_DEBUG, "Controlobject: Starting TCP/IP interface...");
+
+    // Create the tcp/ip server data object
+    m_ptcpipSrvObject = (tcpipListenThreadObj *)new tcpipListenThreadObj(this);
+    if (NULL == m_ptcpipSrvObject) {
+        syslog(LOG_CRIT,
+               "Controlobject: Failed to allocate storage for tcp/ip.");
+    }
+
+    // Set the port to listen for connections on
+    m_ptcpipSrvObject->setListeningPort(m_strTcpInterfaceAddress);
+
+    if (pthread_create(
+          &m_tcpipListenThread, NULL, tcpipListenThread, m_ptcpipSrvObject)) {
+        delete m_ptcpipSrvObject;
+        m_ptcpipSrvObject = NULL;
+        syslog(LOG_CRIT,
+               "Controlobject: Unable to start the tcp/ip listen thread.");
+        return false;
     }
 
     return true;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // stopTcpWorkerThread
 //
 
-bool CControlObject::stopTcpWorkerThread(void)
+bool
+CControlObject::stopTcpipSrvThread(void)
 {
-    if (NULL != m_pTcpClientListenThread) {
-        m_mutexTcpClientListenThread.Lock();
-        m_pTcpClientListenThread->m_bQuit = true;
-        m_pTcpClientListenThread->Wait();
-        delete m_pTcpClientListenThread;
-        m_mutexTcpClientListenThread.Unlock();
-    }
+    // Tell the thread it's time to quit
+    m_ptcpipSrvObject->m_nStopTcpIpSrv = VSCP_TCPIP_SRV_STOP;
+
+    syslog(LOG_DEBUG, "Controlobject: Terminating TCP thread.");
+
+    pthread_join(m_tcpipListenThread, NULL);
+    delete m_ptcpipSrvObject;
+    m_ptcpipSrvObject = NULL;
+
+    syslog(LOG_DEBUG, "Controlobject: Terminated TCP thread.");
+
     return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// startUDPSrvThread
+//
+
+bool
+CControlObject::startUDPSrvThread(void)
+{
+    if (!m_enableUDP) {
+        syslog(LOG_DEBUG, "UDP server disabled.");
+        return false;
+    }
+
+    syslog(LOG_DEBUG, "Controlobject: Starting UDP simple server interface...");
+
+    if (pthread_create(&m_UDPThread, NULL, UDPThread, &m_udpSrvObj)) {
+
+        syslog(LOG_CRIT,
+               "Controlobject: Unable to start the udp simple server thread.");
+        return false;
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// stopUDPSrvThread
+//
+
+bool
+CControlObject::stopUDPSrvThread(void)
+{
+    syslog(LOG_DEBUG, "Controlobject: Terminating UDP thread.");
+
+    m_udpSrvObj.m_bQuit = true;
+    pthread_join(m_UDPThread, NULL);
+
+    syslog(LOG_DEBUG, "Controlobject: Terminated UDP thread.");
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// startMulticastWorkerThreads
+//
+
+bool
+CControlObject::startMulticastWorkerThreads(void)
+{
+    if (!m_bEnableMulticast) {
+        syslog(LOG_DEBUG, "Multicast interface is disabled.");
+        return true;
+    }
+
+    if (m_multicastObj.m_channels.empty()) {
+        syslog(LOG_DEBUG, "No multicast channels defined.");
+        return true;
+    }
+
+    // Bring up all multicast channels
+    std::list<multicastChannelItem *>::iterator it;
+    for (it = m_multicastObj.m_channels.begin();
+         it != m_multicastObj.m_channels.end();
+         ++it) {
+
+        multicastChannelItem *pChannel = *it;
+        if (NULL == pChannel) {
+            syslog(
+              LOG_ERR,
+              "Controlobject: Multicast start channel table invalid entry.");
+            continue;
+        }
+
+        syslog(LOG_DEBUG, "Starting multicast channel interface thread...");
+        if (pthread_create(&pChannel->m_workerThread,
+                           NULL,
+                           multicastClientThread,
+                           pChannel)) {
+            syslog(LOG_ERR,
+                   "Unable to start the multicast channel interface thread.");
+        }
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// stopMulticastWorkerThreads
+//
+
+bool
+CControlObject::stopMulticastWorkerThreads(void)
+{
+    std::list<multicastChannelItem *>::iterator it;
+
+    for (it = m_multicastObj.m_channels.begin();
+         it != m_multicastObj.m_channels.end();
+         /* inline */) {
+
+        multicastChannelItem *pChannel = *it;
+        if (NULL == pChannel) {
+            syslog(LOG_ERR,
+                   "Controlobject: Multicast end channel table invalid entry.");
+            continue;
+        }
+
+        pChannel->m_quit = true;
+        pthread_join(pChannel->m_workerThread, NULL);
+        delete pChannel;
+
+        it = m_multicastObj.m_channels.erase(it);
+    }
+
+    return true;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // startDaemonWorkerThread
 //
 
-bool CControlObject::startDaemonWorkerThread(void)
+bool
+CControlObject::startDaemonWorkerThread(void)
 {
-    /////////////////////////////////////////////////////////////////////////////
-    // Run the VSCP daemon thread
-    /////////////////////////////////////////////////////////////////////////////
-    if (m_bVSCPDaemon) {
+    syslog(LOG_DEBUG, "Controlobject: Starting daemon worker thread,,.");
 
-        m_pdaemonVSCPThread = new daemonVSCPThread;
+    m_pdaemonWorkerObj = new daemonWorkerObj(this);
+    if (NULL == m_pdaemonWorkerObj) {
+        syslog(
+          LOG_CRIT,
+          "Controlobject: Unable to allocate object for daemon worker thread.");
+        return false;
+    }
 
-        if (NULL != m_pdaemonVSCPThread) {
-            m_pdaemonVSCPThread->m_pCtrlObject = this;
+    m_pdaemonWorkerObj->m_pCtrlObject = this; // Give it a pointer to us
 
-            wxThreadError err;
-            if (wxTHREAD_NO_ERROR == (err = m_pdaemonVSCPThread->Create())) {
-                m_pdaemonVSCPThread->SetPriority(WXTHREAD_DEFAULT_PRIORITY);
-                if (wxTHREAD_NO_ERROR != (err = m_pdaemonVSCPThread->Run())) {
-                    logMsg(_("Unable to start TCP VSCP daemon thread."), DAEMON_LOGMSG_CRITICAL);
-                }
-            } else {
-                logMsg(_("Unable to create TCP VSCP daemon thread."), DAEMON_LOGMSG_CRITICAL);
-            }
-        } else {
-            logMsg(_("Unable to start VSCP daemon thread."), DAEMON_LOGMSG_CRITICAL);
-        }
+    if (pthread_create(&m_clientMsgWorkerThread,
+                       NULL,
+                       daemonWorkerThread,
+                       m_pdaemonWorkerObj)) {
 
-    } // daemon enabled
+        syslog(LOG_CRIT,
+               "Controlobject: Unable to start the daemon worker thread.");
+        return false;
+    }
 
     return true;
 }
@@ -1044,58 +1124,67 @@ bool CControlObject::startDaemonWorkerThread(void)
 // stopDaemonWorkerThread
 //
 
-bool CControlObject::stopDaemonWorkerThread(void)
+bool
+CControlObject::stopDaemonWorkerThread(void)
 {
-    if (NULL != m_pdaemonVSCPThread) {
-        m_mutexdaemonVSCPThread.Lock();
-        m_pdaemonVSCPThread->m_bQuit = true;
-        m_pdaemonVSCPThread->Wait();
-        delete m_pdaemonVSCPThread;
-        m_mutexdaemonVSCPThread.Unlock();
-    }
+    syslog(LOG_DEBUG, "Controlobject: Stopping daemon worker thread...");
+    m_pdaemonWorkerObj->m_bQuit = true;
+    pthread_join(m_clientMsgWorkerThread, NULL);
+    syslog(LOG_DEBUG, "Controlobject: Stoped daemon worker thread.");
+
     return true;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-//  
+////////////////////////////////////////////////////////////////////////////////
+// startDeviceWorkerThreads
 //
 
-bool CControlObject::startDeviceWorkerThreads(void)
+bool
+CControlObject::startDeviceWorkerThreads(void)
 {
     CDeviceItem *pDeviceItem;
+    syslog(LOG_DEBUG, "[Controlobject][Driver] - Starting drivers...");
 
-    VSCPDEVICELIST::iterator iter;
-    for (iter = m_deviceList.m_devItemList.begin();
-            iter != m_deviceList.m_devItemList.end();
-            ++iter) {
+    std::deque<CDeviceItem *>::iterator it;
+    for (it = m_deviceList.m_devItemList.begin();
+         it != m_deviceList.m_devItemList.end();
+         ++it) {
 
-        pDeviceItem = *iter;
+        pDeviceItem = *it;
         if (NULL != pDeviceItem) {
 
+            syslog(LOG_DEBUG,
+                   "Controlobject: [Driver] - Preparing: %s ",
+                   pDeviceItem->m_strName.c_str());
+
             // Just start if enabled
-            if ( !pDeviceItem->m_bEnable ) continue;
-                
-            // *****************************************
-            //  Create the worker thread for the device
-            // *****************************************
+            if (!pDeviceItem->m_bEnable) continue;
 
-            pDeviceItem->m_pdeviceThread = new deviceThread();
-            if (NULL != pDeviceItem->m_pdeviceThread) {
+            syslog(LOG_DEBUG,
+                   "Controlobject: [Driver] - Starting: %s ",
+                   pDeviceItem->m_strName.c_str());
 
-                pDeviceItem->m_pdeviceThread->m_pCtrlObject = this;
-                pDeviceItem->m_pdeviceThread->m_pDeviceItem = pDeviceItem;
+            // *** Level 3 Driver * * *
+            if (VSCP_DRIVER_LEVEL3 == pDeviceItem->m_driverLevel) {
 
-                wxThreadError err;
-                if (wxTHREAD_NO_ERROR == (err = pDeviceItem->m_pdeviceThread->Create())) {
-                    if (wxTHREAD_NO_ERROR != (err = pDeviceItem->m_pdeviceThread->Run())) {
-                        logMsg(_("Unable to create DeviceThread."), DAEMON_LOGMSG_CRITICAL);
-                    }
-                } else {
-                    logMsg(_("Unable to run DeviceThread."), DAEMON_LOGMSG_CRITICAL);
-                }
+                // Startup Level III driver
+                //      username
+                //      password
+                //      driver parameter string
+                // The driver should return immediately after starting
+                std::string strExecute = pDeviceItem->m_strPath;
+                strExecute += " ";
+                strExecute += m_driverUsername;
+                strExecute += " ";
+                strExecute += m_driverPassword;
+                strExecute += " ";
+                strExecute += pDeviceItem->m_strParameter;
+
+                int status = system(pDeviceItem->m_strPath.c_str());
 
             } else {
-                logMsg(_("Unable to allocate memory for DeviceThread."), DAEMON_LOGMSG_CRITICAL);
+                // Start  the driver logic
+                pDeviceItem->startDriver(this);
             }
 
         } // Valid device item
@@ -1104,57 +1193,205 @@ bool CControlObject::startDeviceWorkerThreads(void)
     return true;
 }
 
-/////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // stopDeviceWorkerThreads
 //
 
-bool CControlObject::stopDeviceWorkerThreads(void)
+bool
+CControlObject::stopDeviceWorkerThreads(void)
 {
     CDeviceItem *pDeviceItem;
 
-    VSCPDEVICELIST::iterator iter;
+    syslog(LOG_DEBUG, "[Controlobject][Driver] - Stopping drivers...");
+    std::deque<CDeviceItem *>::iterator iter;
     for (iter = m_deviceList.m_devItemList.begin();
-            iter != m_deviceList.m_devItemList.end();
-            ++iter) {
+         iter != m_deviceList.m_devItemList.end();
+         ++iter) {
 
         pDeviceItem = *iter;
         if (NULL != pDeviceItem) {
-
-            if (NULL != pDeviceItem->m_pdeviceThread) {
-                pDeviceItem->m_mutexdeviceThread.Lock();
-                pDeviceItem->m_bQuit = true;
-                pDeviceItem->m_pdeviceThread->Wait();
-                pDeviceItem->m_mutexdeviceThread.Unlock();
-                delete pDeviceItem->m_pdeviceThread;
-            }
-
+            syslog(LOG_DEBUG,
+                   "Controlobject: [Driver] - Stopping: %s ",
+                   pDeviceItem->m_strName.c_str());
+            pDeviceItem->stopDriver();
         }
-
     }
 
     return true;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// generateSessionId
+//
+
+bool
+CControlObject::generateSessionId(const char *pKey, char *psid)
+{
+    char buf[8193];
+
+    // Check pointers
+    if (NULL == pKey) return false;
+    if (NULL == psid) return false;
+
+    if (strlen(pKey) > 256) return false;
+
+    // Generate a random session ID
+    time_t t;
+    t = time(NULL);
+    sprintf(buf,
+            "__%s_%X%X%X%X_be_hungry_stay_foolish_%X%X",
+            pKey,
+            (unsigned int)rand(),
+            (unsigned int)rand(),
+            (unsigned int)rand(),
+            (unsigned int)t,
+            (unsigned int)rand(),
+            1337);
+
+    vscp_md5(psid, (const unsigned char *)buf, strlen(buf));
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// getVscpCapabilities
+//
+
+bool
+CControlObject::getVscpCapabilities(uint8_t *pCapability)
+{
+    // Check pointer
+    if (NULL == pCapability) return false;
+
+    uint64_t caps = 0;
+    memset(pCapability, 0, 8);
+
+    // VSCP Multicast interface
+    if (m_bEnableMulticast) {
+        caps |= VSCP_SERVER_CAPABILITY_MULTICAST_CHANNEL;
+    }
+
+    // VSCP TCP/IP interface
+    if (m_enableTcpip) {
+        caps |= VSCP_SERVER_CAPABILITY_TCPIP;
+    }
+
+    // VSCP UDP interface
+    if (m_udpSrvObj.m_bEnable) {
+        caps |= VSCP_SERVER_CAPABILITY_UDP;
+    }
+
+    // VSCP Multicast announce interface
+    if (m_bEnableMulticastAnnounce) {
+        caps |= VSCP_SERVER_CAPABILITY_MULTICAST_ANNOUNCE;
+    }
+
+    // VSCP raw Ethernet interface
+    if (1) {
+        caps |= VSCP_SERVER_CAPABILITY_RAWETH;
+    }
+
+    // VSCP web server
+    if (m_web_bEnable) {
+        caps |= VSCP_SERVER_CAPABILITY_WEB;
+    }
+
+    // VSCP websocket interface
+    if (m_web_bEnable) {
+        caps |= VSCP_SERVER_CAPABILITY_WEBSOCKET;
+    }
+
+    // VSCP websocket interface
+    if (m_web_bEnable) {
+        caps |= VSCP_SERVER_CAPABILITY_REST;
+    }
+
+    // IPv6 support
+    if (0) {
+        caps |= VSCP_SERVER_CAPABILITY_IP6;
+    }
+
+    // IPv4 support
+    if (0) {
+        caps |= VSCP_SERVER_CAPABILITY_IP4;
+    }
+
+    // SSL support
+    if (1) {
+        caps |= VSCP_SERVER_CAPABILITY_SSL;
+    }
+
+    // +2 tcp/ip connections support
+    if (m_enableTcpip) {
+        caps |= VSCP_SERVER_CAPABILITY_TWO_CONNECTIONS;
+    }
+
+    // AES256
+    caps |= VSCP_SERVER_CAPABILITY_AES256;
+
+    // AES192
+    caps |= VSCP_SERVER_CAPABILITY_AES192;
+
+    // AES128
+    caps |= VSCP_SERVER_CAPABILITY_AES128;
+
+    for (int i = 0; i < 8; i++) {
+        pCapability[i] = caps & 0xff;
+        caps           = caps >> 8;
+    }
+
+    return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// getCountRecordsDB
+//
+
+long
+CControlObject::getCountRecordsDB(sqlite3 *db, std::string &table)
+{
+    long count = 0;
+    sqlite3_stmt *ppStmt;
+
+    // If not open no records
+    if (NULL == db) return 0;
+
+    std::string sql =
+      vscp_str_format("SELECT count(*)from %s", (const char *)table.c_str());
+
+    if (SQLITE_OK !=
+        sqlite3_prepare(db, (const char *)sql.c_str(), -1, &ppStmt, NULL)) {
+        syslog(LOG_ERR,
+               "Failed to prepare count for log database. SQL is %s",
+               VSCPDB_LOG_COUNT);
+        return 0;
+    }
+
+    if (SQLITE_ROW == sqlite3_step(ppStmt)) {
+        count = sqlite3_column_int(ppStmt, 0);
+    }
+    return count;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // sendEventToClient
 //
 
-void CControlObject::sendEventToClient(CClientItem *pClientItem,
-        vscpEvent *pEvent)
+void
+CControlObject::sendEventToClient(CClientItem *pClientItem, vscpEvent *pEvent)
 {
     // Must be valid pointers
     if (NULL == pClientItem) return;
     if (NULL == pEvent) return;
 
-    // Check if filtered out
-    //if (!doLevel2Filter(pEvent, &pClientItem->m_filterVSCP)) return;
+    // Check if filtered out - if so do nothing here
+    if (!vscp_doLevel2Filter(pEvent, &pClientItem->m_filter)) return;
 
     // If the client queue is full for this client then the
     // client will not receive the message
-    if (pClientItem->m_clientInputQueue.GetCount() >
-            m_maxItemsInClientReceiveQueue) {
-        // Overun
+    if (pClientItem->m_clientInputQueue.size() >
+        m_maxItemsInClientReceiveQueue) {
+        // Overrun
         pClientItem->m_statistics.cntOverruns++;
         return;
     }
@@ -1162,26 +1399,27 @@ void CControlObject::sendEventToClient(CClientItem *pClientItem,
     // Create an event
     vscpEvent *pnewvscpEvent = new vscpEvent;
     if (NULL != pnewvscpEvent) {
-        
+
         // Copy in the new event
-        memcpy(pnewvscpEvent, pEvent, sizeof( vscpEvent));
+        memcpy(pnewvscpEvent, pEvent, sizeof(vscpEvent));
 
         // And data...
-        if ((pEvent->sizeData > 0) && (NULL != pEvent->pdata)) {
+        if ((NULL != pEvent->pdata) && (pEvent->sizeData > 0)) {
             // Copy in data
-            pnewvscpEvent->pdata = new uint8_t[ pEvent->sizeData ];
-            memcpy(pnewvscpEvent->pdata, pEvent->pdata, pEvent->sizeData);
+            pnewvscpEvent->pdata = new uint8_t[pEvent->sizeData];
+            if (NULL != pnewvscpEvent->pdata) {
+                memcpy(pnewvscpEvent->pdata, pEvent->pdata, pEvent->sizeData);
+            }
         } else {
             // No data
             pnewvscpEvent->pdata = NULL;
         }
 
-        // Add the new event to the inputqueue
-        pClientItem->m_mutexClientInputQueue.Lock();
-        pClientItem->m_clientInputQueue.Append(pnewvscpEvent);
-        pClientItem->m_semClientInputQueue.Post();
-        pClientItem->m_mutexClientInputQueue.Unlock();
-
+        // Add the new event to the input queue
+        pthread_mutex_lock(&pClientItem->m_mutexClientInputQueue);
+        pClientItem->m_clientInputQueue.push_back(pnewvscpEvent);
+        sem_post(&pClientItem->m_semClientInputQueue);
+        pthread_mutex_unlock(&pClientItem->m_mutexClientInputQueue);
     }
 }
 
@@ -1189,148 +1427,233 @@ void CControlObject::sendEventToClient(CClientItem *pClientItem,
 // sendEventAllClients
 //
 
-void CControlObject::sendEventAllClients(vscpEvent *pEvent, uint32_t excludeID)
+void
+CControlObject::sendEventAllClients(vscpEvent *pEvent, uint32_t excludeID)
 {
     CClientItem *pClientItem;
-    VSCPCLIENTLIST::iterator it;
-
-    wxLogTrace(_("wxTRACE_vscpd_receiveQueue"),
-            _(" ControlObject: event %d, excludeid = %d"),
-            pEvent->obid, excludeID);
+    std::deque<CClientItem *>::iterator it;
 
     if (NULL == pEvent) return;
 
-    m_wxClientMutex.Lock();
-    for (it = m_clientList.m_clientItemList.begin(); it != m_clientList.m_clientItemList.end(); ++it) {
+    pthread_mutex_lock(&m_clientList.m_mutexItemList);
+    for (it = m_clientList.m_itemList.begin();
+         it != m_clientList.m_itemList.end();
+         ++it) {
         pClientItem = *it;
-
-        wxLogTrace(_("wxTRACE_vscpd_receiveQueue"),
-                _(" ControlObject: clientid = %d"),
-                pClientItem->m_clientID);
 
         if ((NULL != pClientItem) && (excludeID != pClientItem->m_clientID)) {
             sendEventToClient(pClientItem, pEvent);
-            wxLogTrace(_("wxTRACE_vscpd_receiveQueue"),
-                    _(" ControlObject: Sent to client %d"),
-                    pClientItem->m_clientID);
         }
     }
 
-    m_wxClientMutex.Unlock();
-
+    pthread_mutex_unlock(&m_clientList.m_mutexItemList);
 }
 
-
-
-//
-// The clientmap holds free client id's in an array
-// They are aquired when a client connects and released when a
-// client disconnects.
-//
-// Interfaces can be fetched by investigating the map. 
-//
-// Not used at the moment.
-
-
-
 ///////////////////////////////////////////////////////////////////////////////
-//  getClientMapFromId
+// sendEvent
 //
 
-uint32_t CControlObject::getClientMapFromId(uint32_t clid)
+bool
+CControlObject::sendEvent(CClientItem *pClientItem, vscpEvent *peventToSend)
 {
-    for (uint32_t i = 0; i < VSCP_MAX_CLIENTS; i++) {
-        if (clid == m_clientMap[ i ]) return i;
+    bool bSent = false;
+
+    // Check pointers
+    if (NULL == pClientItem) return false;
+    if (NULL == peventToSend) return false;
+
+    // If timestamp is nulled make one
+    if (0 == peventToSend->timestamp) {
+        peventToSend->timestamp = vscp_makeTimeStamp();
     }
 
-    return 0;
-}
+    // If obid is nulled set client interface id
+    if (0 == peventToSend->obid) {
+        peventToSend->obid = pClientItem->m_clientID;
+    }
 
+    // If GUID is all nilled set interface GUID
+    if (vscp_isGUIDEmpty(peventToSend->GUID)) {
+        memcpy(peventToSend->GUID, pClientItem->m_guid.getGUID(), 16);
+    }
 
-///////////////////////////////////////////////////////////////////////////////
-//  getClientMapFromIndex
-//
+    vscpEvent *pEvent = new vscpEvent; // Create new VSCP Event
+    if (NULL == pEvent) {
+        return false;
+    }
 
-uint32_t CControlObject::getClientMapFromIndex(uint32_t idx)
-{
-    return m_clientMap[ idx ];
-}
+    // Copy event
+    vscp_copyVSCPEvent(pEvent, peventToSend);
 
+    // We don't need the original event anymore
+    if (NULL != peventToSend->pdata) {
+        delete[] peventToSend->pdata;
+        peventToSend->pdata    = NULL;
+        peventToSend->sizeData = 0;
+    }
 
-///////////////////////////////////////////////////////////////////////////////
-//  addIdToClientMap
-//
+    // Save the originating clients id so
+    // this client don't get the message back
+    pEvent->obid = pClientItem->m_clientID;
 
-uint32_t CControlObject::addIdToClientMap(uint32_t clid)
-{
-    for (uint32_t i = 1; i < VSCP_MAX_CLIENTS; i++) {
-        if (0 == m_clientMap[ i ]) {
-            m_clientMap[ i ] = clid;
-            return clid;
+    // Level II events between 512-1023 is recognised by the daemon and
+    // sent to the correct interface as Level I events if the interface
+    // is addressed by the client.
+    if ((pEvent->vscp_class <= 1023) && (pEvent->vscp_class >= 512) &&
+        (pEvent->sizeData >= 16)) {
+
+        // This event should be sent to the correct interface if it is
+        // available on this machine. If not it should be sent to
+        // the rest of the network as normal
+
+        cguid destguid;
+        destguid.getFromArray(pEvent->pdata);
+
+        destguid.setAt(0, 0); // Interface GUID's have LSB bytes nilled
+        destguid.setAt(1, 0);
+
+        syslog(LOG_DEBUG,
+               "Level I event over Level II "
+               "dest = %d:%d:%d:%d:%d:%d:%d:%d:"
+               "%d:%d:%d:%d:%d:%d:%d:%d:",
+               destguid.getAt(15),
+               destguid.getAt(14),
+               destguid.getAt(13),
+               destguid.getAt(12),
+               destguid.getAt(11),
+               destguid.getAt(10),
+               destguid.getAt(9),
+               destguid.getAt(8),
+               destguid.getAt(7),
+               destguid.getAt(6),
+               destguid.getAt(5),
+               destguid.getAt(4),
+               destguid.getAt(3),
+               destguid.getAt(2),
+               destguid.getAt(1),
+               destguid.getAt(0));
+
+        // Find client
+        pthread_mutex_lock(&m_clientList.m_mutexItemList);
+
+        CClientItem *pDestClientItem = NULL;
+        std::deque<CClientItem *>::iterator it;
+        for (it = m_clientList.m_itemList.begin();
+             it != m_clientList.m_itemList.end();
+             ++it) {
+
+            CClientItem *pItem = *it;
+            syslog(
+              LOG_DEBUG,
+              "Test if = %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d: %s",
+              pItem->m_guid.getAt(15),
+              pItem->m_guid.getAt(14),
+              pItem->m_guid.getAt(13),
+              pItem->m_guid.getAt(12),
+              pItem->m_guid.getAt(11),
+              pItem->m_guid.getAt(10),
+              pItem->m_guid.getAt(9),
+              pItem->m_guid.getAt(8),
+              pItem->m_guid.getAt(7),
+              pItem->m_guid.getAt(6),
+              pItem->m_guid.getAt(5),
+              pItem->m_guid.getAt(4),
+              pItem->m_guid.getAt(3),
+              pItem->m_guid.getAt(2),
+              pItem->m_guid.getAt(1),
+              pItem->m_guid.getAt(0),
+              pItem->m_strDeviceName.c_str());
+
+            if (pItem->m_guid == destguid) {
+                // Found
+                pDestClientItem = pItem;
+                bSent           = true;
+                syslog(LOG_DEBUG, "Match ");
+                sendEventToClient(pItem, pEvent);
+                break;
+            }
+        }
+
+        pthread_mutex_unlock(&m_clientList.m_mutexItemList);
+    }
+
+    if (!bSent) {
+
+        // There must be room in the send queue
+        if (m_maxItemsInClientReceiveQueue > m_clientOutputQueue.size()) {
+
+            pthread_mutex_lock(&m_mutexClientOutputQueue);
+            m_clientOutputQueue.push_back(pEvent);
+            sem_post(&m_semClientOutputQueue);
+            pthread_mutex_unlock(&m_mutexClientOutputQueue);
+
+            // TX Statistics
+            pClientItem->m_statistics.cntTransmitData += pEvent->sizeData;
+            pClientItem->m_statistics.cntTransmitFrames++;
+        } else {
+
+            pClientItem->m_statistics.cntOverruns++;
+
+            vscp_deleteVSCPevent(pEvent);
+            return false;
         }
     }
 
-    return 0;
+    return true;
 }
-
-
-///////////////////////////////////////////////////////////////////////////////
-//  removeIdFromClientMap
-//
-
-bool CControlObject::removeIdFromClientMap(uint32_t clid)
-{
-    for (uint32_t i = 0; i < VSCP_MAX_CLIENTS; i++) {
-        if (clid == m_clientMap[ i ]) {
-            m_clientMap[ i ] = 0;
-            return true;
-        }
-    }
-
-    return false;
-}
-
 
 //////////////////////////////////////////////////////////////////////////////
 // addClient
 //
 
-void CControlObject::addClient(CClientItem *pClientItem, uint32_t id)
+bool
+CControlObject::addClient(CClientItem *pClientItem, uint32_t id)
 {
     // Add client to client list
-    m_clientList.addClient(pClientItem, id);
-
-    // Add mapped item
-    addIdToClientMap(pClientItem->m_clientID);
+    if (!m_clientList.addClient(pClientItem, id)) {
+        return false;
+    }
 
     // Set GUID for interface
     pClientItem->m_guid = m_guid;
 
-    pClientItem->m_guid.setNicknameID( 0 );
-    pClientItem->m_guid.setClientID( pClientItem->m_clientID );
+    // Fill in client id
+    pClientItem->m_guid.setNicknameID(0);
+    pClientItem->m_guid.setClientID(pClientItem->m_clientID);
 
+    return true;
 }
-
 
 //////////////////////////////////////////////////////////////////////////////
 // removeClient
 //
 
-void CControlObject::removeClient(CClientItem *pClientItem)
+void
+CControlObject::removeClient(CClientItem *pClientItem)
 {
-    // Remove the mapped item
-    removeIdFromClientMap(pClientItem->m_clientID);
+    // Do not try to handle invalid clients
+    if (NULL == pClientItem) return;
 
     // Remove the client
     m_clientList.removeClient(pClientItem);
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// addKnowNode
+//
+
+void
+CControlObject::addKnownNode(cguid &guid, cguid &ifguid, std::string &name)
+{
+    ; // TODO
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //  getMacAddress
 //
 
-bool CControlObject::getMacAddress(cguid& guid)
+bool
+CControlObject::getMacAddress(cguid &guid)
 {
 #ifdef WIN32
 
@@ -1343,50 +1666,51 @@ bool CControlObject::getMacAddress(cguid& guid)
     // Clear the GUID
     guid.clear();
 
-    memset(&Ncb, 0, sizeof( Ncb));
+    memset(&Ncb, 0, sizeof(Ncb));
     Ncb.ncb_command = NCBENUM;
-    Ncb.ncb_buffer = (UCHAR *) & lenum;
-    Ncb.ncb_length = sizeof( lenum);
-    uRetCode = Netbios(&Ncb);
-    //printf( "The NCBENUM return code is: 0x%x \n", uRetCode );
+    Ncb.ncb_buffer  = (UCHAR *)&lenum;
+    Ncb.ncb_length  = sizeof(lenum);
+    uRetCode        = Netbios(&Ncb);
+    // printf( "The NCBENUM return code is: 0x%x ", uRetCode );
 
     for (i = 0; i < lenum.length; i++) {
-        memset(&Ncb, 0, sizeof( Ncb));
-        Ncb.ncb_command = NCBRESET;
+        memset(&Ncb, 0, sizeof(Ncb));
+        Ncb.ncb_command  = NCBRESET;
         Ncb.ncb_lana_num = lenum.lana[i];
 
         uRetCode = Netbios(&Ncb);
 
-        memset(&Ncb, 0, sizeof( Ncb));
-        Ncb.ncb_command = NCBASTAT;
+        memset(&Ncb, 0, sizeof(Ncb));
+        Ncb.ncb_command  = NCBASTAT;
         Ncb.ncb_lana_num = lenum.lana[i];
 
-        strcpy((char *) Ncb.ncb_callname, "*               ");
-        Ncb.ncb_buffer = (unsigned char *) &Adapter;
-        Ncb.ncb_length = sizeof( Adapter);
+        strcpy((char *)Ncb.ncb_callname, "*               ");
+        Ncb.ncb_buffer = (unsigned char *)&Adapter;
+        Ncb.ncb_length = sizeof(Adapter);
 
         uRetCode = Netbios(&Ncb);
 
         if (uRetCode == 0) {
-            guid.setAt( 15, 0xff );
-            guid.setAt( 14, 0xff );
-            guid.setAt( 13, 0xff );
-            guid.setAt( 12, 0xff );
-            guid.setAt( 11, 0xff );
-            guid.setAt( 10, 0xff );
-            guid.setAt( 9, 0xff );
-            guid.setAt( 8, 0xfe );
-            guid.setAt( 7, Adapter.adapt.adapter_address[ 0 ] );
-            guid.setAt( 6, Adapter.adapt.adapter_address[ 1 ] );
-            guid.setAt( 5, Adapter.adapt.adapter_address[ 2 ] );
-            guid.setAt( 4, Adapter.adapt.adapter_address[ 3 ] );
-            guid.setAt( 3, Adapter.adapt.adapter_address[ 4 ] );
-            guid.setAt( 2, Adapter.adapt.adapter_address[ 5 ] );
-            guid.setAt( 1, 0 );
-            guid.setAt( 0, 0 );
-#ifdef __WXDEBUG__
+            guid.setAt(0, 0xff);
+            guid.setAt(1, 0xff);
+            guid.setAt(2, 0xff);
+            guid.setAt(3, 0xff);
+            guid.setAt(4, 0xff);
+            guid.setAt(5, 0xff);
+            guid.setAt(6, 0xff);
+            guid.setAt(7, 0xfe);
+            guid.setAt(8, Adapter.adapt.adapter_address[0]);
+            guid.setAt(9, Adapter.adapt.adapter_address[1]);
+            guid.setAt(10, Adapter.adapt.adapter_address[2]);
+            guid.setAt(11, Adapter.adapt.adapter_address[3]);
+            guid.setAt(12, Adapter.adapt.adapter_address[4]);
+            guid.setAt(13, Adapter.adapt.adapter_address[5]);
+            guid.setAt(14, 0);
+            guid.setAt(15, 0);
+#ifdef DEBUG__
             char buf[256];
-            sprintf(buf, "The Ethernet MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+            sprintf(buf,
+                    "The Ethernet MAC Address: %02x:%02x:%02x:%02x:%02x:%02x",
                     guid.getAt(2),
                     guid.getAt(3),
                     guid.getAt(4),
@@ -1394,8 +1718,7 @@ bool CControlObject::getMacAddress(cguid& guid)
                     guid.getAt(6),
                     guid.getAt(7));
 
-            wxString str = wxString::FromUTF8(buf);
-            wxLogDebug(str);
+            std::string str = std::string(buf);
 #endif
 
             rv = true;
@@ -1405,78 +1728,81 @@ bool CControlObject::getMacAddress(cguid& guid)
     return rv;
 
 #else
-
+    // cat /sys/class/net/eth0/address
     bool rv = true;
-    struct ifreq ifr;
+    struct ifreq s;
     int fd;
 
     // Clear the GUID
     guid.clear();
 
-    fd = socket(PF_INET, SOCK_RAW, htons(ETH_P_ALL));
-    memset(&ifr, 0, sizeof( ifr));
-    strncpy(ifr.ifr_name, "eth0", sizeof( ifr.ifr_name));
-    if (ioctl(fd, SIOCGIFHWADDR, &ifr) >= 0) {
+    fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if (-1 == fd) return false;
+
+    memset(&s, 0, sizeof(s));
+    strcpy(s.ifr_name, "eth0");
+
+    if (0 == ioctl(fd, SIOCGIFHWADDR, &s)) {
+
         unsigned char *ptr;
-        ptr = (unsigned char *) &ifr.ifr_ifru.ifru_hwaddr.sa_data[ 0 ];
-        logMsg(wxString::Format(_(" Ethernet MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n"),
-                *ptr,
-                *(ptr + 1),
-                *(ptr + 2),
-                *(ptr + 3),
-                *(ptr + 4),
-                *(ptr + 5)), DAEMON_LOGMSG_INFO);
-        guid.setAt( 15, 0xff );
-        guid.setAt( 14, 0xff );
-        guid.setAt( 13, 0xff );
-        guid.setAt( 12, 0xff );
-        guid.setAt( 11, 0xff );
-        guid.setAt( 10, 0xff );
-        guid.setAt( 9, 0xff );
-        guid.setAt( 8, 0xfe );
-        guid.setAt( 7, *ptr );
-        guid.setAt( 6, *(ptr + 1) );
-        guid.setAt( 5, *(ptr + 2) );
-        guid.setAt( 4, *(ptr + 3) );
-        guid.setAt( 3, *(ptr + 4));
-        guid.setAt( 2, *(ptr + 5) );
-        guid.setAt( 1, 0 );
-        guid.setAt( 0, 0 );
+        ptr = (unsigned char *)&s.ifr_ifru.ifru_hwaddr.sa_data[0];
+        syslog(LOG_DEBUG,
+               "Ethernet MAC address: %02X:%02X:%02X:%02X:%02X:%02X",
+               (uint8_t)s.ifr_addr.sa_data[0],
+               (uint8_t)s.ifr_addr.sa_data[1],
+               (uint8_t)s.ifr_addr.sa_data[2],
+               (uint8_t)s.ifr_addr.sa_data[3],
+               (uint8_t)s.ifr_addr.sa_data[4],
+               (uint8_t)s.ifr_addr.sa_data[5]);
+
+        guid.setAt(0, 0xff);
+        guid.setAt(1, 0xff);
+        guid.setAt(2, 0xff);
+        guid.setAt(3, 0xff);
+        guid.setAt(4, 0xff);
+        guid.setAt(5, 0xff);
+        guid.setAt(6, 0xff);
+        guid.setAt(7, 0xfe);
+        guid.setAt(8, s.ifr_addr.sa_data[0]);
+        guid.setAt(9, s.ifr_addr.sa_data[1]);
+        guid.setAt(10, s.ifr_addr.sa_data[2]);
+        guid.setAt(11, s.ifr_addr.sa_data[3]);
+        guid.setAt(12, s.ifr_addr.sa_data[4]);
+        guid.setAt(13, s.ifr_addr.sa_data[5]);
+        guid.setAt(14, 0);
+        guid.setAt(15, 0);
     } else {
-        logMsg(_("Failed to get hardware address (must be root?).\n"), DAEMON_LOGMSG_WARNING);
+        syslog(LOG_ERR, "Failed to get hardware address (must be root?).");
         rv = false;
     }
 
     return rv;
 
-
 #endif
-
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //  getIPAddress
 //
 
-bool CControlObject::getIPAddress(cguid& guid)
+bool
+CControlObject::getIPAddress(cguid &guid)
 {
     // Clear the GUID
     guid.clear();
 
-    guid.setAt( 15, 0xff );
-    guid.setAt( 14, 0xff );
-    guid.setAt( 13, 0xff );
-    guid.setAt( 12, 0xff );
-    guid.setAt( 11, 0xff );
-    guid.setAt( 10, 0xff );
-    guid.setAt( 9, 0xff );
-    guid.setAt( 8, 0xfd );
+    guid.setAt(0, 0xff);
+    guid.setAt(1, 0xff);
+    guid.setAt(2, 0xff);
+    guid.setAt(3, 0xff);
+    guid.setAt(4, 0xff);
+    guid.setAt(5, 0xff);
+    guid.setAt(6, 0xff);
+    guid.setAt(7, 0xfd);
 
-    char szName[ 128 ];
-    gethostname(szName, sizeof( szName));
-#ifdef WIN32
+    char szName[128];
+    gethostname(szName, sizeof(szName));
+#if defined(_WIN32)
     LPHOSTENT lpLocalHostEntry;
 #else
     struct hostent *lpLocalHostEntry;
@@ -1489,5436 +1815,4105 @@ bool CControlObject::getIPAddress(cguid& guid)
     // Get all local addresses
     int idx = -1;
     void *pAddr;
-    unsigned long localaddr[ 16 ]; // max 16 local addresses
+    unsigned long localaddr[16]; // max 16 local addresses
     do {
         idx++;
-        localaddr[ idx ] = 0;
-        pAddr = lpLocalHostEntry->h_addr_list[ idx ];
-        if (NULL != pAddr) localaddr[ idx ] = *((unsigned long *) pAddr);
+        localaddr[idx] = 0;
+        pAddr          = lpLocalHostEntry->h_addr_list[idx];
+        if (NULL != pAddr) localaddr[idx] = *((unsigned long *)pAddr);
     } while ((NULL != pAddr) && (idx < 16));
 
-    guid.setAt( 7, (localaddr[ 0 ] >> 24) & 0xff );
-    guid.setAt( 6, (localaddr[ 0 ] >> 16) & 0xff );
-    guid.setAt( 5, (localaddr[ 0 ] >> 8) & 0xff );
-    guid.setAt( 4, localaddr[ 0 ] & 0xff );
-    
+    guid.setAt(8, (localaddr[0] >> 24) & 0xff);
+    guid.setAt(9, (localaddr[0] >> 16) & 0xff);
+    guid.setAt(10, (localaddr[0] >> 8) & 0xff);
+    guid.setAt(11, localaddr[0] & 0xff);
+
+    guid.setAt(12, 0);
+    guid.setAt(13, 0);
+    guid.setAt(14, 0);
+    guid.setAt(15, 0);
+
     return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// getSystemKey
+//
+
+uint8_t *
+CControlObject::getSystemKey(uint8_t *pKey)
+{
+    if (NULL != pKey) {
+        memcpy(pKey, m_systemKey, 32);
+    }
+
+    return m_systemKey;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-// readConfiguration
+// getSystemKeyMD5
+//
+
+void
+CControlObject::getSystemKeyMD5(std::string &strKey)
+{
+    char digest[33];
+    vscp_md5(digest, m_systemKey, 32);
+    strKey = digest;
+}
+
+// ----------------------------------------------------------------------------
+// General XML configuration callbacks
+// ----------------------------------------------------------------------------
+
+/*
+<general runasuser="xxxx"
+                guid="..."
+                servername="sdfdsfsd"
+                clientbuffersize="100" >
+
+    <logging  loglevel="n"
+                logdays="n"
+                debugflags1="n"
+                debugflags1="n"
+                debugflags2="n"
+                debugflags3="n"
+                debugflags4="n"
+                debugflags5="n"
+                debugflags6="n"
+                debugflags7="n"
+                debugflags8="n" />
+
+    <security admin="username"
+        password="450ADCE88F2FDBB20F3318B65E53CA4A;06D3311CC2195E80BE4F8EB12931BFEB5C630F6B154B2D644ABE29CEBDBFB545"
+        allowfrom="list of remotes"
+        vscptoken="Carpe diem quam minimum credula postero"
+        vscpkey="A4A86F7D7E119BA3F0CD06881E371B989B33B6D606A863B633EF529D64544F8E"
+        digest="" />
+
+    <database vscp-daemon="db-path"
+            vscp-data="db-path"
+            vscp-variable="db-path"
+            vscp-dm="db-path" />
+</general>
+*/
+static int depth_general_config_parser = 0;
+static int bvscpConfigFound            = 0;
+static int bGeneralConfigFound         = 0;
+
+static void
+startGeneralConfigParser(void *data, const char *name, const char **attr)
+{
+    CControlObject *pObj = (CControlObject *)data;
+    if (NULL == data) return;
+
+    if ((0 == depth_general_config_parser) &&
+        (0 == vscp_strcasecmp(name, "vscpconfig"))) {
+        bvscpConfigFound = TRUE;
+    } else if (bvscpConfigFound && (1 == depth_general_config_parser) &&
+               (0 == vscp_strcasecmp(name, "general"))) {
+        bGeneralConfigFound = TRUE;
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "clientbuffersize")) {
+                pObj->m_maxItemsInClientReceiveQueue =
+                  vscp_readStringValue(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "runasuser")) {
+                vscp_trim(attribute);
+                pObj->m_runAsUser = attribute;
+                // Also assign to web user
+                pObj->m_web_run_as_user = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "guid")) {
+                pObj->m_guid.getFromString(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "servername")) {
+                pObj->m_strServerName = attribute;
+            }
+        }
+
+    } else if (2 == depth_general_config_parser) {
+
+        if (bGeneralConfigFound && (0 == vscp_strcasecmp(name, "logging"))) {
+
+            for (int i = 0; attr[i]; i += 2) {
+
+                std::string attribute = attr[i + 1];
+                vscp_trim(attribute);
+
+                if (0 == vscp_strcasecmp(attr[i], "loglevel")) {
+                    if (0 == vscp_strcasecmp(attribute.c_str(), "none")) {
+                        pObj->m_logLevel = DAEMON_LOGMSG_NONE;
+                    } else if (0 ==
+                               vscp_strcasecmp(attribute.c_str(), "normal")) {
+                        pObj->m_logLevel = DAEMON_LOGMSG_NORMAL;
+                    } else if (0 ==
+                               vscp_strcasecmp(attribute.c_str(), "debug")) {
+                        pObj->m_logLevel = DAEMON_LOGMSG_DEBUG;
+                    } else {
+                        pObj->m_logLevel = vscp_readStringValue(attribute);
+                        if (pObj->m_logLevel > DAEMON_LOGMSG_DEBUG) {
+                            pObj->m_logLevel = DAEMON_LOGMSG_DEBUG;
+                        }
+                    }
+                } else if (0 == vscp_strcasecmp(attr[i], "debugflags1")) {
+                    if (attribute.length()) {
+                        pObj->m_debugFlags[0] = vscp_readStringValue(attribute);
+                    }
+                } else if (0 == vscp_strcasecmp(attr[i], "debugflags2")) {
+                    if (attribute.length()) {
+                        pObj->m_debugFlags[1] = vscp_readStringValue(attribute);
+                    }
+                } else if (0 == vscp_strcasecmp(attr[i], "debugflags3")) {
+                    if (attribute.length()) {
+                        pObj->m_debugFlags[2] = vscp_readStringValue(attribute);
+                    }
+                } else if (0 == vscp_strcasecmp(attr[i], "debugflags4")) {
+                    if (attribute.length()) {
+                        pObj->m_debugFlags[3] = vscp_readStringValue(attribute);
+                    }
+                } else if (0 == vscp_strcasecmp(attr[i], "debugflags5")) {
+                    if (attribute.length()) {
+                        pObj->m_debugFlags[4] = vscp_readStringValue(attribute);
+                    }
+                } else if (0 == vscp_strcasecmp(attr[i], "debugflags6")) {
+                    if (attribute.length()) {
+                        pObj->m_debugFlags[5] = vscp_readStringValue(attribute);
+                    }
+                } else if (0 == vscp_strcasecmp(attr[i], "debugflags7")) {
+                    if (attribute.length()) {
+                        pObj->m_debugFlags[6] = vscp_readStringValue(attribute);
+                    }
+                } else if (0 == vscp_strcasecmp(attr[i], "debugflags8")) {
+                    if (attribute.length()) {
+                        pObj->m_debugFlags[7] = vscp_readStringValue(attribute);
+                    }
+                }
+            }
+
+        } else if (bGeneralConfigFound &&
+                   (0 == vscp_strcasecmp(name, "security"))) {
+
+            for (int i = 0; attr[i]; i += 2) {
+
+                std::string attribute = attr[i + 1];
+                vscp_trim(attribute);
+
+                if (0 == vscp_strcasecmp(attr[i], "admin")) {
+                    pObj->m_admin_user = attribute;
+                } else if (0 == vscp_strcasecmp(attr[i], "password")) {
+                    pObj->m_admin_password = attribute;
+                } else if (0 == vscp_strcasecmp(attr[i], "allowfrom")) {
+                    pObj->m_admin_allowfrom = attribute;
+                } else if (0 == vscp_strcasecmp(attr[i], "vscptoken")) {
+                    pObj->m_vscptoken = attribute;
+                } else if (0 == vscp_strcasecmp(attr[i], "vscpkey")) {
+                    if (attribute.length()) {
+                        vscp_hexStr2ByteArray(
+                          pObj->m_systemKey, 32, attribute.c_str());
+                    }
+                }
+            }
+        } else if (bGeneralConfigFound &&
+                   (0 == vscp_strcasecmp(name, "database"))) {
+
+            for (int i = 0; attr[i]; i += 2) {
+
+                std::string attribute = attr[i + 1];
+                vscp_trim(attribute);
+
+                if (0 == strcasecmp(attr[i], "daemon")) {
+                    vscp_trim(attribute);
+                    if (attribute.length()) {
+                        pObj->m_path_db_vscp_daemon = attribute;
+                    }
+                } else if (0 == strcasecmp(attr[i], "data")) {
+                    vscp_trim(attribute);
+                    if (attribute.length()) {
+                        pObj->m_path_db_vscp_data = attribute;
+                    }
+                }
+            }
+        }
+    }
+
+    depth_general_config_parser++;
+}
+
+static void
+endGeneralConfigParser(void *data, const char *name)
+{
+    if ((0 == depth_general_config_parser) &&
+        (0 == vscp_strcasecmp(name, "vscpconfig"))) {
+        bvscpConfigFound = FALSE;
+    } else if (bvscpConfigFound && (1 == depth_general_config_parser) &&
+               (0 == vscp_strcasecmp(name, "general"))) {
+        bGeneralConfigFound = FALSE;
+    }
+
+    depth_general_config_parser--;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// readXMLConfigurationGeneral
 //
 // Read the configuration XML file
 //
 
-bool CControlObject::readConfiguration(wxString& strcfgfile)
+bool
+CControlObject::readXMLConfigurationGeneral(const std::string &strcfgfile)
 {
-    unsigned long val;
-    wxXmlDocument doc;
-    if (!doc.Load(strcfgfile)) {
+    FILE *fp;
+
+    syslog(LOG_DEBUG,
+           "Reading general XML configuration from [%s]",
+           (const char *)strcfgfile.c_str());
+
+    fp = fopen(strcfgfile.c_str(), "r");
+    if (NULL == fp) {
+        syslog(LOG_CRIT,
+               "Failed to open configuration file [%s]",
+               strcfgfile.c_str());
         return false;
     }
 
-    // start processing the XML file
-    if (doc.GetRoot()->GetName() != wxT("vscpconfig")) {
+    XML_Parser xmlParser = XML_ParserCreate("UTF-8");
+    XML_SetUserData(xmlParser, this);
+    XML_SetElementHandler(
+      xmlParser, startGeneralConfigParser, endGeneralConfigParser);
+
+    int bytes_read;
+    void *buf = XML_GetBuffer(xmlParser, XML_BUFF_SIZE);
+    if (NULL == buf) {
+        XML_ParserFree(xmlParser);
+        fclose(fp);
+        syslog(LOG_CRIT,
+               "Failed to allocate buffer for configuration file [%s]",
+               strcfgfile.c_str());
         return false;
     }
 
-    wxXmlNode *child = doc.GetRoot()->GetChildren();
-    while (child) {
-
-        if (child->GetName() == wxT("general")) {
-
-            wxXmlNode *subchild = child->GetChildren();
-            while (subchild) {
-
-                // Deprecated <==============
-                if (subchild->GetName() == wxT("tcpport")) {
-                    wxString str = subchild->GetNodeContent();
-                    m_TCPPort = readStringValue(str);
-                }// Deprecated <==============
-                else if (subchild->GetName() == wxT("udpport")) {
-                    wxString str = subchild->GetNodeContent();
-                    m_UDPPort = readStringValue(str);
-                } else if (subchild->GetName() == wxT("loglevel")) {
-                    wxString str = subchild->GetNodeContent();
-                    str.Trim();
-                    str.Trim(false);
-                    if ( str.IsSameAs(_("NONE"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_NONE;
-                    }
-                    else if ( str.IsSameAs(_("INFO"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_INFO;
-                    }
-                    else if ( str.IsSameAs(_("NOTICE"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_NOTICE;
-                    }
-                    else if ( str.IsSameAs(_("WARNING"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_WARNING;
-                    }
-                    else if ( str.IsSameAs(_("ERROR"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_ERROR;
-                    }
-                    else if ( str.IsSameAs(_("CRITICAL"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_CRITICAL;
-                    }
-                    else if ( str.IsSameAs(_("ALERT"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_ALERT;
-                    }
-                    else if ( str.IsSameAs(_("EMERGENCY"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_EMERGENCY;
-                    }
-                    else if ( str.IsSameAs(_("DEBUG"), false)) {
-                        m_logLevel = DAEMON_LOGMSG_DEBUG;
-                    }
-                    else {
-                        m_logLevel = readStringValue(str);
-                    }
-                } else if (subchild->GetName() == wxT("tcpif")) {
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enabled"), wxT("true"));
-#else
-                    wxString property = subchild->GetPropVal(wxT("enabled"), wxT("true"));
-#endif                    
-                    if (property.IsSameAs(_("false"), false)) {
-                        m_bTCPInterface = false;
-                    }
-
-#if wxCHECK_VERSION(3,0,0)
-                    property = subchild->GetAttribute(wxT("port"), wxT("9598"));
-#else
-                    property = subchild->GetPropVal(wxT("port"), wxT("9598"));
-#endif                    
-                    if (property.IsNumber()) {
-                        m_TCPPort = readStringValue(property);
-                    }
-
-#if wxCHECK_VERSION(3,0,0)                    
-                    m_strTcpInterfaceAddress = subchild->GetAttribute(wxT("ifaddress"), wxT(""));
-#else
-                    m_strTcpInterfaceAddress = subchild->GetPropVal(wxT("ifaddress"), wxT(""));
-#endif                    
-
-                } else if (subchild->GetName() == wxT("canaldriver")) {
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enabled"), wxT("true"));
-#else 
-                    wxString property = subchild->GetPropVal(wxT("enabled"), wxT("true"));
-#endif                    
-                    if (property.IsSameAs(_("false"), false)) {
-                        m_bCanalDrivers = false;
-                    } else {
-                        m_bCanalDrivers = true;
-                    }
-                } 
-                else if (subchild->GetName() == wxT("dm")) {
-                    // Should the internal DM be disabled
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enabled"), wxT("true"));
-#else 
-                    wxString property = subchild->GetPropVal(wxT("enabled"), wxT("true"));
-#endif                    
-                    if (property.IsSameAs(_("false"), false)) {
-                        m_bDM = false;
-                    }
-
-                    // Get the path to the DM file
-#if wxCHECK_VERSION(3,0,0)                    
-                    m_dm.m_configPath = subchild->GetAttribute(wxT("path"), wxT(""));
-#else 
-                    m_dm.m_configPath = subchild->GetPropVal(wxT("path"), wxT(""));
-#endif                    
-                    m_dm.m_configPath.Trim();
-                    m_dm.m_configPath.Trim(false);
-                    
-                }                 
-                else if (subchild->GetName() == wxT("variables")) {
-                    // Should the internal DM be disabled
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enabled"), wxT("true"));
-#else 
-                    wxString property = subchild->GetPropVal(wxT("enabled"), wxT("true"));
-#endif                    
-                    if (property.IsSameAs(_("false"), false)) {
-                        m_bVariables = false;
-                    }
-
-                    // Get the path to the DM file
-#if wxCHECK_VERSION(3,0,0)                    
-                    m_VSCP_Variables.m_configPath = subchild->GetAttribute(wxT("path"), wxT(""));
-#else 
-                    m_VSCP_Variables.m_configPath = subchild->GetPropVal(wxT("path"), wxT(""));
-#endif                    
-                    m_VSCP_Variables.m_configPath.Trim();
-                    m_VSCP_Variables.m_configPath.Trim(false);
-
-                } else if (subchild->GetName() == wxT("vscp")) {
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enabled"), wxT("true"));
-#else 
-                    wxString property = subchild->GetPropVal(wxT("enabled"), wxT("true"));
-#endif                    
-                    if (property.IsSameAs(_("false"), false)) {
-                        m_bVSCPDaemon = false;
-                    }
-                } else if (subchild->GetName() == wxT("guid")) {
-                    wxString str = subchild->GetNodeContent();
-                    //getGuidFromStringToArray(m_GUID, str);
-                    m_guid.getFromString(str);
-                } else if (subchild->GetName() == wxT("clientbuffersize")) {
-                    wxString str = subchild->GetNodeContent();
-                    m_maxItemsInClientReceiveQueue = readStringValue(str);
-                } else if (subchild->GetName() == wxT("webrootpath")) {
-                    CControlObject::m_pathRoot = subchild->GetNodeContent();
-                    CControlObject::m_pathRoot.Trim();
-                    CControlObject::m_pathRoot.Trim(false);
-                } else if (subchild->GetName() == wxT("pathcert")) {
-                    m_pathCert = subchild->GetNodeContent();
-                    m_pathCert.Trim();
-                    m_pathCert.Trim(false);
-                } else if (subchild->GetName() == wxT("pathkey")) {
-                    m_pathKey = subchild->GetNodeContent();
-                    m_pathKey.Trim();
-                    m_pathKey.Trim(false);
-                } else if (subchild->GetName() == wxT("websockets")) {
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enabled"), wxT("true"));
-#else 
-                    wxString property = subchild->GetPropVal(wxT("enabled"), wxT("true"));
-#endif                    
-                    if (property.IsSameAs(_("false"), false)) {
-                        m_bWebSockets = false;
-                    }
-
-#if wxCHECK_VERSION(3,0,0)                    
-                    property = subchild->GetAttribute(wxT("port"), wxT("7681"));
-#else 
-                    property = subchild->GetPropVal(wxT("port"), wxT("7681"));
-#endif                    
-                    if (property.IsNumber()) {
-                        m_portWebsockets = readStringValue(property);
-                    }
-                } else if (subchild->GetName() == wxT("webserver")) {
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enabled"), wxT("true"));
-#else 
-                    wxString property = subchild->GetPropVal(wxT("enabled"), wxT("true"));
-#endif                    
-                    if (property.IsSameAs(_("false"), false)) {
-                        m_bWebServer = false;
-                    }
-
-#if wxCHECK_VERSION(3,0,0)                    
-                    property = subchild->GetAttribute(wxT("port"), wxT("8080"));
-#else 
-                    property = subchild->GetPropVal(wxT("port"), wxT("8080"));
-#endif                    
-                    if (property.IsNumber()) {
-                        m_portWebServer = readStringValue(property);
-                    }
-                }
-                else if (subchild->GetName() == wxT("pathtomimetypes")) {
-                    m_pathToMimeTypeFile = subchild->GetNodeContent();
-                    m_pathToMimeTypeFile.Trim();
-                    m_pathToMimeTypeFile.Trim(false);
-                } 
-
-                subchild = subchild->GetNext();
-            }
-
-            wxString content = child->GetNodeContent();
-
-        } 
-        else if (child->GetName() == wxT("remoteuser")) {
-
-            wxXmlNode *subchild = child->GetChildren();
-            while (subchild) {
-                vscpEventFilter VSCPFilter;
-                bool bFilterPresent = false;
-                bool bMaskPresent = false;
-                wxString name;
-                wxString md5;
-                wxString privilege;
-                wxString allowfrom;
-                wxString allowevent;
-                bool bUser = false;
-
-                clearVSCPFilter(&VSCPFilter); // Allow all frames
-
-                if (subchild->GetName() == wxT("user")) {
-
-                    wxXmlNode *subsubchild = subchild->GetChildren();
-
-                    while (subsubchild) {
-                        if (subsubchild->GetName() == wxT("name")) {
-                            name = subsubchild->GetNodeContent();
-                            bUser = true;
-                        } else if (subsubchild->GetName() == wxT("password")) {
-                            md5 = subsubchild->GetNodeContent();
-                        } else if (subsubchild->GetName() == wxT("privilege")) {
-                            privilege = subsubchild->GetNodeContent();
-                        } else if (subsubchild->GetName() == wxT("filter")) {
-                            bFilterPresent = true;
-#if wxCHECK_VERSION(3,0,0)                            
-                            wxString str_vscp_priority = subchild->GetAttribute(wxT("priority"), wxT("0"));
-#else 
-                            wxString str_vscp_priority = subchild->GetPropVal(wxT("priority"), wxT("0"));
-#endif                            
-                            val = 0;
-                            str_vscp_priority.ToULong(&val);
-                            VSCPFilter.filter_priority = val;
-#if wxCHECK_VERSION(3,0,0)                            
-                            wxString str_vscp_class = subchild->GetAttribute(wxT("class"), wxT("0"));
-#else 
-                            wxString str_vscp_class = subchild->GetPropVal(wxT("class"), wxT("0"));
-#endif                            
-                            val = 0;
-                            str_vscp_class.ToULong(&val);
-                            VSCPFilter.filter_class = val;
-#if wxCHECK_VERSION(3,0,0)                            
-                            wxString str_vscp_type = subchild->GetAttribute(wxT("type"), wxT("0"));
-#else 
-                            wxString str_vscp_type = subchild->GetPropVal(wxT("type"), wxT("0"));
-#endif                            
-                            val = 0;
-                            str_vscp_type.ToULong(&val);
-                            VSCPFilter.filter_type = val;
-#if wxCHECK_VERSION(3,0,0)                            
-                            wxString str_vscp_guid = subchild->GetAttribute(wxT("guid"),
-#else 
-                            wxString str_vscp_guid = subchild->GetPropVal(wxT("guid"),
-#endif                                    
-                                    wxT("00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00"));
-                            getGuidFromStringToArray(VSCPFilter.filter_GUID, str_vscp_guid);
-                        } else if (subsubchild->GetName() == wxT("mask")) {
-                            bMaskPresent = true;
-#if wxCHECK_VERSION(3,0,0)                            
-                            wxString str_vscp_priority = subchild->GetAttribute(wxT("priority"), wxT("0"));
-#else 
-                            wxString str_vscp_priority = subchild->GetPropVal(wxT("priority"), wxT("0"));
-#endif                            
-                            val = 0;
-                            str_vscp_priority.ToULong(&val);
-                            VSCPFilter.mask_priority = val;
-#if wxCHECK_VERSION(3,0,0)                            
-                            wxString str_vscp_class = subchild->GetAttribute(wxT("class"), wxT("0"));
-#else 
-                            wxString str_vscp_class = subchild->GetPropVal(wxT("class"), wxT("0"));
-#endif                            
-                            val = 0;
-                            str_vscp_class.ToULong(&val);
-                            VSCPFilter.mask_class = val;
-#if wxCHECK_VERSION(3,0,0)                            
-                            wxString str_vscp_type = subchild->GetAttribute(wxT("type"), wxT("0"));
-#else 
-                            wxString str_vscp_type = subchild->GetPropVal(wxT("type"), wxT("0"));
-#endif                            
-                            val = 0;
-                            str_vscp_type.ToULong(&val);
-                            VSCPFilter.mask_type = val;
-#if wxCHECK_VERSION(3,0,0)                            
-                            wxString str_vscp_guid = subchild->GetAttribute(wxT("guid"),
-#else 
-                            wxString str_vscp_guid = subchild->GetPropVal(wxT("guid"),
-#endif                                    
-                                    wxT("00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00"));
-                            getGuidFromStringToArray(VSCPFilter.mask_GUID, str_vscp_guid);
-                        } else if (subsubchild->GetName() == wxT("allowfrom")) {
-                            allowfrom = subsubchild->GetNodeContent();
-                        } else if (subsubchild->GetName() == wxT("allowevent")) {
-                            allowevent = subsubchild->GetNodeContent();
-                        }
-
-                        subsubchild = subsubchild->GetNext();
-
-                    }
-
-                }
-
-                // Add user
-                if (bUser) {
-
-                    if (bFilterPresent && bMaskPresent) {
-                        m_userList.addUser(name, md5, privilege, &VSCPFilter, allowfrom, allowevent);
-                    } else {
-                        m_userList.addUser(name, md5, privilege, NULL, allowfrom, allowevent);
-                    }
-
-                    bUser = false;
-                    bFilterPresent = false;
-                    bMaskPresent = false;
-
-                }
-
-                subchild = subchild->GetNext();
-
-            }
-
-        } 
-        else if (child->GetName() == wxT("interfaces")) {
-
-            wxXmlNode *subchild = child->GetChildren();
-            while (subchild) {
-
-                wxString ip;
-                wxString mac;
-                wxString guid;
-                bool bInterface = false;
-
-                if (subchild->GetName() == wxT("interface")) {
-                    wxXmlNode *subsubchild = subchild->GetChildren();
-
-                    while (subsubchild) {
-
-                        if (subsubchild->GetName() == wxT("ipaddress")) {
-                            ip = subsubchild->GetNodeContent();
-                            bInterface = true;
-                        } 
-                        else if (subsubchild->GetName() == wxT("macaddress")) {
-                            mac = subsubchild->GetNodeContent();
-                        } 
-                        else if (subsubchild->GetName() == wxT("guid")) {
-                            guid = subsubchild->GetNodeContent();
-                        }
-
-                        subsubchild = subsubchild->GetNext();
-
-                    }
-
-                }
-
-                // Add interface
-                if (bInterface) {
-                    m_interfaceList.addInterface(ip, mac, guid);
-                    bInterface = false;
-                }
-
-                subchild = subchild->GetNext();
-
-            }
-
-        }
-            // Level I driver
-        else if (child->GetName() == wxT("canaldriver")) {
-
-            wxXmlNode *subchild = child->GetChildren();
-            while (subchild) {
-                wxString strName;
-                wxString strConfig;
-                wxString strPath;
-                unsigned long flags;
-                wxString strGUID;
-                bool bEnabled = true;
-                bool bCanalDriver = false;
-
-                if (subchild->GetName() == wxT("driver")) {
-                    
-                    wxXmlNode *subsubchild = subchild->GetChildren();
-                    
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enable"), wxT("true"));
-#else 
-                    wxString property = subchild->GetPropVal(wxT("enable"), wxT("true"));
-#endif                    
-                    if (property.IsSameAs(_("false"), false)) {
-                        bEnabled = false;
-                    }
-                    
-                    while (subsubchild) {
-                        if (subsubchild->GetName() == wxT("name")) {
-                            strName = subsubchild->GetNodeContent();
-                            strName.Trim();
-                            strName.Trim(false);
-                            // Replace spaces in name with underscore
-                            int pos;
-                            while (wxNOT_FOUND != (pos = strName.Find(_(" ")))) {
-                                strName.SetChar(pos, wxChar('_'));
-                            }
-                            bCanalDriver = true;
-                        } 
-                        else if (subsubchild->GetName() == wxT("config") ||
-                                subsubchild->GetName() == wxT("parameter")) {
-                            strConfig = subsubchild->GetNodeContent();
-                            strConfig.Trim();
-                            strConfig.Trim(false);
-                        } 
-                        else if (subsubchild->GetName() == wxT("path")) {
-                            strPath = subsubchild->GetNodeContent();
-                            strPath.Trim();
-                            strPath.Trim(false);
-                        } 
-                        else if (subsubchild->GetName() == wxT("flags")) {
-                            wxString str = subsubchild->GetNodeContent();
-                            flags = readStringValue(str);
-                        } 
-                        else if (subsubchild->GetName() == wxT("guid")) {
-                            strGUID = subsubchild->GetNodeContent();
-                            strGUID.Trim();
-                            strGUID.Trim(false);
-                        }
-
-                        // Next driver item
-                        subsubchild = subsubchild->GetNext();
-
-                    }
-
-                }
-
-                // Configuration data for one driver loaded
-                uint8_t GUID[ 16 ];
-
-                // Nill the GUID
-                memset(GUID, 0, 16);
-
-                if (strGUID.Length()) {
-                    getGuidFromStringToArray(GUID, strGUID);
-                }
-
-                // Add the device
-                if (bCanalDriver) {
-
-                    if (!m_deviceList.addItem( strName,
-                                                strConfig,
-                                                strPath,
-                                                flags,
-                                                GUID,
-                                                VSCP_DRIVER_LEVEL1,
-                                                bEnabled ) ) {
-                        wxString errMsg = _("Driver not added. Path does not exist. - [ ") +
-                                strPath + _(" ]\n");
-                        logMsg(errMsg, DAEMON_LOGMSG_ERROR);
-                        //wxLogDebug(errMsg);
-                    } 
-                    else {
-                        wxString errMsg = _("Level I driver added. - [ ") +
-                                strPath + _(" ]\n");
-                        logMsg(errMsg, DAEMON_LOGMSG_INFO);
-                    }
-
-                    bCanalDriver = false;
-
-                }
-
-                // Next driver
-                subchild = subchild->GetNext();
-
-            }
-
-        }
-            // Level II driver
-        else if (child->GetName() == wxT("vscpdriver")) {
-
-            wxXmlNode *subchild = child->GetChildren();
-            
-            while (subchild) {
-                
-                wxString strName;
-                wxString strConfig;
-                wxString strPath;
-                wxString strGUID;
-                bool bEnabled = true;
-                bool bLevel2Driver = false;
-
-                if (subchild->GetName() == wxT("driver")) {
-                    
-                    wxXmlNode *subsubchild = subchild->GetChildren();
-                    
-#if wxCHECK_VERSION(3,0,0)                    
-                    wxString property = subchild->GetAttribute(wxT("enable"), wxT("true"));
-#else 
-                    wxString property = subchild->GetPropVal(wxT("enable"), wxT("true"));
-#endif
-                    if (property.IsSameAs(_("false"), false)) {
-                        bEnabled = false;
-                    }
-                    
-                    while (subsubchild) {
-                        if (subsubchild->GetName() == wxT("name")) {
-                            strName = subsubchild->GetNodeContent();
-                            strName.Trim();
-                            strName.Trim(false);
-                            // Replace spaces in name with underscore
-                            int pos;
-                            while (wxNOT_FOUND != (pos = strName.Find(_(" ")))) {
-                                strName.SetChar(pos, wxChar('_'));
-                            }
-                            bLevel2Driver = true;
-                        } 
-                        else if (subsubchild->GetName() == wxT("config") ||
-                                subsubchild->GetName() == wxT("parameter")) {
-                            strConfig = subsubchild->GetNodeContent();
-                            strConfig.Trim();
-                            strConfig.Trim(false);
-                        } 
-                        else if (subsubchild->GetName() == wxT("path")) {
-                            strPath = subsubchild->GetNodeContent();
-                            strPath.Trim();
-                            strPath.Trim(false);
-                        } 
-                        else if (subsubchild->GetName() == wxT("guid")) {
-                            strGUID = subsubchild->GetNodeContent();
-                            strGUID.Trim();
-                            strGUID.Trim(false);
-                        }
-
-                        // Next driver item
-                        subsubchild = subsubchild->GetNext();
-
-                    }
-
-                }
-
-                // Configuration data for one driver loaded
-                uint8_t GUID[ 16 ];
-
-                // Nill the GUID
-                memset(GUID, 0, 16);
-
-                if (strGUID.Length()) {
-                    getGuidFromStringToArray(GUID, strGUID);
-                }
-
-                // Add the device
-                if (bLevel2Driver) {
-
-                    if (!m_deviceList.addItem(strName,
-                                                strConfig,
-                                                strPath,
-                                                0,
-                                                GUID,
-                                                VSCP_DRIVER_LEVEL2,
-                                                bEnabled )) {
-                        wxString errMsg = _("Driver not added. Path does not exist. - [ ") +
-                                strPath + _(" ]\n");
-                        logMsg(errMsg, DAEMON_LOGMSG_INFO);
-                        //wxLogDebug(errMsg);
-                    } else {
-                        wxString errMsg = _("Level II driver added. - [ ") +
-                                strPath + _(" ]\n");
-                        logMsg(errMsg, DAEMON_LOGMSG_INFO);
-                    }
-
-
-                    bLevel2Driver = false;
-
-                }
-
-                // Next driver
-                subchild = subchild->GetNext();
-
-            }
-
-        }
-
-
-        child = child->GetNext();
-
-    }
-
-    return true;
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// readMimeTypes
-//
-// Read the Mime Types XML file 
-//
-
-bool CControlObject::readMimeTypes(wxString& path)
-{
-    unsigned long val;
-    wxXmlDocument doc;
-    if (!doc.Load(path)) {
+    size_t file_size = 0;
+    file_size        = fread(buf, sizeof(char), XML_BUFF_SIZE, fp);
+
+    if (!XML_ParseBuffer(xmlParser, file_size, file_size == 0)) {
+        syslog(LOG_ERR, "Failed parse XML configuration file.");
+        fclose(fp);
+        XML_ParserFree(xmlParser);
         return false;
     }
 
-    // start processing the XML file
-    if (doc.GetRoot()->GetName() != wxT("mimetypes")) {
-        return false;
-    }
+    fclose(fp);
+    XML_ParserFree(xmlParser);
 
-    wxXmlNode *child = doc.GetRoot()->GetChildren();
-    while (child) {  
-        
-        if (child->GetName() == wxT("mimetype")) {
-#if wxCHECK_VERSION(3,0,0)             
-            wxString strEnable = child->GetAttribute(wxT("enable"), wxT("false"));
-#else 
-            wxString strEnable = child->GetPropVal(wxT("enable"), wxT("false"));
-#endif 
-#if wxCHECK_VERSION(3,0,0)             
-            wxString strExt = child->GetAttribute(wxT("extension"), wxT(""));
-#else 
-            wxString strExt = child->GetPropVal(wxT("extension"), wxT(""));            
-#endif
-#if wxCHECK_VERSION(3,0,0)             
-            wxString strType = child->GetAttribute(wxT("mime"), wxT(""));
-#else 
-            wxString strType = child->GetPropVal(wxT("mime"), wxT(""));            
-#endif            
-            if ( strEnable.IsSameAs(_("true"),false )) {
-                m_hashMimeTypes[strExt] = strType;
-            }
-        }
-        
-        child = child->GetNext();
-
-    }
-    
     return true;
 }
 
+// ----------------------------------------------------------------------------
+// FULL XML configuration callbacks
+// ----------------------------------------------------------------------------
 
-////////////////////////
-// websocket callbaks
-///////////////////////
+static int depth_full_config_parser   = 0;
+static char *last_full_config_content = NULL;
+static int bVscpConfigFound           = 0;
+static int bUDPConfigFound            = 0;
+static int bMulticastConfigFound      = 0;
+static int bRemoteUserConfigFound     = 0;
+static int bLevel1DriverConfigFound   = 0;
+static int bLevel2DriverConfigFound   = 0;
+static int bLevel3DriverConfigFound   = 0;
+static int bKnownNodesConfigFound     = 0;
+static int bTablesConfigFound         = 0;
 
-
-///////////////////////////////////////////////////////////////////////////////
-// callback_http
-//
-// this protocol server (always the first one) just knows how to do HTTP 
-//
-
-int
-CControlObject::callback_http(struct libwebsocket_context *context,
-        struct libwebsocket *wsi,
-        enum libwebsocket_callback_reasons reason,
-        void *user,
-        void *in,
-        size_t len)
+static void
+startFullConfigParser(void *data, const char *name, const char **attr)
 {
-    char client_name[ 128 ];
-    char client_ip[ 128 ];
-    wxString path;
+    CControlObject *pObj = (CControlObject *)data;
+    if (NULL == data) return;
 
-    switch (reason) {
+    if ((0 == depth_full_config_parser) &&
+        (0 == vscp_strcasecmp(name, "vscpconfig"))) {
+        bVscpConfigFound = TRUE;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "tcpip"))) {
 
-    case LWS_CALLBACK_HTTP:
-    {
-        wxString mime;
-        wxString args;
-        wxString str((char *) in, wxConvUTF8);
+        for (int i = 0; attr[i]; i += 2) {
 
-        // If we have a '?' in the URI  we have arguments that should be removed.
-        int n;
-        if (wxNOT_FOUND != (n = str.Find(_("?")))) {
-            args = str.Right(str.Length() - n);
-            str = str.Left(n);
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_enableTcpip = true;
+                } else {
+                    pObj->m_enableTcpip = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "interface")) {
+                vscp_startsWith(attribute, "tcp://", &attribute);
+                vscp_trim(attribute);
+                pObj->m_strTcpInterfaceAddress = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_certificate")) {
+                pObj->m_tcpip_ssl_certificate = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_verify_peer")) {
+                pObj->m_tcpip_ssl_verify_peer = vscp_readStringValue(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_certificate_chain")) {
+                pObj->m_tcpip_ssl_certificate_chain = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_ca_path")) {
+                pObj->m_tcpip_ssl_ca_path = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_ca_file")) {
+                pObj->m_tcpip_ssl_ca_file = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_verify_depth")) {
+                pObj->m_tcpip_ssl_verify_depth =
+                  vscp_readStringValue(attribute);
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "ssl_default_verify_paths")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_tcpip_ssl_default_verify_paths = true;
+                } else {
+                    pObj->m_tcpip_ssl_default_verify_paths = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_cipher_list")) {
+                pObj->m_tcpip_ssl_cipher_list = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_protocol_version")) {
+                pObj->m_tcpip_ssl_verify_depth =
+                  vscp_readStringValue(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_short_trust")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_tcpip_ssl_short_trust = true;
+                } else {
+                    pObj->m_tcpip_ssl_short_trust = false;
+                }
+            }
         }
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "multicast-announce"))) {
+        for (int i = 0; attr[i]; i += 2) {
 
-        path = CControlObject::m_pathRoot;
-        str.Trim();
-        str.Trim(false);
-        if (('\\' == str.Last()) || ('/' == str.Last())) {
-            str += _("index.html");
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_bEnableMulticastAnnounce = true;
+                } else {
+                    pObj->m_bEnableMulticastAnnounce = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "interface")) {
+                pObj->m_strMulticastAnnounceAddress = attribute;
+            }
+            if (0 == vscp_strcasecmp(attr[i], "ttl")) {
+                pObj->m_ttlMultiCastAnnounce = vscp_readStringValue(attribute);
+            }
         }
-        path += str;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "udp"))) {
 
-        wxFileName fname(path);
-        //wxFileType *ptype = wxTheMimeTypesManager->GetFileTypeFromExtension( fname.GetExt() );
+        bUDPConfigFound = TRUE;
 
-        // Add some extra common mime types if non found
-        if (fname.GetExt() == _("")) {
-            mime = _("text/plain");
-        } else if (fname.GetExt() == _("txt")) {
-            mime = _("text/plain");
-        } else if (fname.GetExt() == _("cfg")) {
-            mime = _("text/plain");
-        } else if (fname.GetExt() == _("conf")) {
-            mime = _("text/plain");
-        } else if (fname.GetExt() == _("js")) {
-            mime = _("application/javascript");
-        } else if (fname.GetExt() == _("json")) {
-            mime = _("application/json");
-        } else if (fname.GetExt() == _("xml")) {
-            mime = _("application/xml");
-        } else if (fname.GetExt() == _("htm")) {
-            mime = _("text/html");
-        } else if (fname.GetExt() == _("html")) {
-            mime = _("text/html");
-        } else if (fname.GetExt() == _("css")) {
-            mime = _("text/css");
-        } else if (fname.GetExt() == _("ico")) {
-            mime = _("image/x-icon");
-        } else if (fname.GetExt() == _("gif")) {
-            mime = _("image/x-gif");
-        } else if (fname.GetExt() == _("png")) {
-            mime = _("image/x-png");
-        } else if (fname.GetExt() == _("bmp")) {
-            mime = _("image/x-bmp");
-        } else if (fname.GetExt() == _("jpg")) {
-            mime = _("image/x-jpeg");
-        } else if (fname.GetExt() == _("jpeg")) {
-            mime = _("image/x-jpeg");
-        } else if (fname.GetExt() == _("jpe")) {
-            mime = _("image/x-jpeg");
-        } else {
-            mime = _("text/plain");
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_udpSrvObj.m_bEnable = true;
+                } else {
+                    pObj->m_udpSrvObj.m_bEnable = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "bAllowUnsecure")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_udpSrvObj.m_bAllowUnsecure = true;
+                } else {
+                    pObj->m_udpSrvObj.m_bAllowUnsecure = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "bSendAck")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_udpSrvObj.m_bAck = true;
+                } else {
+                    pObj->m_udpSrvObj.m_bAck = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "user")) {
+                pObj->m_udpSrvObj.m_user = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "password")) {
+                pObj->m_udpSrvObj.m_password = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "interface")) {
+                pObj->m_udpSrvObj.m_interface = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "guid")) {
+                pObj->m_udpSrvObj.m_guid.getFromString(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "filter")) {
+                if (attribute.length()) {
+                    vscp_readFilterFromString(&pObj->m_udpSrvObj.m_filter,
+                                              attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "mask")) {
+                if (attribute.length()) {
+                    vscp_readMaskFromString(&pObj->m_udpSrvObj.m_filter,
+                                            attribute);
+                }
+            }
         }
+    } else if (bVscpConfigFound && bUDPConfigFound &&
+               (2 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "rxnode"))) {
 
-        path += args;
-#ifdef LWS_FEATURE_SERVE_HTTP_FILE_HAS_OTHER_HEADERS_ARG	
-// This is fo version 1.3
-        if (libwebsockets_serve_http_file(context,
-                wsi,
-                path.ToAscii(),
-                mime.ToAscii(),
-		NULL ) ) {
-            
-            return -1;
-        }
-#else
-	if (libwebsockets_serve_http_file(context,
-                wsi,
-                path.ToAscii(),
-                mime.ToAscii() ) ) {
+        for (int i = 0; attr[i]; i += 2) {
 
-            return -1;
-        }
-#endif
-
-    }
-
-        break;
-
-    case LWS_CALLBACK_HTTP_FILE_COMPLETION:
-        //		lwsl_info("LWS_CALLBACK_HTTP_FILE_COMPLETION seen\n");
-        /* kill the connection after we sent one file */
-        return -1;
-
-        /*
-         * callback for confirming to continue with client IP appear in
-         * protocol 0 callback since no websocket protocol has been agreed
-         * yet.  You can just ignore this if you won't filter on client IP
-         * since the default uhandled callback return is 0 meaning let the
-         * connection continue.
-         */
-
-    case LWS_CALLBACK_FILTER_NETWORK_CONNECTION:
-
-#if 1
-        libwebsockets_get_peer_addresses(context, wsi, (int) (long) in, client_name,
-                sizeof(client_name), client_ip, sizeof(client_ip));
-
-        //fprintf(stderr, "Received network connect from %s (%s)\n",
-        //        client_name, client_ip);
-#endif
-
-        /*  TODO
-                libwebsockets_get_peer_addresses(m_context,
-                    (int) (long) user,
-                    client_name,
-                    sizeof ( client_name),
-                    client_ip,
-                    sizeof ( client_ip));
-
-                //fprintf(stderr,
-                //    "Received network connect from %s (%s)\n",
-                //    client_name, client_ip);
-         */
-
-        //syslog(LOG_ERR, "vscpd (ws): Received network connect from %s (%s)",
-        //        client_name, client_ip);
-
-
-        /* if we returned non-zero from here, we kill the connection */
-        break;
-
-    default:
-        break;
-    }
-
-    return 0;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// dump_handshake_info
-//
-
-/*
- * this is just an example of parsing handshake headers, you don't need this
- * in your code unless you will filter allowing connections by the header
- * content
- */
-
-void
-CControlObject::dump_handshake_info(struct lws_tokens *lwst)
-{
-    int n;
-    static const char *token_names[ WSI_TOKEN_COUNT ] = {
-        /*[WSI_TOKEN_GET_URI]		=*/ "GET URI",
-        /*[WSI_TOKEN_HOST]			=*/ "Host",
-        /*[WSI_TOKEN_CONNECTION]	=*/ "Connection",
-        /*[WSI_TOKEN_KEY1]			=*/ "key 1",
-        /*[WSI_TOKEN_KEY2]			=*/ "key 2",
-        /*[WSI_TOKEN_PROTOCOL]		=*/ "Protocol",
-        /*[WSI_TOKEN_UPGRADE]		=*/ "Upgrade",
-        /*[WSI_TOKEN_ORIGIN]		=*/ "Origin",
-        /*[WSI_TOKEN_DRAFT]			=*/ "Draft",
-        /*[WSI_TOKEN_CHALLENGE]		=*/ "Challenge",
-
-        /* new for 04 */
-        /*[WSI_TOKEN_KEY]			=*/ "Key",
-        /*[WSI_TOKEN_VERSION]		=*/ "Version",
-        /*[WSI_TOKEN_SWORIGIN]		=*/ "Sworigin",
-
-        /* new for 05 */
-        /*[WSI_TOKEN_EXTENSIONS]	=*/ "Extensions",
-
-        /* client receives these */
-        /*[WSI_TOKEN_ACCEPT]		=*/ "Accept",
-        /*[WSI_TOKEN_NONCE]			=*/ "Nonce",
-        /*[WSI_TOKEN_HTTP]			=*/ "Http",
-        /*[WSI_TOKEN_MUXURL]		=*/ "MuxURL",
-    };
-
-    for (n = 0; n < WSI_TOKEN_COUNT; n++) {
-
-        if (lwst[n].token == NULL) continue;
-
-        //fprintf(stderr, "    %s = %s\n", token_names[n], lwst[n].token);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// callback_dumb_increment
-//
-
-int
-CControlObject::callback_dumb_increment(struct libwebsocket_context *context,
-        struct libwebsocket *wsi,
-        enum libwebsocket_callback_reasons reason,
-        void *user,
-        void *in,
-        size_t len)
-{
-    int n;
-    unsigned char buf[ LWS_SEND_BUFFER_PRE_PADDING + 512 +
-            LWS_SEND_BUFFER_POST_PADDING ];
-    unsigned char *p = &buf[ LWS_SEND_BUFFER_PRE_PADDING ];
-    struct per_session_data__dumb_increment *pss =
-            (struct per_session_data__dumb_increment *) user;
-
-    switch (reason) {
-
-    case LWS_CALLBACK_ESTABLISHED:
-        //fprintf(stderr, "callback_dumb_increment: "
-        //        "LWS_CALLBACK_ESTABLISHED\n");
-        pss->number = 0;
-        break;
-
-        /*
-         * in this protocol, we just use the broadcast action as the chance to
-         * send our own connection-specific data and ignore the broadcast info
-         * that is available in the 'in' parameter
-         */
-
-    case LWS_CALLBACK_SERVER_WRITEABLE:
-
-        n = sprintf((char *) p, "%d", pss->number++);
-        n = libwebsocket_write(wsi, p, n, LWS_WRITE_TEXT);
-
-        if (n < 0) {
-            syslog(LOG_ERR, "ERROR writing to socket");
-            return 1;
-        }
-
-        if (gbClose && pss->number == 50) {
-            //fprintf(stderr, "close testing limit, closing\n");
-            lwsl_info("close tesing limit, closing\n");
-            return -1;
-        }
-        break;
-
-    case LWS_CALLBACK_RECEIVE:
-
-        //fprintf(stderr, "rx %d\n", (int) len);
-
-        if (len < 6)
-            break;
-
-        if (strcmp((char *) in, "reset\n") == 0)
-            pss->number = 0;
-
-        break;
-
-
-    default:
-        break;
-    }
-
-    return 0;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// callback_lws_mirror
-//
-
-int
-CControlObject::callback_lws_mirror(struct libwebsocket_context *context,
-        struct libwebsocket *wsi,
-        enum libwebsocket_callback_reasons reason,
-        void *user,
-        void *in,
-        size_t len)
-{
-    int n;
-    struct per_session_data__lws_mirror *pss = (per_session_data__lws_mirror *) user;
-
-    switch (reason) {
-
-    case LWS_CALLBACK_ESTABLISHED:
-
-        //fprintf(stderr, "callback_lws_mirror: "
-        //        "LWS_CALLBACK_ESTABLISHED\n");
-        pss->ringbuffer_tail = mirrorws_ringbuffer_head;
-        pss->wsi = wsi;
-        break;
-
-    case LWS_CALLBACK_SERVER_WRITEABLE:
-
-        if (gbClose)
-            break;
-
-        // If there is data in the ringbuffer
-        if (pss->ringbuffer_tail != mirrorws_ringbuffer_head) {
-
-            // Write it out
-            n = libwebsocket_write(wsi, (unsigned char *)
-                    mirrorws_ringbuffer[ pss->ringbuffer_tail ].payload +
-                    LWS_SEND_BUFFER_PRE_PADDING,
-                    mirrorws_ringbuffer[ pss->ringbuffer_tail ].len,
-                    LWS_WRITE_TEXT);
-            if (n < 0) {
-                syslog(LOG_ERR, "ERROR writing to socket");
+            udpRemoteClientInfo *pudpClient = new udpRemoteClientInfo;
+            if (NULL == pudpClient) {
+                syslog(LOG_ERR, "Unable to allocate storage for UDP client");
+                return;
             }
 
-            if (pss->ringbuffer_tail == (MAX_MIRROR_MESSAGE_QUEUE - 1))
-                pss->ringbuffer_tail = 0;
-            else
-                pss->ringbuffer_tail++;
+            vscp_clearVSCPFilter(&pudpClient->m_filter);
 
-            if (((mirrorws_ringbuffer_head - pss->ringbuffer_tail) %
-                    MAX_MIRROR_MESSAGE_QUEUE) < (MAX_MIRROR_MESSAGE_QUEUE - 15))
-                libwebsocket_rx_flow_control(wsi, 1);
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
 
-            libwebsocket_callback_on_writable(context, wsi);
-
-        }
-        break;
-
-    case LWS_CALLBACK_RECEIVE:
-
-        if (mirrorws_ringbuffer[ mirrorws_ringbuffer_head ].payload)
-            free(mirrorws_ringbuffer[ mirrorws_ringbuffer_head ].payload);
-
-        mirrorws_ringbuffer[ mirrorws_ringbuffer_head ].payload =
-                malloc(LWS_SEND_BUFFER_PRE_PADDING + len +
-                LWS_SEND_BUFFER_POST_PADDING);
-        mirrorws_ringbuffer[ mirrorws_ringbuffer_head ].len = len;
-
-        memcpy((char *) mirrorws_ringbuffer[ mirrorws_ringbuffer_head ].payload +
-                LWS_SEND_BUFFER_PRE_PADDING, in, len);
-
-        if (mirrorws_ringbuffer_head == (MAX_MIRROR_MESSAGE_QUEUE - 1))
-            mirrorws_ringbuffer_head = 0;
-        else
-            mirrorws_ringbuffer_head++;
-
-        if (((mirrorws_ringbuffer_head - pss->ringbuffer_tail) %
-                MAX_MIRROR_MESSAGE_QUEUE) > (MAX_MIRROR_MESSAGE_QUEUE - 10))
-            libwebsocket_rx_flow_control(wsi, 0);
-
-        libwebsocket_callback_on_writable_all_protocol(
-                libwebsockets_get_protocol(wsi));
-        break;
-        /*
-         * this just demonstrates how to use the protocol filter. If you won't
-         * study and reject connections based on header content, you don't need
-         * to handle this callback
-         */
-
-    case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
-        dump_handshake_info((struct lws_tokens *) (long) user);
-        /* you could return non-zero here and kill the connection */
-        break;
-
-    default:
-        break;
-    }
-
-    return 0;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// callback_lws_vscp
-//
-
-int
-CControlObject::callback_lws_vscp(struct libwebsocket_context *context,
-        struct libwebsocket *wsi,
-        enum libwebsocket_callback_reasons reason,
-        void *user,
-        void *in,
-        size_t len)
-{
-    wxString str;
-    struct per_session_data__lws_vscp *pss = (per_session_data__lws_vscp *) user;
-
-    switch (reason) {
-
-        // after the server completes a handshake with
-        // an incoming client
-    case LWS_CALLBACK_ESTABLISHED:
-    {
-        //fprintf(stderr, "callback_lws_vscp: "
-        //        "LWS_CALLBACK_ESTABLISHED\n");
-
-        pss->wsi = wsi;
-        // Create receive message list
-        pss->pMessageList = new wxArrayString();
-        // Create client
-        pss->pClientItem = new CClientItem();
-        // Clear filter
-        clearVSCPFilter(&pss->pClientItem->m_filterVSCP);
-
-        // Initialize session variables
-        pss->bTrigger = false;
-        pss->triggerTimeout = 0;
-
-        // This is an active client
-        pss->pClientItem->m_bOpen = false;
-        pss->pClientItem->m_type = CLIENT_ITEM_INTERFACE_TYPE_CLIENT_INTERNAL;
-        pss->pClientItem->m_strDeviceName = _("Internal daemon websocket client. Started at ");
-        wxDateTime now = wxDateTime::Now();
-        pss->pClientItem->m_strDeviceName += now.FormatISODate();
-        pss->pClientItem->m_strDeviceName += _(" ");
-        pss->pClientItem->m_strDeviceName += now.FormatISOTime();
-
-        // Add the client to the Client List
-        gpctrlObj->m_wxClientMutex.Lock();
-        gpctrlObj->addClient(pss->pClientItem);
-        gpctrlObj->m_wxClientMutex.Unlock();
-    }
-        break;
-
-        // when the websocket session ends
-    case LWS_CALLBACK_CLOSED:
-
-        // Remove the receive message list
-        if (NULL == pss->pMessageList) {
-            pss->pMessageList->Clear();
-            delete pss->pMessageList;
-        }
-
-        // Remove the client
-        gpctrlObj->m_wxClientMutex.Lock();
-        gpctrlObj->removeClient(pss->pClientItem);
-        gpctrlObj->m_wxClientMutex.Unlock();
-        //delete pss->pClientItem;
-        pss->pClientItem = NULL;
-        break;
-
-        // data has appeared for this server endpoint from a
-        // remote client, it can be found at *in and is
-        // len bytes long
-    case LWS_CALLBACK_RECEIVE:
-        gpctrlObj->handleWebSocketReceive(context, wsi, pss, in, len);
-        break;
-
-        // signal to send to client (you would use
-        // libwebsocket_write() taking care about the
-        // special buffer requirements
-        /*           
-            case LWS_CALLBACK_BROADCAST:
-                libwebsocket_callback_on_writable(context, wsi);
-                break;
-         */
-        // If you call
-        // libwebsocket_callback_on_writable() on a connection, you will
-        // get one of these callbacks coming when the connection socket
-        // is able to accept another write packet without blocking.
-        // If it already was able to take another packet without blocking,
-        // you'll get this callback at the next call to the service loop
-        // function. 
-    case LWS_CALLBACK_SERVER_WRITEABLE:
-    {
-        // If there is data to write
-        if (pss->pMessageList->GetCount()) {
-
-            str = pss->pMessageList->Item(0);
-            pss->pMessageList->RemoveAt(0);
-
-            // Write it out
-            unsigned char buf[ 512 ];
-            memset((char *) buf, 0, sizeof( buf));
-            strcpy((char *) buf, (const char*) str.mb_str(wxConvUTF8));
-            int n = libwebsocket_write(wsi,
-                    buf,
-                    strlen((char *) buf),
-                    LWS_WRITE_TEXT);
-            if (n < 0) {
-                syslog(LOG_ERR, "ERROR writing to socket");
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pudpClient->m_bEnable = true;
+                } else {
+                    pudpClient->m_bEnable = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "interface")) {
+                pudpClient->m_remoteAddress = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "filter")) {
+                if (attribute.length()) {
+                    vscp_readFilterFromString(&pudpClient->m_filter, attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "mask")) {
+                if (attribute.length()) {
+                    vscp_readMaskFromString(&pudpClient->m_filter, attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "broadcast")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pudpClient->m_bSetBroadcast = true;
+                } else {
+                    pudpClient->m_bSetBroadcast = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "encryption")) {
+                pudpClient->m_nEncryption =
+                  vscp_getEncryptionCodeFromToken(attribute);
             }
 
-            libwebsocket_callback_on_writable(context, wsi);
+            // add to udp client list
+            pudpClient->m_index = 0;
+            pObj->m_udpSrvObj.m_remotes.push_back(pudpClient);
+        }
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "multicast"))) {
 
-        }// Check if there is something to send out from 
-            // the event list.
-        else if (pss->pClientItem->m_bOpen &&
-                pss->pClientItem->m_clientInputQueue.GetCount()) {
+        bMulticastConfigFound = TRUE;
 
-            CLIENTEVENTLIST::compatibility_iterator nodeClient;
-            vscpEvent *pEvent;
+        for (int i = 0; attr[i]; i += 2) {
 
-            pss->pClientItem->m_mutexClientInputQueue.Lock();
-            nodeClient = pss->pClientItem->m_clientInputQueue.GetFirst();
-            pEvent = nodeClient->GetData();
-            pss->pClientItem->m_clientInputQueue.DeleteNode(nodeClient);
-            pss->pClientItem->m_mutexClientInputQueue.Unlock();
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
 
-            if (NULL != pEvent) {
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_bEnableMulticast = true;
+                } else {
+                    pObj->m_bEnableMulticast = false;
+                }
+            }
+        }
 
-                if (doLevel2Filter(pEvent, &pss->pClientItem->m_filterVSCP)) {
+    } else if (bVscpConfigFound && bMulticastConfigFound &&
+               (2 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "channel"))) {
 
-                    if (writeVscpEventToString(pEvent, str)) {
+        multicastChannelItem *pChannel = new multicastChannelItem;
+        if (NULL == pChannel) {
+            syslog(LOG_ERR, "Unable to allocate storage for multicast client");
+            return;
+        }
 
-                        // Write it out
-                        char buf[ 512 ];
-                        memset((char *) buf, 0, sizeof( buf));
-                        strcpy((char *) buf, (const char*) "E;");
-                        strcat((char *) buf, (const char*) str.mb_str(wxConvUTF8));
-                        int n = libwebsocket_write(wsi, (unsigned char *)
-                                buf,
-                                strlen((char *) buf),
-                                LWS_WRITE_TEXT);
-                        if (n < 0) {
-                            syslog(LOG_ERR, "ERROR writing to socket");
-                        }
+        pChannel->m_bEnable        = false;
+        pChannel->m_bAllowUnsecure = false;
+        pChannel->m_port           = 0;
+        pChannel->m_ttl            = 1;
+        pChannel->m_nEncryption    = 0;
+        pChannel->m_bSendAck       = 0;
+        pChannel->m_index          = 0;
+
+        // Default is to let everything come through
+        vscp_clearVSCPFilter(&pChannel->m_txFilter);
+        vscp_clearVSCPFilter(&pChannel->m_rxFilter);
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pChannel->m_bEnable = true;
+                } else {
+                    pChannel->m_bEnable = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "bsendack")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pChannel->m_bSendAck = true;
+                } else {
+                    pChannel->m_bSendAck = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "bAllowUndsecure")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pChannel->m_bAllowUnsecure = true;
+                } else {
+                    pChannel->m_bAllowUnsecure = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "public")) {
+                pChannel->m_public = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "port")) {
+                pChannel->m_port = vscp_readStringValue(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "group")) {
+                pChannel->m_gropupAddress = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "ttl")) {
+                pChannel->m_ttl = vscp_readStringValue(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "guid")) {
+                pChannel->m_guid.getFromString(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "txfilter")) {
+                if (attribute.length()) {
+                    vscp_readFilterFromString(&pChannel->m_txFilter, attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "txmask")) {
+                if (attribute.length()) {
+                    vscp_readMaskFromString(&pChannel->m_txFilter, attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "rxfilter")) {
+                if (attribute.length()) {
+                    vscp_readFilterFromString(&pChannel->m_rxFilter, attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "rxmask")) {
+                if (attribute.length()) {
+                    vscp_readMaskFromString(&pChannel->m_rxFilter, attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "encryption")) {
+                if (attribute.length()) {
+                    pChannel->m_nEncryption =
+                      vscp_getEncryptionCodeFromToken(attribute);
+                }
+            }
+        }
+
+        // add to multicast client list
+        pChannel->m_index = 0;
+        pObj->m_multicastObj.m_channels.push_back(pChannel);
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "dm"))) {
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_dm.m_bEnable = true;
+                } else {
+                    pObj->m_dm.m_bEnable = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "path")) { // Deprecated
+                if (attribute.length()) {
+                    pObj->m_dm.m_staticXMLPath = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "pathxml")) {
+                if (attribute.length()) {
+                    pObj->m_dm.m_staticXMLPath = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "loglevel")) {
+                pObj->m_debugFlags[0] |= VSCP_DEBUG1_DM;
+            }
+        }
+
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "variables"))) {
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "path")) { // Deprecated
+                if (attribute.length()) {
+                    pObj->m_variables.m_dbFilename = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "pathxml")) {
+                if (attribute.length()) {
+                    pObj->m_variables.m_xmlPath = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "pathdb")) {
+                if (attribute.length()) {
+                    pObj->m_variables.m_dbFilename = attribute;
+                }
+            }
+        }
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "webserver"))) {
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_bEnable = true;
+                } else {
+                    pObj->m_web_bEnable = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "document_root")) {
+                if (attribute.length()) {
+                    pObj->m_web_document_root = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "listening_ports")) {
+                if (attribute.length()) {
+                    pObj->m_web_listening_ports = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "index_files")) {
+                if (attribute.length()) {
+                    pObj->m_web_index_files = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "authentication_domain")) {
+                if (attribute.length()) {
+                    pObj->m_web_authentication_domain = attribute;
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "enable_auth_domain_check")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_enable_auth_domain_check = true;
+                } else {
+                    pObj->m_enable_auth_domain_check = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_certificat")) {
+                if (attribute.length()) {
+                    pObj->m_web_ssl_certificate = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_certificat_chain")) {
+                if (attribute.length()) {
+                    pObj->m_web_ssl_certificate_chain = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_verify_peer")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_ssl_verify_peer = true;
+                } else {
+                    pObj->m_web_ssl_verify_peer = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_ca_path")) {
+                if (attribute.length()) {
+                    pObj->m_web_ssl_ca_path = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_ca_file")) {
+                if (attribute.length()) {
+                    pObj->m_web_ssl_ca_file = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_verify_depth")) {
+                if (attribute.length()) {
+                    pObj->m_web_ssl_verify_depth =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "ssl_default_verify_paths")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_ssl_default_verify_paths = true;
+                } else {
+                    pObj->m_web_ssl_default_verify_paths = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_cipher_list")) {
+                if (attribute.length()) {
+                    pObj->m_web_ssl_cipher_list = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_protcol_version")) {
+                if (attribute.length()) {
+                    pObj->m_web_ssl_protocol_version =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "ssl_short_trust")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_ssl_short_trust = true;
+                } else {
+                    pObj->m_web_ssl_short_trust = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "cgi_interpreter")) {
+                if (attribute.length()) {
+                    pObj->m_web_cgi_interpreter = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "cgi_pattern")) {
+                if (attribute.length()) {
+                    pObj->m_web_cgi_patterns = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "cgi_environment")) {
+                if (attribute.length()) {
+                    pObj->m_web_cgi_environment = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "protect_uri")) {
+                if (attribute.length()) {
+                    pObj->m_web_protect_uri = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "trottle")) {
+                if (attribute.length()) {
+                    pObj->m_web_trottle = attribute;
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "enable_directory_listing")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_enable_directory_listing = true;
+                } else {
+                    pObj->m_web_enable_directory_listing = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "enable_keep_alive")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_enable_keep_alive = true;
+                } else {
+                    pObj->m_web_enable_keep_alive = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "keep_alive_timeout_ms")) {
+                if (attribute.length()) {
+                    pObj->m_web_keep_alive_timeout_ms =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "access_control_list")) {
+                if (attribute.length()) {
+                    pObj->m_web_access_control_list = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "extra_mime_types")) {
+                if (attribute.length()) {
+                    pObj->m_web_extra_mime_types = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "num_threads")) {
+                if (attribute.length()) {
+                    pObj->m_web_num_threads = vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "hide_file_pattern")) {
+                if (attribute.length()) {
+                    pObj->m_web_hide_file_patterns = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "run_as_user")) {
+                if (attribute.length()) {
+                    pObj->m_web_run_as_user = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "url_rewrite_patterns")) {
+                if (attribute.length()) {
+                    pObj->m_web_url_rewrite_patterns = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "hide_file_patterns")) {
+                if (attribute.length()) {
+                    pObj->m_web_hide_file_patterns = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "request_timeout_ms")) {
+                if (attribute.length()) {
+                    pObj->m_web_request_timeout_ms =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "linger_timeout_ms")) {
+                if (attribute.length()) {
+                    pObj->m_web_linger_timeout_ms =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "decode_url")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_decode_url = true;
+                } else {
+                    pObj->m_web_decode_url = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "global_auth_file")) {
+                if (attribute.length()) {
+                    pObj->m_web_global_auth_file = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i],
+                                            "web_per_directory_auth_file")) {
+                if (attribute.length()) {
+                    pObj->m_web_per_directory_auth_file = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i],
+                                            "access_control_allow_origin")) {
+                if (attribute.length()) {
+                    pObj->m_web_access_control_allow_methods = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i],
+                                            "access_control_allow_methods")) {
+                if (attribute.length()) {
+                    pObj->m_web_access_control_allow_methods = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i],
+                                            "access_control_allow_headers")) {
+                if (attribute.length()) {
+                    pObj->m_web_access_control_allow_headers = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "error_pages")) {
+                if (attribute.length()) {
+                    pObj->m_web_error_pages = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "tcp_nodelay")) {
+                if (attribute.length()) {
+                    pObj->m_web_linger_timeout_ms =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "static_file_max_age")) {
+                if (attribute.length()) {
+                    pObj->m_web_static_file_max_age =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(
+                              attr[i], "strict_transport_security_max_age")) {
+                if (attribute.length()) {
+                    pObj->m_web_strict_transport_security_max_age =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "sendfile_call")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_allow_sendfile_call = true;
+                } else {
+                    pObj->m_web_allow_sendfile_call = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "additional_headers")) {
+                if (attribute.length()) {
+                    pObj->m_web_additional_header = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "max_request_size")) {
+                if (attribute.length()) {
+                    pObj->m_web_max_request_size =
+                      vscp_readStringValue(attribute);
+                }
+            } else if (0 == vscp_strcasecmp(
+                              attr[i], "web_allow_index_script_resource")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_web_allow_index_script_resource = true;
+                } else {
+                    pObj->m_web_allow_index_script_resource = false;
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "duktape_script_patterns")) {
+                if (attribute.length()) {
+                    pObj->m_web_duktape_script_patterns = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "lua_preload_file")) {
+                if (attribute.length()) {
+                    pObj->m_web_lua_preload_file = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "lua_script_patterns")) {
+                if (attribute.length()) {
+                    pObj->m_web_lua_script_patterns = attribute;
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "lua_server_page_patterns")) {
+                if (attribute.length()) {
+                    pObj->m_web_lua_server_page_patterns = attribute;
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "lua_websockets_patterns")) {
+                if (attribute.length()) {
+                    pObj->m_web_lua_websocket_patterns = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "lua_background_script")) {
+                if (attribute.length()) {
+                    pObj->m_web_lua_background_script = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i],
+                                            "lua_background_script_params")) {
+                if (attribute.length()) {
+                    pObj->m_web_lua_background_script_params = attribute;
+                }
+            }
+        }
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "websockets"))) {
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_bWebsocketsEnable = true;
+                } else {
+                    pObj->m_bWebsocketsEnable = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "document_root")) {
+                if (attribute.length()) {
+                    pObj->m_websocket_document_root = attribute;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "timeout_ms")) {
+                if (attribute.length()) {
+                    pObj->m_websocket_timeout_ms =
+                      vscp_readStringValue(attribute);
+                }
+            }
+        }
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "remoteuser"))) {
+        bRemoteUserConfigFound = TRUE;
+    } else if (bVscpConfigFound && bRemoteUserConfigFound &&
+               (2 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "user"))) {
+
+        vscpEventFilter VSCPFilter;
+        bool bFilterPresent = false;
+        bool bMaskPresent   = false;
+        std::string name;
+        std::string md5;
+        std::string privilege;
+        std::string allowfrom;
+        std::string allowevent;
+        bool bUser = false;
+
+        vscp_clearVSCPFilter(&VSCPFilter); // Allow all frames
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "name")) {
+                name = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "password")) {
+                md5 = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "privilege")) {
+                privilege = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "allowfrom")) {
+                allowfrom = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "allowevent")) {
+                allowevent = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "filter")) {
+                if (attribute.length()) {
+                    if (vscp_readFilterFromString(&VSCPFilter, attribute)) {
+                        bFilterPresent = true;
                     }
                 }
+            } else if (0 == vscp_strcasecmp(attr[i], "mask")) {
+                if (attribute.length()) {
+                    if (vscp_readMaskFromString(&VSCPFilter, attribute)) {
+                        bMaskPresent = true;
+                    }
+                }
+            }
 
-                // Remove the event
-                deleteVSCPevent(pEvent);
-
-            } // Valid pEvent pointer
-
-            libwebsocket_callback_on_writable(context, wsi);
-        }
-    }
-        break;
-
-    default:
-        break;
-    }
-
-    return 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// handleWebSocketReceive
-//
-
-void
-CControlObject::handleWebSocketReceive(struct libwebsocket_context *context,
-        struct libwebsocket *wsi,
-        struct per_session_data__lws_vscp *pss,
-        void *in,
-        size_t len)
-{
-    wxString str;
-    char buf[ 512 ];
-    const char *p = buf;
-
-    memset(buf, 0, sizeof( buf));
-    memcpy(buf, (char *) in, len);
-
-    switch (*p) {
-
-        // Command - | 'C' | command type (byte) | data |
-    case 'C':
-        p++;
-        p++; // Point beyond initial info "C;"
-        handleWebSocketCommand(context,
-                                wsi,
-                                pss,
-                                p);
-        break;
-
-        // Event | 'E' ; head(byte) , vscp_class(unsigned short) , vscp_type(unsigned
-        //					short) , GUID(16*byte), data(0-487 bytes) |
-    case 'E':
-    {
-        p++;
-        p++; // Point beyond initial info "E;"
-        vscpEvent vscp_event;
-        str = wxString::FromAscii(p);
-        if (getVscpEventFromString(&vscp_event, str)) {
-
-            vscp_event.obid = pss->pClientItem->m_clientID;
-            if (handleWebSocketSendEvent(&vscp_event)) {
-                pss->pMessageList->Add(_("+;EVENT"));
+            if (bFilterPresent && bMaskPresent) {
+                pObj->m_userList.addUser(name,
+                                         md5,
+                                         "",
+                                         "",
+                                         &VSCPFilter,
+                                         privilege,
+                                         allowfrom,
+                                         allowevent,
+                                         VSCP_ADD_USER_FLAG_LOCAL);
             } else {
-                pss->pMessageList->Add(_("-;3;Transmit buffer full"));
+                pObj->m_userList.addUser(name,
+                                         md5,
+                                         "",
+                                         "",
+                                         NULL,
+                                         privilege,
+                                         allowfrom,
+                                         allowevent,
+                                         VSCP_ADD_USER_FLAG_LOCAL);
+            }
+        }
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "level1driver")) ||
+                (0 == vscp_strcasecmp(name, "canal1driver")))) {
+        bLevel1DriverConfigFound = TRUE;
+    } else if (bVscpConfigFound && bLevel1DriverConfigFound &&
+               (2 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "driver"))) {
+
+        std::string strName;
+        std::string strConfig;
+        std::string strPath;
+        unsigned long flags  = 0;
+        uint32_t translation = 0;
+        cguid guid;
+        bool bEnabled = false;
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    bEnabled = true;
+                } else {
+                    bEnabled = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "name")) {
+                strName = attribute;
+                // Replace spaces in name with underscore
+                std::string::size_type found;
+                while (std::string::npos !=
+                       (found = strName.find_first_of(" "))) {
+                    strName[found] = '_';
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "config")) {
+                strConfig = attribute;
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "parameter")) { // deprecated
+                strConfig = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "path")) {
+                strPath = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "flags")) {
+                flags = vscp_readStringValue(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "guid")) {
+                guid.getFromString(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "translation")) {
+                translation = vscp_readStringValue(attribute);
+            }
+        } // for
+
+        // Add the level I device
+        if (!pObj->m_deviceList.addItem(strName,
+                                        strConfig,
+                                        strPath,
+                                        flags,
+                                        guid,
+                                        VSCP_DRIVER_LEVEL1,
+                                        bEnabled,
+                                        translation)) {
+            syslog(LOG_ERR,
+                   "Level I driver not added name=%s. "
+                   "Path does not exist. - [%s]",
+                   strName.c_str(),
+                   strPath.c_str());
+        } else {
+            syslog(LOG_DEBUG,
+                   "Level I driver added. name = %s - [%s]",
+                   strName.c_str(),
+                   strPath.c_str());
+        }
+
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "level2driver")))) {
+        bLevel2DriverConfigFound = TRUE;
+    } else if (bVscpConfigFound && bLevel2DriverConfigFound &&
+               (2 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "driver"))) {
+        std::string strName;
+        std::string strConfig;
+        std::string strPath;
+        cguid guid;
+        bool bEnabled = false;
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    bEnabled = true;
+                } else {
+                    bEnabled = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "name")) {
+                strName = attribute;
+                // Replace spaces in name with underscore
+                std::string::size_type found;
+                while (std::string::npos !=
+                       (found = strName.find_first_of(" "))) {
+                    strName[found] = '_';
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "config")) {
+                strConfig = attribute;
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "parameter")) { // deprecated
+                strConfig = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "path")) {
+                strPath = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "guid")) {
+                guid.getFromString(attribute);
+            }
+        } // for
+
+        // Add the level II device
+        if (!pObj->m_deviceList.addItem(strName,
+                                        strConfig,
+                                        strPath,
+                                        0,
+                                        guid,
+                                        VSCP_DRIVER_LEVEL2,
+                                        bEnabled)) {
+            syslog(LOG_ERR,
+                   "Level II driver was not added. name = %s"
+                   "Path does not exist. - [%s]",
+                   strName.c_str(),
+                   strPath.c_str());
+
+        } else {
+            syslog(LOG_DEBUG,
+                   "Level II driver added. name = %s- [%s]",
+                   strName.c_str(),
+                   strPath.c_str());
+        }
+
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "level3driver")))) {
+        bLevel3DriverConfigFound = TRUE;
+    } else if (bVscpConfigFound && bLevel3DriverConfigFound &&
+               (2 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "driver"))) {
+        std::string strName;
+        std::string strConfig;
+        std::string strPath;
+        cguid guid;
+        bool bEnabled = false;
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    bEnabled = true;
+                } else {
+                    bEnabled = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "name")) {
+                strName = attribute;
+                // Replace spaces in name with underscore
+                std::string::size_type found;
+                while (std::string::npos !=
+                       (found = strName.find_first_of(" "))) {
+                    strName[found] = '_';
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "config")) {
+                strConfig = attribute;
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "parameter")) { // deprecated
+                strConfig = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "path")) {
+                strPath = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "guid")) {
+                guid.getFromString(attribute);
+            }
+        }
+
+        // Add the level III device
+        if (!pObj->m_deviceList.addItem(strName,
+                                        strConfig,
+                                        strPath,
+                                        0,
+                                        guid,
+                                        VSCP_DRIVER_LEVEL3,
+                                        bEnabled)) {
+            syslog(LOG_ERR,
+                   "Level III driver was not added. name = %s"
+                   "Path does not exist. - [%s]",
+                   strName.c_str(),
+                   strPath.c_str());
+
+        } else {
+            syslog(LOG_DEBUG,
+                   "Level III driver added. name = %s- [%s]",
+                   strName.c_str(),
+                   strPath.c_str());
+        }
+
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "knownnodes")))) {
+        bKnownNodesConfigFound = TRUE;
+    } else if (bVscpConfigFound && bKnownNodesConfigFound &&
+               (2 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "node"))) {
+
+        std::string strName;
+        cguid guidif;
+        cguid guid;
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "name")) {
+                strName = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "guid")) {
+                guid.getFromString(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "if")) {
+                guidif.getFromString(attribute);
+            }
+        }
+
+        pObj->addKnownNode(guid, guidif, strName);
+
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "tables")))) {
+        bTablesConfigFound = TRUE;
+    } else if (bVscpConfigFound && bTablesConfigFound &&
+               (2 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "table"))) {
+
+        bool bEnabled = false;
+        std::string strName;
+        vscpTableType type = VSCP_TABLE_DYNAMIC;
+        int size           = 0;
+        bool bMemory       = false;
+
+        std::string owner = "admin";
+        uint16_t rights   = 0x700;
+        std::string title;
+        std::string xname;
+        std::string yname;
+        std::string note;
+        std::string sqlcreate;
+        std::string sqlinsert;
+        std::string sqldelete;
+        std::string description;
+
+        uint16_t vscp_class      = 0;
+        uint16_t vscp_type       = 0;
+        uint8_t vscp_sensorindex = 0;
+        uint8_t vscp_unit        = 0;
+        uint8_t vscp_zone        = 255;
+        uint8_t vscp_subzone     = 255;
+
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    bEnabled = true;
+                } else {
+                    bEnabled = false;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "name")) {
+                strName = attribute;
+                // Replace spaces in name with underscore
+                std::string::size_type found;
+                while (std::string::npos !=
+                       (found = strName.find_first_of(" "))) {
+                    strName[found] = '_';
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "type")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "static")) {
+                    type = VSCP_TABLE_STATIC;
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "size")) {
+                size = vscp_readStringValue(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "bmemory")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    bMemory = true;
+                } else {
+                    bMemory = false;
+                }
+
+            } else if (0 == vscp_strcasecmp(attr[i], "owner")) {
+                owner = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "rights")) {
+                rights = vscp_readStringValue(attribute);
+            } else if (0 == vscp_strcasecmp(attr[i], "title")) {
+                title = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "labelx")) {
+                xname = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "lavely")) {
+                yname = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "note")) {
+                note = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "sqlcreate")) {
+                sqlcreate = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "sqldelete")) {
+                sqldelete = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "sqlinsert")) {
+                sqlinsert = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "description")) {
+                description = attribute;
+            } else if (0 == vscp_strcasecmp(attr[i], "vscpclass")) {
+                vscp_class = vscp_readStringValue(attribute);
+                ;
+            } else if (0 == vscp_strcasecmp(attr[i], "vscptype")) {
+                vscp_type = vscp_readStringValue(attribute);
+                ;
+            } else if (0 == vscp_strcasecmp(attr[i], "vscpsensorindex")) {
+                vscp_sensorindex = vscp_readStringValue(attribute);
+                ;
+            } else if (0 == vscp_strcasecmp(attr[i], "vscpunit")) {
+                vscp_unit = vscp_readStringValue(attribute);
+                ;
+            } else if (0 == vscp_strcasecmp(attr[i], "vscpzone")) {
+                vscp_zone = vscp_readStringValue(attribute);
+                ;
+            } else if (0 == vscp_strcasecmp(attr[i], "vscpsubzone")) {
+                vscp_subzone = vscp_readStringValue(attribute);
+                ;
+            }
+        }
+
+        CVSCPTable *pTable = new CVSCPTable(
+          pObj->m_rootFolder + "table/", strName, true, bMemory, type, size);
+        if (NULL == pTable) {
+            syslog(LOG_ERR, "Unable to create table %s", strName.c_str());
+            return;
+        }
+
+        if (!pTable->setTableInfo(owner,
+                                  rights,
+                                  title,
+                                  xname,
+                                  yname,
+                                  note,
+                                  sqlcreate,
+                                  sqlinsert,
+                                  sqldelete,
+                                  description)) {
+            syslog(LOG_ERR,
+                   "Unable to set table info for table %s",
+                   strName.c_str());
+            delete pTable;
+            return;
+        }
+
+        pTable->setTableEventInfo(vscp_class,
+                                  vscp_type,
+                                  vscp_sensorindex,
+                                  vscp_unit,
+                                  vscp_zone,
+                                  vscp_subzone);
+
+        // Add the table
+        if (!pObj->m_userTableObjects.addTable(pTable)) {
+            delete pTable;
+            syslog(LOG_ERR,
+                   "Could not add new table (name conflict?)! nane=%s",
+                   strName.c_str());
+        };
+
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "automation")))) {
+        for (int i = 0; attr[i]; i += 2) {
+
+            std::string attribute = attr[i + 1];
+            vscp_trim(attribute);
+
+            if (0 == vscp_strcasecmp(attr[i], "enable")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_automation.enableAutomation();
+                } else {
+                    pObj->m_automation.disableAutomation();
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "zone")) {
+                uint8_t zone = vscp_readStringValue(attribute);
+                pObj->m_automation.setZone(zone);
+            } else if (0 == vscp_strcasecmp(attr[i], "subzone")) {
+                uint8_t subzone = vscp_readStringValue(attribute);
+                pObj->m_automation.setSubzone(subzone);
+            } else if (0 == vscp_strcasecmp(attr[i], "longitude")) {
+                // Decimal point should be '.'
+                std::string::size_type found;
+                while (std::string::npos !=
+                       (found = attribute.find_first_of(","))) {
+                    attribute[found] = '.';
+                }
+                double d = std::stod(attribute);
+                pObj->m_automation.setLongitude(d);
+            } else if (0 == vscp_strcasecmp(attr[i], "latitude")) {
+                // Decimal point should be '.'
+                std::string::size_type found;
+                while (std::string::npos !=
+                       (found = attribute.find_first_of(","))) {
+                    attribute[found] = '.';
+                }
+                double d = std::stod(attribute);
+                pObj->m_automation.setLatitude(d);
+            } else if (0 == vscp_strcasecmp(attr[i], "sunrise-event")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_automation.enableSunRiseEvent();
+                } else {
+                    pObj->m_automation.disableSunRiseEvent();
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "sunrise-twilight-event")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_automation.enableSunRiseTwilightEvent();
+                } else {
+                    pObj->m_automation.disableSunRiseTwilightEvent();
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "sunset-event")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_automation.enableSunSetEvent();
+                } else {
+                    pObj->m_automation.disableSunSetEvent();
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "sunset-twilight-event")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_automation.enableSunSetTwilightEvent();
+                } else {
+                    pObj->m_automation.disableSunSetTwilightEvent();
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "segment-controler-event")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_automation.enableSegmentControllerHeartbeat();
+                } else {
+                    pObj->m_automation.disableSegmentControllerHeartbeat();
+                }
+            } else if (0 ==
+                       vscp_strcasecmp(attr[i], "segment-controler-interval")) {
+                int interval = vscp_readStringValue(attribute);
+                pObj->m_automation.setSegmentControllerHeartbeatInterval(
+                  interval);
+            } else if (0 == vscp_strcasecmp(attr[i], "heartbeat-event")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_automation.enableHeartbeatEvent();
+                } else {
+                    pObj->m_automation.disableHeartbeatEvent();
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "heartbeat-interval")) {
+                int interval = vscp_readStringValue(attribute);
+                pObj->m_automation.setHeartbeatEventInterval(interval);
+            } else if (0 == vscp_strcasecmp(attr[i], "capability-event")) {
+                if (0 == vscp_strcasecmp(attribute.c_str(), "true")) {
+                    pObj->m_automation.enableCapabilitiesEvent();
+                } else {
+                    pObj->m_automation.disableCapabilitiesEvent();
+                }
+            } else if (0 == vscp_strcasecmp(attr[i], "capability-interval")) {
+                int interval = vscp_readStringValue(attribute);
+                pObj->m_automation.setCapabilitiesEventInterval(interval);
             }
         }
     }
-        break;
 
-        // Unknow command
-    default:
-        break;
-
-    }
-
+    depth_full_config_parser++;
 }
 
+static void
+handleFullConfigData(void *data, const char *content, int length)
+{
+    int prevLength =
+      (NULL == last_full_config_content) ? 0 : strlen(last_full_config_content);
+    char *tmp = (char *)malloc(length + 1 + prevLength);
+    strncpy(tmp, content, length);
+    tmp[length] = '\0';
+
+    if (NULL == last_full_config_content) {
+        tmp = (char *)malloc(length + 1);
+        strncpy(tmp, content, length);
+        tmp[length]              = '\0';
+        last_full_config_content = tmp;
+    } else {
+        // Concatenate
+        int newlen = length + 1 + strlen(last_full_config_content);
+        last_full_config_content =
+          (char *)realloc(last_full_config_content, newlen);
+        strncat(tmp, content, length);
+        last_full_config_content[newlen] = '\0';
+    }
+}
+
+static void
+endFullConfigParser(void *data, const char *name)
+{
+    /*if (NULL != last_full_config_content) {
+        // Free the allocated data
+        free(last_full_config_content);
+        last_full_config_content = NULL;
+    }*/
+
+    depth_full_config_parser--;
+
+    if (1 == depth_full_config_parser &&
+        (0 == vscp_strcasecmp(name, "vscpconfig"))) {
+        bVscpConfigFound = FALSE;
+    }
+    if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+        (0 == vscp_strcasecmp(name, "udp"))) {
+        bUDPConfigFound = FALSE;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "multicast"))) {
+        bMulticastConfigFound = FALSE;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "remoteuser"))) {
+        bRemoteUserConfigFound = FALSE;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "level1driver")) ||
+                (0 == vscp_strcasecmp(name, "canal1driver")))) {
+        bLevel1DriverConfigFound = FALSE;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "level2driver"))) {
+        bLevel2DriverConfigFound = FALSE;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               (0 == vscp_strcasecmp(name, "level3driver"))) {
+        bLevel3DriverConfigFound = FALSE;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "knownnodes")))) {
+        bKnownNodesConfigFound = FALSE;
+    } else if (bVscpConfigFound && (1 == depth_full_config_parser) &&
+               ((0 == vscp_strcasecmp(name, "tables")))) {
+        bTablesConfigFound = FALSE;
+    }
+}
+
+// ----------------------------------------------------------------------------
+
 ///////////////////////////////////////////////////////////////////////////////
-// handleWebSocketSendEvent
+// readConfigurationXML
+//
+// Read the configuration XML file
 //
 
 bool
-CControlObject::handleWebSocketSendEvent(vscpEvent *pEvent)
+CControlObject::readConfigurationXML(const std::string &strcfgfile)
 {
-    bool bSent = false;
-    bool rv = true;
+    FILE *fp;
 
-    // Level II events betwen 512-1023 is recognized by the daemon and 
-    // sent to the correct interface as Level I events if the interface  
-    // is addressed by the client.
-    if ((pEvent->vscp_class <= 1023) &&
-            (pEvent->vscp_class >= 512) &&
-            (pEvent->sizeData >= 16)) {
+    syslog(LOG_DEBUG,
+           "Reading full XML configuration from [%s]",
+           (const char *)strcfgfile.c_str());
 
-        // This event shold be sent to the correct interface if it is
-        // available on this machine. If not it should be sent to 
-        // the rest of the network as normal
-
-        cguid destguid;
-        destguid.getFromArray(pEvent->pdata);
-        destguid.setAt(0,0);
-        destguid.setAt(1,0);
-        //unsigned char destGUID[16];
-        //memcpy(destGUID, pEvent->pdata, 16); // get destination GUID
-        //destGUID[0] = 0; // Interface GUID's have LSB bytes nilled
-        //destGUID[1] = 0;
-
-        m_wxClientMutex.Lock();
-
-        // Find client
-        CClientItem *pDestClientItem = NULL;
-        VSCPCLIENTLIST::iterator iter;
-        for (iter = m_clientList.m_clientItemList.begin();
-                iter != m_clientList.m_clientItemList.end();
-                ++iter) {
-
-            CClientItem *pItem = *iter;
-            if ( pItem->m_guid == destguid ) {
-                // Found
-                pDestClientItem = pItem;
-                break;
-            }
-
-        }
-
-        if (NULL != pDestClientItem) {
-
-            // Check if filtered out
-            if (doLevel2Filter(pEvent, &pDestClientItem->m_filterVSCP)) {
-
-                // If the client queue is full for this client then the
-                // client will not receive the message
-                if (pDestClientItem->m_clientInputQueue.GetCount() <=
-                        m_maxItemsInClientReceiveQueue) {
-
-                    // Create copy of event
-                    vscpEvent *pnewEvent = new vscpEvent;
-                    if (NULL != pnewEvent) {
-
-                        copyVSCPEvent(pnewEvent, pEvent);
-
-                        // Add the new event to the inputqueue
-                        pDestClientItem->m_mutexClientInputQueue.Lock();
-                        pDestClientItem->m_clientInputQueue.Append(pEvent);
-                        pDestClientItem->m_semClientInputQueue.Post();
-                        pDestClientItem->m_mutexClientInputQueue.Unlock();
-                    }
-
-                    bSent = true;
-
-                } else {
-                    // Overun - No room for event
-                    deleteVSCPevent(pEvent);
-                    bSent = true;
-                    rv = false;
-                }
-
-            } // filter
-
-        } // Client found
-
-        m_wxClientMutex.Unlock();
-
+    fp = fopen(strcfgfile.c_str(), "r");
+    if (NULL == fp) {
+        syslog(LOG_CRIT,
+               "Failed to open configuration file [%s]",
+               strcfgfile.c_str());
+        return false;
     }
 
-    if (!bSent) {
+    XML_Parser xmlParser = XML_ParserCreate("UTF-8");
+    XML_SetUserData(xmlParser, this);
+    XML_SetElementHandler(
+      xmlParser, startFullConfigParser, endFullConfigParser);
+    // XML_SetCharacterDataHandler(xmlParser, handleFullConfigData);
 
-        // There must be room in the send queue
-        if (m_maxItemsInClientReceiveQueue >
-                m_clientOutputQueue.GetCount()) {
+    int bytes_read;
+    void *buf = XML_GetBuffer(xmlParser, XML_BUFF_SIZE);
+    if (NULL == buf) {
+        XML_ParserFree(xmlParser);
+        fclose(fp);
+        syslog(LOG_CRIT,
+               "Failed to allocate buffer for configuration file [%s]",
+               strcfgfile.c_str());
+        return false;
+    }
 
-            // Create copy of event
-            vscpEvent *pnewEvent = new vscpEvent;
-            if (NULL != pnewEvent) {
+    size_t file_size = 0;
+    file_size        = fread(buf, sizeof(char), XML_BUFF_SIZE, fp);
 
-                copyVSCPEvent(pnewEvent, pEvent);
+    if (!XML_ParseBuffer(xmlParser, file_size, file_size == 0)) {
+        syslog(LOG_ERR, "Failed parse XML configuration file.");
+        fclose(fp);
+        XML_ParserFree(xmlParser);
+        return false;
+    }
 
-                m_mutexClientOutputQueue.Lock();
-                m_clientOutputQueue.Append(pnewEvent);
-                m_semClientOutputQueue.Post();
-                m_mutexClientOutputQueue.Unlock();
-            }
+    fclose(fp);
+    XML_ParserFree(xmlParser);
 
-        } else {
-            deleteVSCPevent(pEvent);
-            rv = false;
+    return true;
+} // XML config
+
+///////////////////////////////////////////////////////////////////////////////
+// isDbTableExist
+//
+
+bool
+CControlObject::isDbTableExist(sqlite3 *db, const std::string &strTblName)
+{
+    sqlite3_stmt *pSelectStatement = NULL;
+    int iResult                    = SQLITE_ERROR;
+    bool rv                        = false;
+
+    // Database file must be open
+    if (NULL == db) {
+        syslog(LOG_ERR, "isDbFieldExistent. Database file is not open.");
+        return false;
+    }
+
+    std::string sql =
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='%s'";
+    sql = vscp_str_format(sql, (const char *)strTblName.c_str());
+
+    iResult = sqlite3_prepare16_v2(
+      db, (const char *)sql.c_str(), -1, &pSelectStatement, 0);
+
+    if ((iResult == SQLITE_OK) && (pSelectStatement != NULL)) {
+
+        iResult = sqlite3_step(pSelectStatement);
+
+        // was found?
+        if (iResult == SQLITE_ROW) {
+            rv = true;
+            sqlite3_clear_bindings(pSelectStatement);
+            sqlite3_reset(pSelectStatement);
         }
+
+        iResult = sqlite3_finalize(pSelectStatement);
     }
 
     return rv;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// handleWebSocketCommand
+// isDbFieldExist
 //
 
-void
-CControlObject::handleWebSocketCommand(struct libwebsocket_context *context,
-                                        struct libwebsocket *wsi,
-                                        struct per_session_data__lws_vscp *pss,
-                                        const char *pCommand)
+bool
+CControlObject::isDbFieldExist(sqlite3 *db,
+                               const std::string &strTblName,
+                               const std::string &strFieldName)
 {
-    wxString strTok;
-    wxString str = wxString::FromAscii(pCommand);
+    bool rv = false;
+    sqlite3_stmt *ppStmt;
+    char *pErrMsg = 0;
 
-    // Check pointer
-    if (NULL == pCommand) return;
-
-    wxStringTokenizer tkz(str, _(";"));
-
-    // Get command
-    if (tkz.HasMoreTokens()) {
-        strTok = tkz.GetNextToken();
-        strTok.MakeUpper();
-        //pEvent->head = readStringValue( str );
-    } else {
-        pss->pMessageList->Add(_("-;1;Syntax error"));
-        return;
+    // Database file must be open
+    if (NULL == db) {
+        syslog(LOG_ERR, "isDbFieldExist. Database file is not open.");
+        return false;
     }
 
-    if (0 == strTok.Find(_("NOOP"))) {
-        pss->pMessageList->Add(_("+;NOOP"));
-    } else if (0 == strTok.Find(_("OPEN"))) {
-        pss->pClientItem->m_bOpen = true;
-        pss->pMessageList->Add(_("+;OPEN"));
-    } else if (0 == strTok.Find(_("CLOSE"))) {
-        pss->pClientItem->m_bOpen = false;
-        pss->pMessageList->Add(_("+;CLOSE"));
-    } else if (0 == strTok.Find(_("SETFILTER"))) {
-
-        unsigned char ifGUID[ 16 ];
-        memset(ifGUID, 0, 16);
-
-        // Get filter
-        if (tkz.HasMoreTokens()) {
-            strTok = tkz.GetNextToken();
-            if (!readFilterFromString(&pss->pClientItem->m_filterVSCP,
-                    strTok)) {
-                pss->pMessageList->Add(_("-;1;Syntax error"));
-                return;
-            }
-        } else {
-            pss->pMessageList->Add(_("-;1;Syntax error"));
-            return;
-        }
-
-        // Get mask
-        if (tkz.HasMoreTokens()) {
-            strTok = tkz.GetNextToken();
-            if (!readMaskFromString(&pss->pClientItem->m_filterVSCP,
-                    strTok)) {
-                pss->pMessageList->Add(_("-;1;Syntax error"));
-                return;
-            }
-        } else {
-            pss->pMessageList->Add(_("-;1;Syntax error"));
-            return;
-        }
-
-        // Positive response
-        pss->pMessageList->Add(_("+;SETFILTER"));
-
-    }// Clear the event queue
-    else if (0 == strTok.Find(_("CLRQUE"))) {
-
-        CLIENTEVENTLIST::iterator iterVSCP;
-
-        pss->pClientItem->m_mutexClientInputQueue.Lock();
-        for (iterVSCP = pss->pClientItem->m_clientInputQueue.begin();
-                iterVSCP != pss->pClientItem->m_clientInputQueue.end(); ++iterVSCP) {
-            vscpEvent *pEvent = *iterVSCP;
-            deleteVSCPevent(pEvent);
-        }
-
-        pss->pClientItem->m_clientInputQueue.Clear();
-        pss->pClientItem->m_mutexClientInputQueue.Unlock();
-
-        pss->pMessageList->Add(_("+;CLRQUE"));
-    } else if (0 == strTok.Find(_("WRITEVAR"))) {
-
-        // Get variablename
-        if (tkz.HasMoreTokens()) {
-
-            CVSCPVariable *pvar;
-            strTok = tkz.GetNextToken();
-            if (NULL == (pvar = m_VSCP_Variables.find(strTok))) {
-                pss->pMessageList->Add(_("-;5;Unable to find variable"));
-                return;
-            }
-
-            // Get variable value
-            if (tkz.HasMoreTokens()) {
-                strTok = tkz.GetNextToken();
-                if (!pvar->setValueFromString(pvar->getType(), strTok)) {
-                    pss->pMessageList->Add(_("-;1;Syntax error"));
-                    return;
-                }
-            } else {
-                pss->pMessageList->Add(_("-;1;Syntax error"));
-                return;
-            }
-        } else {
-            pss->pMessageList->Add(_("-;1;Syntax error"));
-            return;
-        }
-
-        // Positive reply
-        pss->pMessageList->Add(_("+;WRITEVAR"));
-
-    } else if (0 == strTok.Find(_("ADDVAR"))) {
-
-        wxString name;
-        wxString value;
-        uint8_t type = VSCP_DAEMON_VARIABLE_CODE_STRING;
-        bool bPersistent = false;
-
-        // Get variable name
-        if (tkz.HasMoreTokens()) {
-            name = tkz.GetNextToken();
-        } else {
-            pss->pMessageList->Add(_("-;1;Syntax error"));
-            return;
-        }
-
-        // Get variable value
-        if (tkz.HasMoreTokens()) {
-            value = tkz.GetNextToken();
-        } else {
-            pss->pMessageList->Add(_("-;1;Syntax error"));
-            return;
-        }
-
-        // Get variable type
-        if (tkz.HasMoreTokens()) {
-            type = readStringValue(tkz.GetNextToken());
-        }
-
-        // Get variable Persistent
-        if (tkz.HasMoreTokens()) {
-            int val = readStringValue(tkz.GetNextToken());
-        }
-
-        // Add the variable
-        if (!m_VSCP_Variables.add(name, value, type, bPersistent)) {
-            pss->pMessageList->Add(_("-;1;Syntax error"));
-            return;
-        } else {
-            pss->pMessageList->Add(_("-;1;Syntax error"));
-            return;
-        }
-
-        pss->pMessageList->Add(_("+;ADDVAR"));
-        
-    } else if (0 == strTok.Find(_("READVAR"))) {
-
-        CVSCPVariable *pvar;
-        uint8_t type;
-        wxString strvalue;
-
-        strTok = tkz.GetNextToken();
-        if (NULL == (pvar = m_VSCP_Variables.find(strTok))) {
-            pss->pMessageList->Add(_("-;5;Unable to find variable"));
-            return;
-        }
-
-        pvar->writeVariableToString(strvalue);
-        type = pvar->getType();
-
-        wxString resultstr = _("+;READVAR;");
-        resultstr += wxString::Format(_("%d"), type);
-        resultstr += _(";");
-        resultstr += strvalue;
-        pss->pMessageList->Add(resultstr);
-
-    } else if (0 == strTok.Find(_("SAVEVAR"))) {
-
-        if (!m_VSCP_Variables.save()) {
-            pss->pMessageList->Add(_("-;1;Syntax error"));
-            return;
-        }
-
-        pss->pMessageList->Add(_("+;SAVEVAR"));
-    } else {
-        pss->pMessageList->Add(_("-;2;Unknown command"));
-    }
-
-}
-
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-//                              WEB SERVER
-///////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-// file_reader
-//
-
-ssize_t
-CControlObject::websrv_callback_file_free (void *cls, uint64_t pos, char *buf, size_t max)
-{
-  FILE *file = (FILE *)cls;
-
-  (void)  fseek (file, pos, SEEK_SET);
-  return fread (buf, 1, max, file);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// websrv_callback_file_free
-//
-
-void
-CControlObject::websrv_callback_file_free (void *cls)
-{
-  FILE *file = (FILE *)cls;
-  fclose (file);
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// websrv_callback_check_address
-//
-
-int CControlObject::websrv_callback_check_address( void *cls,
-                                                    const struct sockaddr *addr,
-                                                    socklen_t addrlen )
-{
-    CControlObject *pObject = (CControlObject *)cls;
-    int ret = MHD_YES;  // TODO
-    
-    // Check if this user is allowed to connect from this location
-    pObject->m_mutexUserList.Lock();
-    //bool bValidHost = 
-    //        pObject->m_userList.checkRemote( m_pUserItem, 
-    //                                            remoteaddr.IPAddress() );
-    pObject->m_mutexUserList.Unlock();
-    
-    return ret;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// callback_webpage
-//
-
-int CControlObject::websrv_callback_webpage(void *cls,
-                                                struct MHD_Connection *connection,
-                                                const char *url,
-                                                const char *method,
-                                                const char *version,
-                                                const char *upload_data,
-                                                size_t *upload_data_size,
-                                                void **ptr)
-{
-    wxString strUser, strPassword;
-    CControlObject *pObject = (CControlObject *)cls;
-    const char *defaultPage = WEBSERVER_PAGE;
-    struct MHD_Response *response;
-    int ret;
-    char *user;
-    char *pass;
-    bool bFail;
-    struct websrv_Request *request;
-    struct websrv_Session *session;
-    unsigned int i;
-    
-
-    user = MHD_basic_auth_get_username_password(connection, &pass);
-    
-    if ( NULL != user ) {
-        strUser = wxString::FromAscii(user);
-        delete user;
-        user = NULL;
-    }
-    
-    if ( strUser.Length() && ( NULL != pass ) ) {
-        Cmd5 md5;
-        strPassword = wxString::FromAscii( md5.digest((unsigned char *)pass) );
-        delete pass;
-        pass = NULL;
-    }
-
-    bFail = ( 0 == strUser.Length() || 
-             ( NULL == pObject->m_userList.checkUser(strUser,strPassword)));
-
-    if ( bFail ) {
-        
-        // Send fail response
-        response = 
-            MHD_create_response_from_buffer( strlen(WEBSERVER_DENIED),
-                                                (void *) WEBSERVER_DENIED,
-                                                MHD_RESPMEM_PERSISTENT);
-        
-        ret = MHD_queue_basic_auth_fail_response( connection,
-                                                    "VSCP Daemon",
-                                                    response);
-        
-        return ret;
-    }
-    
-    request = (struct websrv_Request *)*ptr;
-    if (NULL == request) {
-        
-        // Allocate request structure on first call
-        request = (struct websrv_Request *)calloc(1, sizeof(struct websrv_Request));
-        if (NULL == request) {
-            syslog(LOG_ERR, "calloc error: %s\n", strerror(errno));
-            return MHD_NO;
-        }
-        
-        *ptr = request;
-        
-        if ( 0 == strcmp( method, MHD_HTTP_METHOD_POST ) ) {
-            
-            // Assign post processor iterator
-            request->pp = MHD_create_post_processor( connection, 
-                                                        1024,
-                                                        &websrv_post_iterator, 
-                                                        request);
-            
-            if ( NULL == request->pp ) {
-                syslog(LOG_ERR, 
-                        "Failed to setup post processor for `%s'\n",
-                        url);
-                return MHD_NO; // internal error 
-            }
-            
-        }
-        else if ( 0 != strcmp(method, MHD_HTTP_METHOD_GET) ) {
-            
-            // Assign post processor iterator
-            request->pp = MHD_create_post_processor( connection, 
-                                                        1024,
-                                                        &websrv_post_iterator, 
-                                                        request);
-            
-            if ( NULL == request->pp ) {
-                syslog(LOG_ERR, 
-                        "Failed to setup post processor for `%s'\n",
-                        url);
-                return MHD_NO; // internal error 
-            }
-            
-        }
-        
-        return MHD_YES;
-    }
-
-    // Get/create session
-    if (NULL == request->session) {
-        
-        request->session = websrv_get_session( connection );
-        
-        if (NULL == request->session) {
-            syslog(LOG_ERR, "Failed to setup session for `%s'\n", url);
-            return MHD_NO; // internal error 
-        }
-        
-    }
-    
-    session = request->session;
-    session->start = time(NULL);
-    
-    if (0 == strcmp(method, MHD_HTTP_METHOD_POST)) {
-        
-        // evaluate POST data 
-        MHD_post_process(request->pp,
-                            upload_data,
-                            *upload_data_size);
-        
-        if (0 != *upload_data_size) {
-            *upload_data_size = 0;
-            return MHD_YES;
-        }
-        
-        // done with POST data, serve response 
-        MHD_destroy_post_processor(request->pp);
-        request->pp = NULL;
-        
-        method = MHD_HTTP_METHOD_GET; // fake 'GET' 
-        
-        if (NULL != request->post_url) {
-            url = request->post_url;
-        }
-    }
-
-    if ((0 == strcmp(method, MHD_HTTP_METHOD_GET)) ||
-            (0 == strcmp(method, MHD_HTTP_METHOD_HEAD))) {
-
-        // find out which page among the stock functionality to serve 
-        i = 0;
-        while ((pages[i].url != NULL) && (0 != strcmp(pages[i].url, url))) {
-            i++;
-        }
-
-        if (NULL != pages[i].url) {
-            ret = pages[i].handler( 
-                    ( NULL != pages[i].handler_cls ) ? pages[i].handler_cls : pObject,
-                    pages[i].mime,
-                    session, connection);
-        } 
-        else {
-
-            FILE *file;
-            struct stat buf;
-            
-            wxString strPath2File; 
-            strPath2File = pObject->m_pathRoot;
-            strPath2File += _("/");
-            strPath2File += wxString::FromAscii( &url[1] );
-
-            char *p = new char[strPath2File.Length() + 1];
-            
-            if ( NULL != p ) {
-                
-                memset( p, 0, strPath2File.Length() + 1 );
-                memcpy( p, strPath2File.ToAscii(), strPath2File.Length() );
-            
-                if ( 0 == stat( p, &buf ) ) {
-                    file = fopen( p, "rb" );
-                } 
-                else {
-                    file = NULL;
-                }
-            
-                // Remove allocated string
-                delete [] p;
-            }
-            
-            wxFileName xfile(strPath2File);
-            wxString file_extension = xfile.GetExt();
-            wxString mimetype = pObject->m_hashMimeTypes[file_extension];
-
-            if (file == NULL) {
-                response =
-                        MHD_create_response_from_buffer( strlen(WEBSERVER_NOT_FOUND_ERROR),
-                        (void *) WEBSERVER_NOT_FOUND_ERROR,
-                        MHD_RESPMEM_PERSISTENT);
-                
-                ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
-            }
-            else {
-                
-                response =
-                        MHD_create_response_from_callback( buf.st_size,
-                                                32 * 1024, /* 32k page size */
-                                                &websrv_callback_file_free,
-                                                file,
-                                                &websrv_callback_file_free);
-                if (response == NULL) {
-                    fclose(file);
-                    return MHD_NO;
-                }
-
-                //ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-                char *p = new char[mimetype.Length() + 1];
-                if ( NULL != p ) {
-                    
-                    memset( p, 0, mimetype.Length() + 1 );
-                    memcpy( p, mimetype.ToAscii(), mimetype.Length() );
-                    
-                    MHD_add_response_header( response,
-                                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                                p );
-                
-                    ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-                    
-                    MHD_destroy_response(response);
-                    
-                    // Remove allocated string
-                    delete [] p;
-                    
-                }
-            }
-
-        }
-
-        if (ret != MHD_YES) {
-            syslog(LOG_ERR, "Failed to create page for `%s'\n", url);
-        }
-
-    }
-
-    //*ptr = NULL; // reset when done 
-    
-    return ret;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// get_session
-//
-
-int
-CControlObject::websrv_callback_file(void *cls,
-                                        struct MHD_Connection *connection,
-                                        const char *url,
-                                        const char *method,
-                                        const char *version,
-                                        const char *upload_data,
-                                        size_t *upload_data_size, 
-                                        void **ptr)
-{
-    static int aptr;
-    struct MHD_Response *response;
-    int ret;
-    FILE *file;
-    struct stat buf;
-
-    if (0 != strcmp(method, MHD_HTTP_METHOD_GET)) {
-        return MHD_NO;  // unexpected method 
-    }
-    
-    if (&aptr != *ptr) {
-        // do never respond on first call 
-        *ptr = &aptr;
-        return MHD_YES;
-    }
-    
-    *ptr = NULL; // reset when done 
-    
-    if (0 == stat(&url[1], &buf)) {
-        file = fopen(&url[1], "rb");
-    }
-    else {
-        file = NULL;
-    }
-    
-    if (file == NULL) {
-        response = 
-          MHD_create_response_from_buffer(strlen(WEBSERVER_NOT_FOUND_ERROR),
-                (void *)WEBSERVER_NOT_FOUND_ERROR,
-                MHD_RESPMEM_PERSISTENT);
-        ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
-        MHD_destroy_response(response);
-    } 
-    else {
-        response = 
-          MHD_create_response_from_callback( buf.st_size, 
-                                                32 * 1024, /* 32k page size */
-                                                &websrv_callback_file_free,
-                                                file,
-                                                &websrv_callback_file_free);
-        if (response == NULL) {
-            fclose(file);
-            return MHD_NO;
-        }
-        
-        ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-        MHD_destroy_response(response);
-    }
-    
-    return ret;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// get_session
-//
-
-struct websrv_Session *
-CControlObject::websrv_get_session( struct MHD_Connection *connection )
-{
-    struct websrv_Session *ret;
-    const char *cookie;
-
-    cookie = MHD_lookup_connection_value( connection,
-                                            MHD_COOKIE_KIND,
-                                            WEBSERVER_COOKIE_NAME);
-    
-    if (cookie != NULL) {
-        
-        // find existing session 
-        ret = websrv_sessions;
-        while (NULL != ret) {
-            if (0 == strcmp(cookie, ret->m_sid))
-                break;
-            ret = ret->m_next;
-        }
-        
-        if (NULL != ret) {
-            ret->m_referenceCount++;
-            return ret;
-        }
-    }
-    
-    // create fresh session 
-    ret = (struct websrv_Session *)calloc(1, sizeof(struct websrv_Session));
-    if (NULL == ret) {
-        syslog(LOG_ERR, "calloc error: %s\n", strerror(errno));
-        return NULL;
-    }
-    
-    // Generate a random session ID
-    time_t t;
-    t = time( NULL );
-    snprintf(ret->m_sid,
-            sizeof(ret->m_sid),
-            "__VSCP__DAEMON_%X%X%X%X_be_hungry_stay_foolish_%X%X",
-            (unsigned int)random(),
-            (unsigned int)random(),
-            (unsigned int)random(),
-            (unsigned int)t,
-            (unsigned int)random(), 1337 );
-    
-    ret->m_referenceCount++;
-    ret->start = time(NULL);
-    ret->m_next = websrv_sessions;
-    websrv_sessions = ret;
-    
-    return ret;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// add_session_cookie
-//
-
-void
-CControlObject::websrv_add_session_cookie(struct websrv_Session *session,
-                                            struct MHD_Response *response)
-{
-    char cstr[256];
-    snprintf(cstr,
-            sizeof(cstr),
-            "%s=%s",
-            WEBSERVER_COOKIE_NAME,
-            session->m_sid);
-    
-    if (MHD_NO ==
-            MHD_add_response_header(response,
-            MHD_HTTP_HEADER_SET_COOKIE,
-            cstr)) {
+    std::string sql = "PRAGMA table_info(%s);";
+    sql             = vscp_str_format(sql, (const char *)strTblName.c_str());
+
+    if (SQLITE_OK !=
+        sqlite3_prepare(
+          m_db_vscp_daemon, (const char *)sql.c_str(), -1, &ppStmt, NULL)) {
         syslog(LOG_ERR,
-                "Failed to set session cookie header!\n");
+               "isDbFieldExist: Failed to read VSCP settings database - "
+               "prepare query.");
+        return false;
     }
+
+    while (SQLITE_ROW == sqlite3_step(ppStmt)) {
+
+        const unsigned char *p;
+
+        // Get column name
+        if (NULL == (p = sqlite3_column_text(ppStmt, 1))) {
+            continue;
+        }
+
+        // database version
+        if (0 == vscp_strcasecmp((const char *)p,
+                                 (const char *)strFieldName.c_str())) {
+            rv = true;
+            break;
+        }
+    }
+
+    sqlite3_finalize(ppStmt);
+
+    return rv;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// expire_sessions
+// updateConfigurationRecordName
+//
+
+bool
+CControlObject::updateConfigurationRecordName(const std::string &strName,
+                                              const std::string &strNewName)
+{
+    char *pErrMsg;
+
+    // Database file must be open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR,
+               "Settings update: Update record. Database file is not open.");
+        return false;
+    }
+
+    pthread_mutex_lock(&m_db_vscp_configMutex);
+
+    char *sql = sqlite3_mprintf(VSCPDB_CONFIG_UPDATE_CONFIG_NAME,        
+                                (const char *)strNewName.c_str(),
+                                (const char *)strName.c_str(),
+                                m_nConfiguration);
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, sql, NULL, NULL, &pErrMsg)) {
+        sqlite3_free(sql);
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+        syslog(LOG_ERR, "Failed to update setting with error %s.", pErrMsg);
+        return false;
+    }
+
+    sqlite3_free(sql);
+
+    pthread_mutex_unlock(&m_db_vscp_configMutex);
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// updateConfigurationRecordItem
+//
+
+bool
+CControlObject::updateConfigurationRecordItem(const std::string &strName,
+                                              const std::string &strValue)
+{
+    char *pErrMsg;
+
+    // Database file must be open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR,
+               "Settings update: Update record. Database file is not open.");
+        return false;
+    }
+
+    pthread_mutex_lock(&m_db_vscp_configMutex);
+
+    char *sql = sqlite3_mprintf(VSCPDB_CONFIG_UPDATE_ITEM,
+                                (const char *)strValue.c_str(),
+                                (const char *)strName.c_str(),
+                                m_nConfiguration);
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, sql, NULL, NULL, &pErrMsg)) {
+        sqlite3_free(sql);
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+        syslog(LOG_ERR, "Failed to update setting with error %s.", pErrMsg);
+        return false;
+    }
+
+    sqlite3_free(sql);
+
+    pthread_mutex_unlock(&m_db_vscp_configMutex);
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// getConfigurationValueFromDatabase
+//
+
+bool
+CControlObject::getConfigurationValueFromDatabase(const char *pName,
+                                                  char *pBuf,
+                                                  size_t len)
+{
+    sqlite3_stmt *ppStmt;
+    char *pErrMsg = 0;
+    char *psql;
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) return false;
+
+    pthread_mutex_lock(&m_db_vscp_configMutex);
+
+    // Check if the variable is defined already
+    //      if it is - just return true
+    psql = sqlite3_mprintf(VSCPDB_CONFIG_FIND_ITEM, pName);
+    if (SQLITE_OK !=
+        sqlite3_prepare(m_db_vscp_daemon, psql, -1, &ppStmt, NULL)) {
+        sqlite3_free(psql);
+        syslog(LOG_ERR, "Failed to find %s in configuration database", pName);
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+        return false;
+    }
+
+    sqlite3_free(psql);
+
+    if (SQLITE_ROW == sqlite3_step(ppStmt)) {
+
+        const unsigned char *p = NULL;
+
+        if (NULL ==
+            (p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_CONFIG_VALUE))) {
+            syslog(LOG_ERR,
+                   "getConfigurationValueFromDatabase: Failed to read 'value' "
+                   "for %s "
+                   "from settings record.",
+                   pName);
+            sqlite3_finalize(ppStmt);
+            pthread_mutex_unlock(&m_db_vscp_configMutex);
+            return false;
+        }
+
+        // Copy in data
+        strncpy(pBuf, (const char *)p, std::min(len, strlen((const char *)p)));
+
+        sqlite3_finalize(ppStmt);
+    }
+
+    pthread_mutex_unlock(&m_db_vscp_configMutex);
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// addConfigurationValueToDatabase
+//
+
+bool
+CControlObject::addConfigurationValueToDatabase(const char *pName,
+                                                const char *pValue)
+{
+    sqlite3_stmt *ppStmt;
+    char *pErrMsg = 0;
+    char *psql;
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) return false;
+
+    // Check if the variable is defined already
+    //      if it is - just return true
+    psql = sqlite3_mprintf(VSCPDB_CONFIG_FIND_ITEM, pName);
+    if (SQLITE_OK !=
+        sqlite3_prepare(m_db_vscp_daemon, psql, -1, &ppStmt, NULL)) {
+        sqlite3_free(psql);
+        syslog(
+          LOG_ERR,
+          "Failed to check if %s = %s is already in configuration database",
+          pName,
+          pValue);
+        return false;
+    }
+
+    sqlite3_free(psql);
+
+    if (SQLITE_ROW == sqlite3_step(ppStmt)) {
+        return true; // Record is there already
+    }
+
+    pthread_mutex_lock(&m_db_vscp_configMutex);
+
+    syslog(LOG_DEBUG, "Add %s = %s to configuration database", pName, pValue);
+
+    // Create settings in db
+    psql = sqlite3_mprintf(VSCPDB_CONFIG_INSERT, pName, pValue);
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+
+        sqlite3_free(psql);
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+
+        syslog(LOG_ERR,
+               "Inserting new entry into configuration database failed with "
+               "message %s",
+               pErrMsg);
+        return false;
+    }
+
+    sqlite3_free(psql);
+    pthread_mutex_unlock(&m_db_vscp_configMutex);
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// addDefaultConfigValues
 //
 
 void
-CControlObject::websrv_expire_sessions(void)
+CControlObject::addDefaultConfigValues(void)
 {
-    struct websrv_Session *pos;
-    struct websrv_Session *prev;
-    struct websrv_Session *next;
-    time_t now;
+    // Add default settings (set as defaults in SQL create expression))
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_DBVERSION,
+                                    VSCPDB_CONFIG_CURRENT_DBVERSION);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_CLIENTBUFFERSIZE,
+                                    VSCPDB_CONFIG_DEFAULT_CLIENTBUFFERSIZE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_GUID,
+                                    VSCPDB_CONFIG_DEFAULT_GUID);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_SERVERNAME,
+                                    VSCPDB_CONFIG_DEFAULT_SERVERNAME);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_ANNOUNCE_ADDR,
+                                    VSCPDB_CONFIG_DEFAULT_ANNOUNCE_ADDR);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_ANNOUNCE_TTL,
+                                    VSCPDB_CONFIG_DEFAULT_ANNOUNCE_TTL);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_PATH_DB_EVENTS,
+                                    VSCPDB_CONFIG_DEFAULT_PATH_DB_EVENTS);
 
-    now = time( NULL );
-    prev = NULL;
-    pos = websrv_sessions;
-    
-    while (NULL != pos) {
-        
-        next = pos->m_next;
-        
-        if (now - pos->start > 60 * 60) {
-        
-            // expire sessions after 1h 
-            if ( NULL == prev ) {
-                websrv_sessions = pos->m_next;
-            }
-            else {
-                prev->m_next = next;
-            }
-            
-            free(pos);
-            
-        } 
-        else {
-            prev = pos;
-        }
-        
-        pos = next;
-    }
+    // UDP
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_ENABLE,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_ENABLE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_ADDR,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_ADDR);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_USER,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_USER);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_PASSWORD,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_PASSWORD);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_UNSECURE_ENABLE,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_UNSECURE_ENABLE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_FILTER,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_FILTER);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_MASK,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_MASK);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_GUID,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_GUID);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_UDP_ACK_ENABLE,
+                                    VSCPDB_CONFIG_DEFAULT_UDP_ACK_ENABLE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_MULTICAST_ENABLE,
+                                    VSCPDB_CONFIG_DEFAULT_MULTICAST_ENABLE);
+
+    // TCP/IP
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_TCPIP_ADDR,
+                                    VSCPDB_CONFIG_DEFAULT_TCPIP_ADDR);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_TCPIP_ENCRYPTION,
+                                    VSCPDB_CONFIG_DEFAULT_TCPIP_ENCRYPTION);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_TCPIP_SSL_CERTIFICATE,
+      VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_CERTIFICATE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_TCPIP_SSL_CERTIFICAT_CHAIN,
+      VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_CERTIFICAT_CHAIN);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_TCPIP_SSL_VERIFY_PEER,
+      VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_VERIFY_PEER);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_TCPIP_SSL_CA_PATH,
+                                    VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_CA_PATH);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_TCPIP_SSL_CA_FILE,
+                                    VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_CA_FILE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_TCPIP_SSL_VERIFY_DEPTH,
+      VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_VERIFY_DEPTH);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_TCPIP_SSL_DEFAULT_VERIFY_PATHS,
+      VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_DEFAULT_VERIFY_PATHS);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_TCPIP_SSL_CHIPHER_LIST,
+      VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_CHIPHER_LIST);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_TCPIP_SSL_PROTOCOL_VERSION,
+      VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_PROTOCOL_VERSION);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_TCPIP_SSL_SHORT_TRUST,
+      VSCPDB_CONFIG_DEFAULT_TCPIP_SSL_SHORT_TRUST);
+
+    // DM
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_DM_PATH_DB,
+                                    VSCPDB_CONFIG_DEFAULT_DM_PATH_DB);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_DM_PATH_XML,
+                                    VSCPDB_CONFIG_DEFAULT_DM_PATH_XML);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_DM_ALLOW_XML_SAVE,
+                                    VSCPDB_CONFIG_DEFAULT_DM_ALLOW_XML_SAVE);
+
+    // Variables
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_VARIABLES_PATH_DB,
+                                    VSCPDB_CONFIG_DEFAULT_VARIABLES_PATH_DB);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_VARIABLES_PATH_XML,
+                                    VSCPDB_CONFIG_DEFAULT_VARIABLES_PATH_XML);
+
+    // WEB server
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_ENABLE,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_ENABLE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_DOCUMENT_ROOT,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_DOCUMENT_ROOT);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_LISTENING_PORTS,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_LISTENING_PORTS);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_INDEX_FILES,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_INDEX_FILES);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_AUTHENTICATION_DOMAIN,
+      VSCPDB_CONFIG_DEFAULT_WEB_AUTHENTICATION_DOMAIN);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ENABLE_AUTH_DOMAIN_CHECK,
+      VSCPDB_CONFIG_DEFAULT_WEB_ENABLE_AUTH_DOMAIN_CHECK);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_SSL_CERTIFICATE,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_SSL_CERTIFICATE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_SSL_CERTIFICAT_CHAIN,
+      VSCPDB_CONFIG_DEFAULT_WEB_SSL_CERTIFICAT_CHAIN);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_SSL_VERIFY_PEER,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_SSL_VERIFY_PEER);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_SSL_CA_PATH,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_SSL_CA_PATH);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_SSL_CA_FILE,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_SSL_CA_FILE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_SSL_VERIFY_DEPTH,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_SSL_VERIFY_DEPTH);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_SSL_DEFAULT_VERIFY_PATHS,
+      VSCPDB_CONFIG_DEFAULT_WEB_SSL_DEFAULT_VERIFY_PATHS);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_SSL_CHIPHER_LIST,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_SSL_CHIPHER_LIST);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_SSL_PROTOCOL_VERSION,
+      VSCPDB_CONFIG_DEFAULT_WEB_SSL_PROTOCOL_VERSION);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_SSL_SHORT_TRUST,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_SSL_SHORT_TRUST);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_CGI_PATTERN,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_CGI_PATTERN);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_CGI_INTERPRETER,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_CGI_INTERPRETER);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_CGI_ENVIRONMENT,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_CGI_ENVIRONMENT);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_PROTECT_URI,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_PROTECT_URI);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_TROTTLE,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_TROTTLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ENABLE_DIRECTORY_LISTING,
+      VSCPDB_CONFIG_DEFAULT_WEB_ENABLE_DIRECTORY_LISTING);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ENABLE_KEEP_ALIVE,
+      VSCPDB_CONFIG_DEFAULT_WEB_ENABLE_KEEP_ALIVE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ACCESS_CONTROL_LIST,
+      VSCPDB_CONFIG_DEFAULT_WEB_ACCESS_CONTROL_LIST);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_EXTRA_MIME_TYPES,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_EXTRA_MIME_TYPES);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_NUM_THREADS,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_NUM_THREADS);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_HIDE_FILE_PATTERNS,
+      VSCPDB_CONFIG_DEFAULT_WEB_HIDE_FILE_PATTERNS);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_RUN_AS_USER,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_RUN_AS_USER);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_URL_REWRITE_PATTERNS,
+      VSCPDB_CONFIG_DEFAULT_WEB_URL_REWRITE_PATTERNS);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_REQUEST_TIMEOUT_MS,
+      VSCPDB_CONFIG_DEFAULT_WEB_REQUEST_TIMEOUT_MS);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_LINGER_TIMEOUT_MS,
+      VSCPDB_CONFIG_DEFAULT_WEB_LINGER_TIMEOUT_MS);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_DECODE_URL,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_DECODE_URL);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_GLOBAL_AUTHFILE,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_GLOBAL_AUTHFILE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_PER_DIRECTORY_AUTH_FILE,
+      VSCPDB_CONFIG_DEFAULT_WEB_PER_DIRECTORY_AUTH_FILE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_SSI_PATTERNS,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_SSI_PATTERNS);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ACCESS_CONTROL_ALLOW_ORIGIN,
+      VSCPDB_CONFIG_DEFAULT_WEB_ACCESS_CONTROL_ALLOW_ORIGIN);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ACCESS_CONTROL_ALLOW_METHODS,
+      VSCPDB_CONFIG_DEFAULT_WEB_ACCESS_CONTROL_ALLOW_METHODS);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ACCESS_CONTROL_ALLOW_HEADERS,
+      VSCPDB_CONFIG_DEFAULT_WEB_ACCESS_CONTROL_ALLOW_HEADERS);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_ERROR_PAGES,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_ERROR_PAGES);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_TCP_NO_DELAY,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_TCP_NO_DELAY);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_STATIC_FILE_MAX_AGE,
+      VSCPDB_CONFIG_DEFAULT_WEB_STATIC_FILE_MAX_AGE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_STRICT_TRANSPORT_SECURITY_MAX_AGE,
+      VSCPDB_CONFIG_DEFAULT_WEB_STRICT_TRANSPORT_SECURITY_MAX_AGE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ALLOW_SENDFILE_CALL,
+      VSCPDB_CONFIG_DEFAULT_WEB_ALLOW_SENDFILE_CALL);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ADDITIONAL_HEADERS,
+      VSCPDB_CONFIG_DEFAULT_WEB_ADDITIONAL_HEADERS);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_MAX_REQUEST_SIZE,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_MAX_REQUEST_SIZE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_ALLOW_INDEX_SCRIPT_RESOURCE,
+      VSCPDB_CONFIG_DEFAULT_WEB_ALLOW_INDEX_SCRIPT_RESOURCE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_DUKTAPE_SCRIPT_PATTERN,
+      VSCPDB_CONFIG_DEFAULT_WEB_DUKTAPE_SCRIPT_PATTERN);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEB_LUA_PRELOAD_FILE,
+                                    VSCPDB_CONFIG_DEFAULT_WEB_LUA_PRELOAD_FILE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_LUA_SCRIPT_PATTERN,
+      VSCPDB_CONFIG_DEFAULT_WEB_LUA_SCRIPT_PATTERN);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_LUA_SERVER_PAGE_PATTERN,
+      VSCPDB_CONFIG_DEFAULT_WEB_LUA_SERVER_PAGE_PATTERN);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_LUA_WEBSOCKET_PATTERN,
+      VSCPDB_CONFIG_DEFAULT_WEB_LUA_WEBSOCKET_PATTERN);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_LUA_BACKGROUND_SCRIPT,
+      VSCPDB_CONFIG_DEFAULT_WEB_LUA_BACKGROUND_SCRIPT);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEB_LUA_BACKGROUND_SCRIPT_PARAMS,
+      VSCPDB_CONFIG_DEFAULT_WEB_LUA_BACKGROUND_SCRIPT_PARAMS);
+
+    // Websockets
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEBSOCKET_ENABLE,
+                                    VSCPDB_CONFIG_DEFAULT_WEBSOCKET_ENABLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_WEBSOCKET_DOCUMENT_ROOT,
+      VSCPDB_CONFIG_DEFAULT_WEBSOCKET_DOCUMENT_ROOT);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_WEBSOCKET_TIMEOUT_MS,
+                                    VSCPDB_CONFIG_DEFAULT_WEBSOCKET_TIMEOUT_MS);
+
+    // Automation
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_AUTOMATION_ENABLE,
+                                    VSCPDB_CONFIG_DEFAULT_AUTOMATION_ENABLE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_AUTOMATION_ZONE,
+                                    VSCPDB_CONFIG_DEFAULT_AUTOMATION_ZONE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_AUTOMATION_SUBZONE,
+                                    VSCPDB_CONFIG_DEFAULT_AUTOMATION_SUBZONE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_AUTOMATION_LONGITUDE,
+                                    VSCPDB_CONFIG_DEFAULT_AUTOMATION_LONGITUDE);
+    addConfigurationValueToDatabase(VSCPDB_CONFIG_NAME_AUTOMATION_LATITUDE,
+                                    VSCPDB_CONFIG_DEFAULT_AUTOMATION_LATITUDE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_SUNRISE_ENABLE,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_SUNRISE_ENABLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_SUNSET_ENABLE,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_SUNSET_ENABLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_SUNSET_TWILIGHT_ENABLE,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_SUNSET_TWILIGHT_ENABLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_SUNRISE_TWILIGHT_ENABLE,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_SUNRISE_TWILIGHT_ENABLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_SEGMENT_CTRL_ENABLE,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_SEGMENT_CTRL_ENABLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_SEGMENT_CTRL_INTERVAL,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_SEGMENT_CTRL_INTERVAL);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_HEARTBEAT_ENABLE,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_HEARTBEAT_ENABLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_CAPABILITIES_ENABLE,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_CAPABILITIES_ENABLE);
+    addConfigurationValueToDatabase(
+      VSCPDB_CONFIG_NAME_AUTOMATION_CAPABILITIES_INTERVAL,
+      VSCPDB_CONFIG_DEFAULT_AUTOMATION_CAPABILITIES_INTERVAL);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// not_found_page
+// updateConfigDb
 //
 
-int
-CControlObject::websrv_not_found_page(const void *cls,
-                                        const char *mime,
-                                        struct websrv_Session *session,
-                                        struct MHD_Connection *connection )
+bool
+CControlObject::updateConfigDb()
 {
-    int ret;
-    struct MHD_Response *response;
+    char buf[10];
 
-    // unsupported HTTP method 
-    response = MHD_create_response_from_buffer( strlen(WEBSERVER_NOT_FOUND_ERROR),
-                                                    (void *)WEBSERVER_NOT_FOUND_ERROR,
-                                                    MHD_RESPMEM_PERSISTENT);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_NOT_FOUND,
-                                response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    MHD_destroy_response(response);
-    
-    return ret;
+    // Check if we have a version 1 database
+    getConfigurationValueFromDatabase(
+      VSCPDB_CONFIG_NAME_DBVERSION, buf, sizeof(buf));
+
+    int version = atoi(buf);
+    if (0 == version) return false;
+
+    if (1 == version) {
+
+        syslog(LOG_INFO,"Updating configuration database vscpd.slite3 from version 1 to version 2");
+
+        // Update field names that have changed
+        updateConfigurationRecordName("client_buffer_size",
+                                      "client-buffer-size");
+        updateConfigurationRecordName("announceinterface_address",
+                                      "announceinterface-address");
+        updateConfigurationRecordName("announceinterface_ttl",
+                                      "announceinterface-ttl");
+        updateConfigurationRecordName("tcpipinterface_address",
+                                      "tcpipinterface-address");
+        updateConfigurationRecordName("tcpip_encryption", "tcpip-encryption");
+        updateConfigurationRecordName("tcpip_ssl_certificate",
+                                      "tcpip-ssl-certificate");
+        updateConfigurationRecordName("tcpip_ssl_certificate_chain",
+                                      "tcpip-ssl-certificate-chain");
+        updateConfigurationRecordName("tcpip_ssl_verify_peer",
+                                      "tcpip-ssl-verify-peer");
+        updateConfigurationRecordName("tcpip_ssl_ca_path", "tcpip-ssl-ca-path");
+        updateConfigurationRecordName("tcpip_ssl_ca_file", "tcpip-ssl-ca-file");
+        updateConfigurationRecordName("tcpip_ssl_verify_depth",
+                                      "tcpip-ssl-verify-depth");
+        updateConfigurationRecordName("tcpip_ssl_default_verify_paths",
+                                      "tcpip-ssl-default-verify-paths");
+        updateConfigurationRecordName("tcpip_ssl_cipher_list",
+                                      "tcpip-ssl-cipher-list");
+        updateConfigurationRecordName("tcpip_ssl_protocol_version",
+                                      "tcpip-ssl-protocol-version");
+        updateConfigurationRecordName("tcpip_ssl_short_trust",
+                                      "tcpip-ssl-short-trust");
+        updateConfigurationRecordName("udp_enable", "udp-enable");
+        updateConfigurationRecordName("udp_address", "udp-address");
+        updateConfigurationRecordName("udp_user", "udp-user");
+        updateConfigurationRecordName("udp_password", "udp-password");
+        updateConfigurationRecordName("udp_unsecure_enable", "udp-unsecure-enable");
+        updateConfigurationRecordName("udp_filter", "udp-filter");
+        updateConfigurationRecordName("udp_mask", "udp-mask");
+        updateConfigurationRecordName("udp_guid", "udp-guid");
+        updateConfigurationRecordName("udp_ack_enable", "udp-ack-enable");
+        updateConfigurationRecordName("muticast_enable",
+                                      "muticast-enable");
+        updateConfigurationRecordName("dm_path_db", "dm-path-db");
+        updateConfigurationRecordName("dm_path_xml", "dm-path-xml");
+        updateConfigurationRecordName("dm_allow_xml_save", "dm-allow-xml-save");
+        updateConfigurationRecordName("variable_path_db", "variable-path-db");
+        updateConfigurationRecordName("variable_path_xml", "variable-path-xml");
+        updateConfigurationRecordName("path_db_data",
+                                      "path-db-event-data");
+        updateConfigurationRecordName("web_enable", "web-enable");
+        updateConfigurationRecordName("web_document_root", "web-document-root");
+        updateConfigurationRecordName("web_listening_ports",
+                                      "web-listening-ports");
+        updateConfigurationRecordName("web_index_files", "web-index-files");
+        updateConfigurationRecordName("web_authentication_domain",
+                                      "web-authentication-domain");
+        updateConfigurationRecordName("web_enable_auth_domain_check",
+                                      "web-enable-auth-domain-check");
+        updateConfigurationRecordName("web_ssl_certificate",
+                                      "web-ssl-certificate");
+        updateConfigurationRecordName("web_ssl_certificate_chain",
+                                      "web-ssl-certificate-chain");
+        updateConfigurationRecordName("web_ssl_verify_peer",
+                                      "web-ssl-verify-peer");
+        updateConfigurationRecordName("web_ssl_ca_path", "web-ssl-ca-path");
+        updateConfigurationRecordName("web_ssl_ca_file", "web-ssl-ca-file");
+        updateConfigurationRecordName("web_ssl_verify_depth",
+                                      "web-ssl-verify-depth");
+        updateConfigurationRecordName("web_ssl_default_verify_paths",
+                                      "web-ssl-default-verify-paths");
+        updateConfigurationRecordName("web_ssl_cipher_list",
+                                      "web-ssl-cipher-list");
+        updateConfigurationRecordName("web_ssl_protocol_version",
+                                      "web-ssl-protocol-version");
+        updateConfigurationRecordName("web_ssl_short_trust",
+                                      "web-ssl-short-trust");
+        updateConfigurationRecordName("web_cgi_interpreter",
+                                      "web-cgi-interpreter");
+        updateConfigurationRecordName("web_cgi_pattern", "web-cgi-pattern");
+        updateConfigurationRecordName("web_cgi_environment",
+                                      "web-cgi-environment");
+        updateConfigurationRecordName("web_protect_uri", "web-protect-uri");
+        updateConfigurationRecordName("web_trottle", "web-trottle");
+        updateConfigurationRecordName("web_enable_directory_listing",
+                                      "web-enable-directory-listing");
+        updateConfigurationRecordName("web_enable_keep_alive",
+                                      "web-enable-keep-alive");
+        updateConfigurationRecordName("web_keep_alive_timeout_ms",
+                                      "web-keep-alive-timeout-ms");
+        updateConfigurationRecordName("web_access_control_list",
+                                      "web-access-control-list");
+        updateConfigurationRecordName("web_extra_mime_types",
+                                      "web-extra-mime-types");
+        updateConfigurationRecordName("web_num_threads", "web-num-threads");
+        updateConfigurationRecordName("web_run_as_user", "web-run-as-user");
+        updateConfigurationRecordName("web_url_rewrite_patterns",
+                                      "web-url-rewrite-patterns");
+        updateConfigurationRecordName("web_hide_file_patterns",
+                                      "web-hide-file-patterns");
+        updateConfigurationRecordName("web_request_timeout_ms",
+                                      "web-request-timeout-ms");
+        updateConfigurationRecordName("web_linger_timeout_ms",
+                                      "web-linger-timeout-ms");
+        updateConfigurationRecordName("web_decode_url", "web-decode-url");
+        updateConfigurationRecordName("web_global_authfile",
+                                      "web-global-authfile");
+        updateConfigurationRecordName("web_per_directory_auth_file",
+                                      "web-per-directory-auth-file");
+        updateConfigurationRecordName("web_ssi_patterns", "web-ssi-patterns");
+        updateConfigurationRecordName("web_access_control_allow_origin",
+                                      "web-access-control-allow-origin");
+        updateConfigurationRecordName("web_access_control_allow_methods",
+                                      "web-access-control-allow-methods");
+        updateConfigurationRecordName("web_access_control_allow_headers",
+                                      "web-access-control-allow-headers");
+        updateConfigurationRecordName("web_error_pages", "web-error-pages");
+        updateConfigurationRecordName("web_tcp_nodelay", "web-tcp-nodelay");
+        updateConfigurationRecordName("web_static_file_max_age",
+                                      "web-static-file-max-age");
+        updateConfigurationRecordName("web_strict_transport_security_max_age",
+                                      "web-strict-transport-security-max-age");
+        updateConfigurationRecordName("web_allow_sendfile_call",
+                                      "web-allow-sendfile-call");
+        updateConfigurationRecordName("web_additional_headers",
+                                      "web-additional-headers");
+        updateConfigurationRecordName("web_max_request_size",
+                                      "web-max-request-size");
+        updateConfigurationRecordName("web_allow_index_script_resource",
+                                      "web-allow-index-script-resource");
+        updateConfigurationRecordName("web_duktape_script_pattern",
+                                      "web-duktape-script-pattern");
+        updateConfigurationRecordName("web_lua_preload_file",
+                                      "web-lua-preload-file");
+        updateConfigurationRecordName("web_lua_script_pattern",
+                                      "web-lua-script-pattern");
+        updateConfigurationRecordName("web_lua_server_page_pattern",
+                                      "web-lua-server-page-pattern");
+        updateConfigurationRecordName("web_lua_websocket_pattern",
+                                      "web-lua-websocket-pattern");
+        updateConfigurationRecordName("web_lua_background_script",
+                                      "web-lua-background-script");
+        updateConfigurationRecordName("web_lua_background_script_params",
+                                      "web-lua-background-script-params");
+        updateConfigurationRecordName("websocket_enable", "websocket-enable");
+        updateConfigurationRecordName("websocket_document_root",
+                                      "websocket-document-root");
+        updateConfigurationRecordName("websocket_timeout_ms",
+                                      "websocket-timeout-ms");
+        updateConfigurationRecordName("automation_enable", "automation-enable");
+        updateConfigurationRecordName("automation_zone", "automation-zone");
+        updateConfigurationRecordName("automation_subzone",
+                                      "automation-subzone");
+        updateConfigurationRecordName("automation_longitude",
+                                      "automation-longitude");
+        updateConfigurationRecordName("automation_latitude",
+                                      "automation-latitude");
+        updateConfigurationRecordName("automation_sunrise_enable",
+                                      "automation-sunrise-enable");
+        updateConfigurationRecordName("automation_sunset_enable",
+                                      "automation-sunset-enable");
+        updateConfigurationRecordName("automation_sunset_twilight_enable",
+                                      "automation-sunset-twilight-enable");
+        updateConfigurationRecordName("automation_sunrise_twilight_enable",
+                                      "automation-sunrise-twilight-enable");
+        updateConfigurationRecordName("automation_segment_ctrl_enable",
+                                      "automation-segment-ctrl-enable");
+        updateConfigurationRecordName("automation_segment_ctrl_interval",
+                                      "automation-segment-ctrl-interval");
+        updateConfigurationRecordName("automation_heartbeat_enable",
+                                      "automation-heartbeat-enable");
+        updateConfigurationRecordName("automation_heartbeat_interval",
+                                      "automation-heartbeat-interval");
+        updateConfigurationRecordName("automation_capabilities_enable",
+                                      "automation-capabilities-enable");
+        updateConfigurationRecordName("automation_capabilities_interval",
+                                      "automation-capabilities-interval");
+
+        // We are now at version 2
+        updateConfigurationRecordItem(VSCPDB_CONFIG_NAME_DBVERSION ,"2");
+    } // end 1 -> 2
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// serve_simple_page
+// doCreateConfiguration
+//
+// Create configuration table.
+//
 //
 
-int
-CControlObject::websrv_serve_simple_page(const void *cls,
-                                            const char *mime,
-                                            struct websrv_Session *session,
-                                            struct MHD_Connection *connection)
+bool
+CControlObject::doCreateConfigurationTable(void)
 {
-    int ret;
-    const char *page = (const char *)cls;
-    struct MHD_Response *response;
+    char *pErrMsg = 0;
+    const char *psql;
 
-    // return static page 
-    response = MHD_create_response_from_buffer( strlen(page),
-                                                    (void *)page,
-                                                    MHD_RESPMEM_PERSISTENT);
-    
-    websrv_add_session_cookie( session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response(response);
-    
-    return ret;
+    syslog(LOG_INFO, "Creating settings database.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) return false;
+
+    pthread_mutex_lock(&m_db_vscp_configMutex);
+
+    // Create settings db
+    psql = VSCPDB_CONFIG_CREATE;
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Creation of the VSCP settings database failed with message %s",
+               pErrMsg);
+        return false;
+    }
+
+    // Create name index
+    psql = VSCPDB_CONFIG_CREATE_INDEX;
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+        syslog(LOG_ERR,
+               "Creation of the VSCP settings index failed with message %s",
+               pErrMsg);
+        return false;
+    }
+
+    syslog(LOG_INFO, "Writing default configuration database content.");
+    addDefaultConfigValues();
+
+    pthread_mutex_unlock(&m_db_vscp_configMutex);
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_mainpage
+// readConfigurationDB
+//
+// Read the configuration database record
+//
 //
 
-int
-CControlObject::websrv_serve_mainpage( const void *cls,
-                                            const char *mime,
-                                            struct websrv_Session *session,
-                                            struct MHD_Connection *connection)
+bool
+CControlObject::readConfigurationDB(void)
 {
-    int ret;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_CONFIG_FIND_ALL;
+    sqlite3_stmt *ppStmt;
+    int dbVersion = 0;
 
-    // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
-        }
-        else {
-            strHost = _("http://") + strHost;
-        }
+    pthread_mutex_lock(&m_db_vscp_configMutex);
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR,
+               "dbReadConfiguration: Failed to read VSCP settings database "
+               "- Database is not open.");
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+        return false;
     }
 
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Control"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);  
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
+    if (SQLITE_OK !=
+        sqlite3_prepare(m_db_vscp_daemon, psql, -1, &ppStmt, NULL)) {
+        syslog(LOG_ERR,
+               "dbReadConfiguration: Failed to read VSCP settings database "
+               "- prepare query.");
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+        return false;
     }
-    buildPage += navstr;
-    
-    buildPage += _("<span align=\"center\">");
-    buildPage += _("<h4> Welcome to the VSCP daemon control interface.</h4>");
-    buildPage += _("</span>");
-    buildPage += _("<span style=\"text-indent:50px;\"><p>");
-    buildPage += _(" <b>Version:</b> ");
-    buildPage += _(VSCPD_DISPLAY_VERSION);
-    buildPage += _("</p><p>");
-    buildPage += _(VSCPD_COPYRIGHT);
-    buildPage += _("</p></span>");
-            
-    buildPage += _(WEB_COMMON_END);     // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
-}
 
-///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_interfaces
-//
+    while (SQLITE_ROW == sqlite3_step(ppStmt)) {
 
-int
-CControlObject::websrv_serve_interfaces( const void *cls,
-                                            const char *mime,
-                                            struct websrv_Session *session,
-                                            struct MHD_Connection *connection)
-{
-    int ret;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
+        const unsigned char *pName  = NULL;
+        const unsigned char *pValue = NULL;
 
-    // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
+        if (NULL ==
+            (pName = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_CONFIG_NAME))) {
+            syslog(LOG_ERR,
+                   "dbReadConfiguration: Failed to read 'name' "
+                   "from settings record.");
+            continue;
         }
-        else {
-            strHost = _("http://") + strHost;
+
+        if (NULL == (pValue = sqlite3_column_text(
+                       ppStmt, VSCPDB_ORDINAL_CONFIG_VALUE))) {
+            syslog(LOG_ERR,
+                   "dbReadConfiguration: Failed to read 'value' "
+                   "from settings record.");
+            continue;
         }
-    }
 
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Interfaces"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    buildPage += navstr;
-    
-    buildPage += _(WEB_IFLIST_BODY_START);
-    buildPage += _(WEB_IFLIST_TR_HEAD);
-
-    wxString strGUID;  
-    wxString strBuf;
-
-    // Display Interface List
-    pObject->m_wxClientMutex.Lock();
-    VSCPCLIENTLIST::iterator iter;
-    for (iter = pObject->m_clientList.m_clientItemList.begin();
-            iter != pObject->m_clientList.m_clientItemList.end();
-            ++iter) {
-
-        CClientItem *pItem = *iter;
-        pItem->m_guid.toString(strGUID);
-
-        buildPage += _(WEB_IFLIST_TR);
-
-        // Client id
-        buildPage += _(WEB_IFLIST_TD_CENTERED);
-        buildPage += wxString::Format(_("%d"), pItem->m_clientID);
-        buildPage += _("</td>");
-
-        // Interface type
-        buildPage += _(WEB_IFLIST_TD_CENTERED);
-        buildPage += wxString::Format(_("%d"), pItem->m_type);
-        buildPage += _("</td>");
-
-        // GUID
-        buildPage += _(WEB_IFLIST_TD_GUID);
-        buildPage += strGUID.Left(23);
-        buildPage += _("<br>");
-        buildPage += strGUID.Right(23);
-        buildPage += _("</td>");
-
-        // Interface name
-        buildPage += _("<td>");
-        buildPage += pItem->m_strDeviceName.Left(pItem->m_strDeviceName.Length() - 30);
-        buildPage += _("</td>");
-
-        // Start date
-        buildPage += _("<td>");
-        buildPage += pItem->m_strDeviceName.Right(19);
-        buildPage += _("</td>");
-
-        buildPage += _("</tr>");
-
-    }
-    
-    pObject->m_wxClientMutex.Unlock();
-    
-    buildPage += _(WEB_IFLIST_TABLE_END);
-    
-    buildPage += _("<br>All interfaces to the daemon is listed here. This is drivers as well as clients on one of the daemons interfaces. It is possible to see events coming in on a on a specific interface and send events on just one of the interfaces. This is mostly used on the driver interfaces but is possible on all interfacs<br>");
-    
-    buildPage += _("<br><b>Interface Types</b><br>");
-    buildPage += _("0 - Unknown (you should not see this).<br>");
-    buildPage += _("1 - Internal daemon client.<br>");
-    buildPage += _("2 - Level I (CANAL) Driver.<br>");
-    buildPage += _("3 - Level II Driver.<br>");
-    buildPage += _("4 - TCP/IP Client.<br>");
-
-    buildPage += _(WEB_COMMON_END);     // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_dmlist
-//
-
-int
-CControlObject::websrv_serve_dmlist( const void *cls,
-                                            const char *mime,
-                                            struct websrv_Session *session,
-                                            struct MHD_Connection *connection)
-{
-    int ret;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    long upperLimit = 50;
-    
-    // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
+        // database version
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_DBVERSION)) {
+            dbVersion = atoi((const char *)pValue);
+            continue;
         }
-        else {
-            strHost = _("http://") + strHost;
+
+        // client buffer size
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_CLIENTBUFFERSIZE)) {
+            m_maxItemsInClientReceiveQueue = atol((const char *)pValue);
+            continue;
         }
-    }
-          
-    // light
-    bool bLight = false;
-    const char *str_light = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "light");
-    if ( (NULL != str_light) && NULL != strstr("true",str_light) ) bLight = true;
-    
-    // From
-    long nFrom = 0;
-    const char *str_from = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "from");
-    if ( NULL != str_from ) nFrom = atoi(str_from);
-    // Check limits
-    if (nFrom > pObject->m_dm.getRowCount()) nFrom = 0;
-    
-    // Count
-    uint16_t nCount = 50;
-    const char *str_count = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "count");
-    if ( NULL != str_count ) nCount = atoi(str_count);
-    // Check limits
-    if ((nFrom+nCount) > pObject->m_dm.getRowCount()) {
-        upperLimit = pObject->m_dm.getRowCount()-nFrom;
-    }
-    else {
-        upperLimit = nFrom+nCount;
-    }
-    
-    // Navigation button
-    const char *str_navbtn = 
-                    MHD_lookup_connection_value(connection, 
-                                                    MHD_GET_ARGUMENT_KIND, 
-                                                    "navbtn");
-    if ( NULL == str_navbtn ) {
-        //nFrom = 0;
-        if ((nFrom+nCount) > pObject->m_dm.getRowCount()) {
-            upperLimit = pObject->m_dm.getRowCount()-nFrom;
+
+        // Server GUID
+        if (0 ==
+            vscp_strcasecmp((const char *)pName, VSCPDB_CONFIG_NAME_GUID)) {
+            m_guid.getFromString((const char *)pValue);
+            continue;
         }
-        else {
-            upperLimit = nFrom+nCount;
+
+        // Server name
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_SERVERNAME)) {
+            m_strServerName = std::string((const char *)pValue);
+            continue;
         }
-    }
-    else if (NULL != strstr("first",str_navbtn)) {
-        nFrom = 0;
-        if ((nFrom+nCount) > pObject->m_dm.getRowCount()) {
-            upperLimit = pObject->m_dm.getRowCount()-nFrom;
-        }
-        else {
-            upperLimit = nFrom+nCount;
-        }
-    }
-    else if (NULL != strstr("previous", str_navbtn) ) {
-        
-        if ( 0 != nFrom ) {    
-            
-            nFrom -= nCount;
-            upperLimit = nFrom+nCount;
-            
-            if ( nFrom < 0 ) {
-                nFrom = 0;
-                if ((nFrom-nCount) < 0) {
-                    upperLimit = pObject->m_dm.getRowCount()- nFrom;
-                }
-                else {
-                    upperLimit = nFrom-nCount;
-                }
+
+        // TCP/IP interface address
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_ADDR)) {
+            m_strTcpInterfaceAddress = std::string((const char *)pValue);
+            // Remove possible "tcp://"" prefix
+            vscp_startsWith(
+              m_strTcpInterfaceAddress, "tcp://", &m_strTcpInterfaceAddress);
+            if (vscp_startsWith(m_strTcpInterfaceAddress,
+                                "ssl://",
+                                &m_strTcpInterfaceAddress)) {
+                m_strTcpInterfaceAddress += "s";
             }
-            
-            if (upperLimit < 0) {
-                upperLimit = nCount;
-            }
+            vscp_trim(m_strTcpInterfaceAddress);
+            continue;
         }
-        
-    }
-    else if (NULL != strstr("next",str_navbtn)) {
 
-        if ( upperLimit < pObject->m_dm.getRowCount() ) {
-            nFrom += nCount;
-            if (nFrom >= pObject->m_dm.getRowCount()) {
-                nFrom = pObject->m_dm.getRowCount() - nCount;
-                if ( nFrom < 0 ) nFrom = 0;
-            }
-        
-            if ((nFrom+nCount) > pObject->m_dm.getRowCount()) {
-                upperLimit = pObject->m_dm.getRowCount();
-            }
-            else {
-                upperLimit = nFrom+nCount;
-            }
+        // TCP/IP encryption
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_ENCRYPTION)) {
+            m_encryptionTcpip = atoi((const char *)pValue);
+            continue;
         }
 
-    }
-    else if (NULL != strstr("last",str_navbtn)) {
-        nFrom = pObject->m_dm.getRowCount() - nCount;
-        if ( nFrom < 0 ) {
-            nFrom = 0;
-            upperLimit = pObject->m_dm.getRowCount();
+        // TCP/IP SSL certificat
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_SSL_CERTIFICATE)) {
+            m_tcpip_ssl_certificate = std::string((const char *)pValue);
+            continue;
         }
-        else {
-            upperLimit = pObject->m_dm.getRowCount();
-        }
-    }
-
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Decision Matrix"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    buildPage += navstr;
-    
-    buildPage += _(WEB_DMLIST_BODY_START);
-    
-    {
-        wxString wxstrurl = wxString::Format(_("%s/vscp/dm"), 
-                                                strHost.GetData() );
-        wxString wxstrlight = ((bLight) ? _("true") : _("false"));
-        buildPage += wxString::Format( _(WEB_COMMON_LIST_NAVIGATION),
-                wxstrurl.GetData(),
-                nFrom,
-                ((nFrom + nCount) < pObject->m_dm.getRowCount()) ? 
-                    nFrom + nCount - 1 : pObject->m_dm.getRowCount() - 1,
-                pObject->m_dm.getRowCount(),
-                nCount,
-                nFrom,
-#if wxCHECK_VERSION(3,0,0)                
-                wxstrlight );
-#else                
-                wxstrlight.GetWriteBuf(wxstrlight.Length()) );
-#endif        
-        buildPage += _("<br>");
-    } 
-
-    wxString strGUID;  
-    wxString strBuf;
-
-    // Display DM List
-    
-    if ( 0 == pObject->m_dm.getRowCount() ) {
-        buildPage += _("<br>Decision Matrix is empty!<br>");
-    }
-    else {
-        buildPage += _(WEB_DMLIST_TR_HEAD);
-    }
-    
-    if (nFrom < 0) nFrom = 0;
-    
-    for ( int i=nFrom;i<upperLimit;i++) {
-        
-        dmElement *pElement = pObject->m_dm.getRow(i);
-        
-        {
-            wxString url_dmedit = 
-                    wxString::Format(_("%s/vscp/dmedit?id=%d"),
-                                        strHost.GetData(),
-                                        i );
-            wxString str = wxString::Format(_(WEB_COMMON_TR_CLICKABLE_ROW),
-                                                url_dmedit.GetData() );
-            buildPage += str;
-        }
-
-        // Client id    
-        buildPage += _(WEB_IFLIST_TD_CENTERED);
-        buildPage += wxString::Format(_("<form name=\"input\" action=\"%s/vscp/dmdelete?id=%d\" method=\"get\">%d<input type=\"submit\" value=\"x\"><input type=\"hidden\" name=\"id\"value=\"%d\"></form>"), 
-                        strHost.GetData(), i, i, i );
-        buildPage += _("</td>");
-
-        // DM entry
-        buildPage += _("<td>");
-        
-        if (NULL != pElement) {
-
-            buildPage += _("<div id=\"small\">");
-
-            // Group
-            buildPage += _("<b>Group:</b> ");
-            buildPage += pElement->m_strGroupID;
-            buildPage += _("<br>");
-            
-            buildPage += _("<b>Comment:</b> ");
-            buildPage += pElement->m_comment;
-            buildPage += _("<br><hr width=\"90%\">");
-
-            buildPage += _("<b>Control:</b> ");
-
-            // Control - Enabled
-            if (pElement->isEnabled()) {
-                buildPage += _("[Row is enabled] ");
-            } 
-            else {
-                buildPage += _("[Row is disabled] ");
-            }
-
-            // Control - End scan
-            if (pElement->isScanDontContinueSet()) {
-                buildPage += _("[End scan after this row] ");
-            }
-
-            // Control - Check index
-            if (pElement->isCheckIndexSet()) {
-                if (pElement->m_bMeasurement) {
-                    buildPage += _("[Check Measurement Index] ");
-                } 
-                else {
-                    buildPage += _("[Check Index] ");
-                }
-            } 
-
-            // Control - Check zone
-            if (pElement->isCheckZoneSet()) {
-                buildPage += _("[Check Zone] ");
-            }
-
-            // Control - Check subzone
-            if (pElement->isCheckSubZoneSet()) {
-                buildPage += _("[Check Subzone] ");
-            }
-
-            buildPage += _("<br>");
-
-            if (!bLight) {
-
-                // * Filter
-
-                buildPage += _("<b>Filter_priority: </b>");
-                buildPage += wxString::Format(_("%d "),
-                        pElement->m_vscpfilter.filter_priority);
-
-                buildPage += _("<b>Filter_class: </b>");
-                buildPage += wxString::Format(_("%d "),
-                        pElement->m_vscpfilter.filter_class);
-                buildPage += _(" [");
-                buildPage += vscpinfo.getClassDescription(
-                        pElement->m_vscpfilter.filter_class);
-                buildPage += _("] ");
-
-                buildPage += _(" <b>Filter_type: </b>");
-                buildPage += wxString::Format(_("%d "),
-                        pElement->m_vscpfilter.filter_type);
-                buildPage += _(" [");
-                buildPage += vscpinfo.getTypeDescription(
-                        pElement->m_vscpfilter.filter_class,
-                        pElement->m_vscpfilter.filter_type);
-                buildPage += _("]<br>");
-
-                buildPage += _(" <b>Filter_GUID: </b>");
-                writeGuidArrayToString(pElement->m_vscpfilter.filter_GUID, strGUID);
-                buildPage += strGUID;
-
-                buildPage += _("<br>");
-
-                buildPage += _("<b>Mask_priority: </b>");
-                buildPage += wxString::Format(_("%d "), pElement->m_vscpfilter.mask_priority);
-
-                buildPage += _("<b>Mask_class: </b>");
-                buildPage += wxString::Format(_("%d "), pElement->m_vscpfilter.mask_class);
-
-                buildPage += _("<b>Mask_type: </b>");
-                buildPage += wxString::Format(_("%d "), pElement->m_vscpfilter.mask_type);
-
-                buildPage += _("<b>Mask_GUID: </b>");
-                writeGuidArrayToString(pElement->m_vscpfilter.mask_GUID, strGUID);
-                buildPage += strGUID;
-
-                buildPage += _("<br>");
-
-                buildPage += _("<b>Index: </b>");
-                buildPage += wxString::Format(_("%d "), pElement->m_index);
-
-                buildPage += _("<b>Zone: </b>");
-                buildPage += wxString::Format(_("%d "), pElement->m_zone);
-
-                buildPage += _("<b>Subzone: </b>");
-                buildPage += wxString::Format(_("%d "), pElement->m_subzone);
-
-                buildPage += _("<br>");
-
-                buildPage += _("<b>Allowed from:</b> ");
-                buildPage += pElement->m_timeAllow.m_fromTime.FormatISODate();
-                buildPage += _(" ");
-                buildPage += pElement->m_timeAllow.m_fromTime.FormatISOTime();
-
-                buildPage += _(" <b>Allowed to:</b> ");
-                buildPage += pElement->m_timeAllow.m_endTime.FormatISODate();
-                buildPage += _(" ");
-                buildPage += pElement->m_timeAllow.m_endTime.FormatISOTime();
-
-                buildPage += _(" <b>Weekdays:</b> ");
-                buildPage += pElement->m_timeAllow.getWeekDays();
-                buildPage += _("<br>");
-
-                buildPage += _("<b>Allowed time:</b> ");
-                buildPage += pElement->m_timeAllow.getActionTimeAsString();
-                buildPage += _("<br>");
-
-            } // mini
-
-            buildPage += _("<b>Action:</b> ");
-            buildPage += wxString::Format(_("%d "), pElement->m_action);
-
-            buildPage += _(" <b>Action parameters:</b> ");
-            buildPage += pElement->m_actionparam;
-            buildPage += _("<br>");
-
-            if (!bLight) {
-
-                buildPage += _("<b>Trigger Count:</b> ");
-                buildPage += wxString::Format(_("%d "), pElement->m_triggCounter);
-
-                buildPage += _("<b>Error Count:</b> ");
-                buildPage += wxString::Format(_("%d "), pElement->m_errorCounter);
-                buildPage += _("<br>");
-
-                buildPage += _("<b>Last Error String:</b> ");
-                buildPage += pElement->m_strLastError;
-
-            } // mini
-
-            buildPage += _("</div>");
-
-        } 
-        else {
-            buildPage += _("Internal error: Non existent DM entry.");
-        }
-
-        buildPage += _("</td>");
-        buildPage += _("</tr>");
-
-    }
-       
-    buildPage += _(WEB_DMLIST_TABLE_END);
-    
-    {
-        wxString wxstrurl = wxString::Format(_("%s/vscp/dm"), 
-                                                strHost.GetData() );
-        wxString wxstrlight = ((bLight) ? _("true") : _("false"));
-        buildPage += wxString::Format( _(WEB_COMMON_LIST_NAVIGATION),
-                wxstrurl.GetData(),
-                nFrom,
-                ((nFrom + nCount) < pObject->m_dm.getRowCount()) ? 
-                    nFrom + nCount - 1 : pObject->m_dm.getRowCount() - 1,
-                pObject->m_dm.getRowCount(),
-                nCount,
-                nFrom,
-#if wxCHECK_VERSION(3,0,0)                
-                wxstrlight );
-#else                
-                wxstrlight.GetWriteBuf(wxstrlight.Length()) );
-#endif        
-    }
-     
-    buildPage += _(WEB_COMMON_END);     // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret; 
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_dmedit
-//
-
-int 
-CControlObject::websrv_serve_dmedit( const void *cls,
-							const char *mime,
-                            struct websrv_Session *session,
-                            struct MHD_Connection *connection)
-{
-    int ret,i;
-    wxString str;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    dmElement *pElement = NULL;
-    
-    // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
-        }
-        else {
-            strHost = _("http://") + strHost;
-        }
-    }
-    
-    // id
-    long id = -1;
-    const char *str_id = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "id");
-    if ( NULL != str_id ) id = atoi(str_id);
-    
-    // Flag for new DM row
-    bool bNew = false;
-    const char *str_new = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "new");
-    if ( (NULL != str_new) && NULL != strstr( "true", str_new ) ) bNew = true;
-    
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Decision Matrix Edit"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    
-    buildPage += navstr;
-    
-    buildPage += _(WEB_DMEDIT_BODY_START);
-
-    if ( !bNew && id < pObject->m_dm.getRowCount() ) {
-        pElement = pObject->m_dm.getRow(id);
-    }
-
-    if (bNew || (NULL != pElement)) {
-        
-        if ( bNew ) {
-            buildPage += _("<span id=\"optiontext\">New record.</span><br>");
-        }
-        else {
-            buildPage += wxString::Format(_("<span id=\"optiontext\">Record = %d.</span><br>"), id);
-        }
-        
-        buildPage += _("<br><form method=\"get\" action=\"");
-        buildPage += strHost;
-        buildPage += _("/vscp/dmpost");
-        buildPage += _("\" name=\"dmedit\">");
-        
-        buildPage += wxString::Format(_("<input name=\"id\" value=\"%d\" type=\"hidden\"></input>"), id );
-        
-        if (bNew) {
-            buildPage += _("<input name=\"new\" value=\"true\" type=\"hidden\"></input>");
-        }
-        else {
-            buildPage += _("<input name=\"new\" value=\"false\" type=\"hidden\">false</input>");
-        }
-        
-        buildPage += _("<h4>Group id:</h4>");
-        buildPage += _("<textarea cols=\"20\" rows=\"1\" name=\"groupid\">");
-        if ( !bNew ) buildPage += pElement->m_strGroupID;
-        buildPage += _("</textarea><br>");
-        
-        
-        buildPage += _("<h4>Event:</h4> <span id=\"optiontext\">(leave items blank for don't care)</span><br>");
-
-        buildPage += _("<table class=\"invisable\"><tbody><tr class=\"invisable\">");
-
-        buildPage += _("<td class=\"invisable\">Priority:</td><td class=\"invisable\">");
-
-        // Priority
-        buildPage += _("<select name=\"filter_priority\">");
-        buildPage += _("<option value=\"-1\" ");
-        if (bNew) buildPage += _(" selected ");
-        buildPage += _(">Don't care</option>");
-
-        if ( !bNew ) str = (0 == pElement->m_vscpfilter.filter_priority) ? _("selected") : _(" ");
-        buildPage += wxString::Format(_("<option value=\"0\" %s>0 - Highest</option>"),
-                str.GetData());
-
-        if ( !bNew ) str = (1 == pElement->m_vscpfilter.filter_priority) ? _("selected") : _(" ");
-        buildPage += wxString::Format(_("<option value=\"1\" %s>1 - Very High</option>"),
-                str.GetData());
-
-        if ( !bNew ) str = (2 == pElement->m_vscpfilter.filter_priority) ? _("selected") : _(" ");
-        buildPage += wxString::Format(_("<option value=\"2\" %s>2 - High</option>"),
-                str.GetData());
-
-        if ( !bNew ) str = (3 == pElement->m_vscpfilter.filter_priority) ? _("selected") : _(" ");
-        buildPage += wxString::Format(_("<option value=\"3\" %s>3 - Normal</option>"),
-                str.GetData());
-
-        if ( !bNew ) str = (4 == pElement->m_vscpfilter.filter_priority) ? _("selected") : _(" ");
-        buildPage += wxString::Format(_("<option value=\"4\" %s>4 - Low</option>"),
-                str.GetData());
-
-        if ( !bNew ) str = (5 == pElement->m_vscpfilter.filter_priority) ? _("selected") : _(" ");
-        buildPage += wxString::Format(_("<option value=\"5\" %s>5 - Lower</option>"),
-                str.GetData());
-
-        if ( !bNew ) str = (6 == pElement->m_vscpfilter.filter_priority) ? _("selected") : _(" ");
-        buildPage += wxString::Format(_("<option value=\"6\" %s>6 - Very Low</option>"),
-                str.GetData());
-
-        if ( !bNew ) str = (7 == pElement->m_vscpfilter.filter_priority) ? _("selected") : _(" ");
-        buildPage += wxString::Format(_("<option value=\"7\" %s>7 - Lowest</option>"),
-                str.GetData());
-
-        buildPage += _("</select>");
-        // Priority mask
-        buildPage += _("<textarea cols=\"5\" rows=\"1\" name=\"mask_priority\">");
-        if ( bNew ) {
-            buildPage += _("0x00");
-        }
-        else {
-            buildPage += wxString::Format(_("%X"), pElement->m_vscpfilter.mask_priority );
-        }
-        buildPage += _("</textarea>");
-        
-        buildPage += _("</td></tr>");
-
-        // Class
-        buildPage += _("<tr class=\"invisable\"><td class=\"invisable\">Class:</td><td class=\"invisable\"><textarea cols=\"10\" rows=\"1\" name=\"filter_vscpclass\">");
-        if ( bNew ) {
-            buildPage += _("");;
-        }
-        else {
-            buildPage += wxString::Format(_("0x%X"), pElement->m_vscpfilter.filter_class);
-        }
-        buildPage += _("</textarea>");
-        
-        buildPage += _(" <textarea cols=\"10\" rows=\"1\" name=\"mask_vscpclass\">");
-        if ( bNew ) {
-            buildPage += _("0x0000");
-        }
-        else {
-            buildPage += wxString::Format(_("0x%04x"), pElement->m_vscpfilter.mask_class);
-        }
-        buildPage += _("</textarea>");
-        
-        buildPage += _("</td></tr>");
-        
-        // Type
-        buildPage += _("<tr class=\"invisable\"><td class=\"invisable\">Type:</td><td class=\"invisable\"><textarea cols=\"10\" rows=\"1\" name=\"filter_vscptype\">");
-        if ( bNew ) {
-            buildPage += _("");;
-        }
-        else {
-            buildPage += wxString::Format(_("%d"), pElement->m_vscpfilter.filter_type);
-        }
-        buildPage += _("</textarea>");
-        
-        buildPage += _(" <textarea cols=\"10\" rows=\"1\" name=\"mask_vscptype\">");
-        if ( bNew ) {
-            buildPage += _("0x0000");;
-        }
-        else {
-            buildPage += wxString::Format(_("0x%04x"), pElement->m_vscpfilter.mask_type);
-        }
-        buildPage += _("</textarea>");
-        
-        buildPage += _("</td></tr>"); 
-        
-        // GUID
-        if ( !bNew ) writeGuidArrayToString( pElement->m_vscpfilter.filter_GUID, str );
-        buildPage += _("<tr class=\"invisable\"><td class=\"invisable\">GUID:</td><td class=\"invisable\"><textarea cols=\"50\" rows=\"1\" name=\"filter_vscpguid\">");
-        if ( bNew ) {
-            buildPage += _("00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00");
-        }
-        else {
-            buildPage += wxString::Format(_("%s"), str.GetData() );
-        }
-        buildPage += _("</textarea></td>");
-        
-        if ( !bNew ) writeGuidArrayToString( pElement->m_vscpfilter.mask_GUID, str );
-        buildPage += _("<tr class=\"invisable\"><td class=\"invisable\"> </td><td class=\"invisable\"><textarea cols=\"50\" rows=\"1\" name=\"mask_vscpguid\">");
-        if ( bNew ) {
-            buildPage += _("00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00");
-        }
-        else {
-            buildPage += wxString::Format(_("%s"), str.GetData() );
-        }
-        buildPage += _("</textarea></td>");
-        
-        buildPage += _("</tr>");
-        
-        // Index
-        buildPage += _("<tr class=\"invisable\"><td class=\"invisable\">Index:</td><td class=\"invisable\"><textarea cols=\"10\" rows=\"1\" name=\"vscpindex\">");
-        if ( bNew ) {
-            buildPage += _("");
-        }
-        else {
-            buildPage += wxString::Format(_("%d"), pElement->m_index );
-        }
-        buildPage += _("</textarea></td></tr>");
-
-        // Zone
-        buildPage += _("<tr class=\"invisable\"><td class=\"invisable\">Zone:</td><td class=\"invisable\"><textarea cols=\"10\" rows=\"1\" name=\"vscpzone\">");
-        if ( bNew ) {
-            buildPage += _("0");
-        }
-        else {
-            buildPage += wxString::Format(_("%d"), pElement->m_zone );
-        }
-        buildPage += _("</textarea></td></tr>");
-        
-        // Subzone
-        buildPage += _("<tr class=\"invisable\"><td class=\"invisable\">Subzone:</td><td class=\"invisable\"><textarea cols=\"10\" rows=\"1\" name=\"vscpsubzone\">");
-        if ( bNew ) {
-            buildPage += _("0");
-        }
-        else {
-            buildPage += wxString::Format(_("%d"), pElement->m_subzone );
-        }
-        buildPage += _("</textarea>");
-        buildPage += _("</td></tr>");
-        
-        buildPage += _("</tbody></table><br>");
-        
-        // Control
-        buildPage += _("<h4>Control:</h4>");
-        
-        // Enable row
-        buildPage += _("<input name=\"check_enablerow\" value=\"true\" ");
-        if ( bNew ) {
-            buildPage += _("");
-        }
-        else {
-            buildPage += wxString::Format(_("%s"), 
-                                            pElement->isEnabled() ? _("checked") : _("") );
-        }
-        buildPage += _(" type=\"checkbox\">");            
-        buildPage += _("<span id=\"optiontext\">Enable row</span>"); 
-
-        // End scan on this row
-        buildPage += _("<input name=\"check_endscan\" value=\"true\"");
-        if ( bNew ) {
-            buildPage += _("");
-        }
-        else {
-            buildPage += wxString::Format(_("%d"), 
-                                            pElement->isScanDontContinueSet() ? _("checked") : _("") );
-        }
-        buildPage += _(" type=\"checkbox\">");           
-        buildPage += _("<span id=\"optiontext\">End scan on this row</span>");
-
-        buildPage += _("<br>");
-
-        // Check Index
-        buildPage += _("<input name=\"check_index\" value=\"true\"");
-        if ( bNew ) {
-            buildPage += _("");
-        }
-        else {
-            buildPage += wxString::Format(_("%d"), 
-                                            pElement->isCheckIndexSet() ? _("checked") : _("") );
-        }
-        buildPage += _(" type=\"checkbox\">"); 
-        buildPage += _("<span id=\"optiontext\">Check Index</span>");
-
-        // Check Zone
-        buildPage += _("<input name=\"check_zone\" value=\"true\"");
-        if ( bNew ) {
-            buildPage += _("");
-        }
-        else {
-            buildPage += wxString::Format(_("%d"), 
-                                            pElement->isCheckZoneSet() ? _("checked") : _("") );
-        }
-        buildPage += _(" type=\"checkbox\">"); 
-        buildPage += _("<span id=\"optiontext\">Check Zone</span>"); 
-
-        // Check subzone
-        buildPage += _("<input name=\"check_subzone\" value=\"true\"");
-        if ( bNew ) {
-            buildPage += _("");
-        }
-        else {
-            buildPage += wxString::Format(_("%d"), 
-                                            pElement->isCheckSubZoneSet() ? _("checked") : _("") );
-        }
-        buildPage += _(" type=\"checkbox\">"); 
-        buildPage += _("<span id=\"optiontext\">Check Subzone</span>");
-        buildPage += _("<br><br><br>");
-        
-        buildPage += _("<h4>Allowed From:</h4>");
-        buildPage += _("<textarea cols=\"50\" rows=\"1\" name=\"allowedfrom\">");
-        if ( bNew ) {
-            buildPage += _("yyyy-mm-dd hh:mm:ss");
-        }
-        else {
-            buildPage += pElement->m_timeAllow.m_fromTime.FormatISODate();
-            buildPage += _(" ");
-            buildPage += pElement->m_timeAllow.m_fromTime.FormatISOTime();
-        }
-        buildPage += _("</textarea>");
-
-        buildPage += _("<h4>Allowed To:</h4>");
-        buildPage += _("<textarea cols=\"50\" rows=\"1\" name=\"allowedto\">");
-        if ( bNew ) {
-            buildPage += _("yyyy-mm-dd hh:mm:ss");
-        }
-        else {
-            buildPage += pElement->m_timeAllow.m_endTime.FormatISODate();
-            buildPage += _(" ");
-            buildPage += pElement->m_timeAllow.m_endTime.FormatISOTime();
-        }
-        buildPage += _("</textarea>");
-       
-        buildPage += _("<h4>Allowed time:</h4>");
-        buildPage += _("<textarea cols=\"50\" rows=\"1\" name=\"allowedtime\">");
-        if ( bNew ) {
-            buildPage += _("yyyy-mm-dd hh:mm:ss");
-        }
-        else {
-            buildPage += pElement->m_timeAllow.getActionTimeAsString();
-        }
-        buildPage += _("</textarea>");
-        
-        buildPage += _("<h4>Allowed days:</h4>");
-        buildPage += _("<input name=\"monday\" value=\"true\" ");
-        
-        if ( !bNew ) buildPage += wxString::Format(_("%s"), 
-                                        pElement->m_timeAllow.m_weekDay[0] ? _("checked") : _("") );
-        buildPage += _(" type=\"checkbox\">Monday ");
-
-        buildPage += _("<input name=\"tuesday\" value=\"true\" ");
-        if ( !bNew ) buildPage += wxString::Format(_("%s"), 
-                                        pElement->m_timeAllow.m_weekDay[1] ? _("checked") : _("") );
-        buildPage += _(" type=\"checkbox\">Tuesday ");
-
-        buildPage += _("<input name=\"wednesday\" value=\"true\" ");
-        if ( !bNew ) buildPage += wxString::Format(_("%s"), 
-                                        pElement->m_timeAllow.m_weekDay[2] ? _("checked") : _("") );
-        buildPage += _(" type=\"checkbox\">Wednesday ");
-
-        buildPage += _("<input name=\"thursday\" value=\"true\" ");
-        if ( !bNew ) buildPage += wxString::Format(_("%s"), 
-                                        pElement->m_timeAllow.m_weekDay[3] ? _("checked") : _("") );
-        buildPage += _(" type=\"checkbox\">Thursday ");
-         
-        buildPage += _("<input name=\"friday\" value=\"true\" ");
-        if ( !bNew ) buildPage += wxString::Format(_("%s"), 
-                                        pElement->m_timeAllow.m_weekDay[4] ? _("checked") : _("") );
-        buildPage += _(" type=\"checkbox\">Friday ");
-
-        buildPage += _("<input name=\"saturday\" value=\"true\" ");
-        if ( !bNew ) buildPage += wxString::Format(_("%s"), 
-                                        pElement->m_timeAllow.m_weekDay[5] ? _("checked") : _("") );
-        buildPage += _(" type=\"checkbox\">Saturday ");
-
-        buildPage += _("<input name=\"sunday\" value=\"true\" ");
-        if ( !bNew ) buildPage += wxString::Format(_("%s"), 
-                                        pElement->m_timeAllow.m_weekDay[6] ? _("checked") : _("") );
-        buildPage += _(" type=\"checkbox\">Sunday ");
-        buildPage += _("<br>");
-        
-        buildPage += _("<h4>Action:</h4>");
-        
-        buildPage += _("<select name=\"action\">");
-        buildPage += _("<option value=\"0\" ");
-        if (bNew) buildPage += _(" selected ");
-        buildPage += _(">No Operation</option>");
 
-        if ( bNew ) {
-            str = _("");
+        // TCP/IP SSL certificat chain
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_TCPIP_SSL_CERTIFICAT_CHAIN)) {
+            m_tcpip_ssl_certificate_chain = std::string((const char *)pValue);
+            continue;
         }
-        else { 
-            str = (0x10 == pElement->m_action ) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x10\" %s>Execute external program</option>"),
-                str.GetData());
-
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x12 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x12\" %s>Execute internal procedure</option>"),
-                str.GetData());
 
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x30 == pElement->m_action) ? _("selected") : _(" ");
+        // TCP/IP SSL verify peer
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_SSL_VERIFY_PEER)) {
+            m_tcpip_ssl_verify_peer = atoi((const char *)pValue);
+            continue;
         }
-        buildPage += wxString::Format(_("<option value=\"0x30\" %s>Execute library procedure</option>"),
-                str.GetData());
 
-        if ( bNew ) {
-            str = _("");
+        // TCP/IP SSL CA path
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_SSL_CA_PATH)) {
+            m_tcpip_ssl_ca_path = std::string((const char *)pValue);
+            continue;
         }
-        else { 
-            str = (0x40 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x40\" %s>Send event</option>"),
-                str.GetData());
 
-        if ( bNew ) {
-            str = _("");
+        // TCP/IP SSL CA file
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_SSL_CA_FILE)) {
+            m_tcpip_ssl_ca_file = std::string((const char *)pValue);
+            continue;
         }
-        else { 
-            str = (0x41 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x41\" %s>Send event Conditional</option>"),
-                str.GetData());
 
-        if ( bNew ) {
-            str = _("");
+        // TCP/IP SSL verify depth
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_SSL_VERIFY_DEPTH)) {
+            m_tcpip_ssl_verify_depth = atoi((const char *)pValue);
+            continue;
         }
-        else { 
-            str = (0x42 == pElement->m_action) ? _("selected") : _(" ");
+
+        // TCP/IP SSL verify paths
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_TCPIP_SSL_DEFAULT_VERIFY_PATHS)) {
+            m_tcpip_ssl_default_verify_paths =
+              atoi((const char *)pValue) ? true : false;
+            continue;
+        }
+
+        // TCP/IP SSL Chipher list
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_SSL_CHIPHER_LIST)) {
+            m_tcpip_ssl_cipher_list = std::string((const char *)pValue);
+            continue;
         }
-        buildPage += wxString::Format(_("<option value=\"0x42\" %s>Send event(s) from file</option>"),
-                str.GetData());
-
-        if ( bNew ) {
-            str = _("");
+
+        // TCP/IP SSL protocol version
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_TCPIP_SSL_PROTOCOL_VERSION)) {
+            m_tcpip_ssl_protocol_version = atoi((const char *)pValue);
+            continue;
         }
-        else { 
-            str = (0x43 == pElement->m_action) ? _("selected") : _(" ");
+
+        // TCP/IP SSL short trust
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_TCPIP_SSL_SHORT_TRUST)) {
+            m_tcpip_ssl_short_trust = atoi((const char *)pValue) ? true : false;
+            continue;
         }
-        buildPage += wxString::Format(_("<option value=\"0x43\" %s>Send event(s) to remote VSCP server</option>"),
-                str.GetData());
 
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x50 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x50\" %s>Store in variable</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x51 == pElement->m_action) ? _("selected") : _(" ");
+        // Announce multicast interface address
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_ANNOUNCE_ADDR)) {
+            m_strMulticastAnnounceAddress = std::string((const char *)pValue);
+            continue;
         }
-        buildPage += wxString::Format(_("<option value=\"0x51\" %s>Store in array</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x52 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x52\" %s>Add to variable</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x53 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x53\" %s>Subtract from variable</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x54 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x54\" %s>Multiply variable</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x55 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x55\" %s>Divide variable</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x60 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x60\" %s>Start timer</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x61 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x61\" %s>Pause timer</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x62 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x62\" %s>Stop timer</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x63 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x63\" %s>Resume timer</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else {
-            str = (0x70 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x70\" %s>Write file</option>"),
-                str.GetData());
-        
-        if ( bNew ) {
-            str = _("");
-        }
-        else { 
-            str = (0x75 == pElement->m_action) ? _("selected") : _(" ");
-        }
-        buildPage += wxString::Format(_("<option value=\"0x75\" %s>Get/Put/Post URL</option>"),
-                str.GetData());
-
-        buildPage += _("</select>");
-             
-        buildPage += _("<h4>Action parameter:</h4>");
-        buildPage += _("<textarea cols=\"80\" rows=\"1\" name=\"actionparameter\">");
-        if ( !bNew ) buildPage += pElement->m_actionparam;
-        buildPage += _("</textarea>");
-
-        buildPage += _("<h4>Comment:</h4>");
-        buildPage += _("<textarea cols=\"80\" rows=\"5\" name=\"comment\">");
-        if ( !bNew ) buildPage += pElement->m_comment;
-        buildPage += _("</textarea>");
-    } 
-    else {
-        buildPage += _("<br><b>Error: Non existent id</b>");
-    }
-    
-    
-    wxString wxstrurl = wxString::Format(_("%s/vscp/dmpost"), 
-                                                strHost.GetData() );
-    buildPage += wxString::Format( _(WEB_DMEDIT_SUBMIT),
-                                    wxstrurl.GetData() );
-    
-    buildPage += _("</form>");
-    buildPage += _(WEB_COMMON_END);     // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
-}
 
-
-
-///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_dmpost
-//
-
-int 
-CControlObject::websrv_serve_dmpost( const void *cls,
-							const char *mime,
-                            struct websrv_Session *session,
-                            struct MHD_Connection *connection)
-{
-    int ret,i;
-    wxString str;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    dmElement *pElement = NULL;
-    
-    // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
+        // TTL for the multicast i/f
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_ANNOUNCE_TTL)) {
+            m_ttlMultiCastAnnounce = atoi((const char *)pValue);
+            continue;
         }
-        else {
-            strHost = _("http://") + strHost;
-        }
-    }
-    
-    // id
-    long id = -1;
-    const char *str_id = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "id");
-    if ( NULL != str_id ) id = atoi(str_id);
-    
-    // Flag for new DM row
-    bool bNew = false;
-    const char *str_new = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "new");
-    if ( (NULL != str_new) && NULL != strstr( "true", str_new ) ) bNew = true;
-
-    wxString strGroupID;
-    const char *str_groupid = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "groupid");
-    if ( NULL != str_groupid ) strGroupID = wxString::FromAscii(str_groupid);
-        
-    int filter_priority = -1;
-    const char *str_filter_priority = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "filter_priority");
-    if ( NULL != str_filter_priority ) filter_priority = readStringValue( wxString::FromAscii(str_filter_priority ) );
-         
-    int mask_priority = 0;    
-    const char *str_mask_priority = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "mask_priority");
-    if ( NULL != str_mask_priority ) mask_priority = readStringValue( wxString::FromAscii(str_mask_priority ) );
-    
-    uint16_t filter_vscpclass = -1;
-    const char *str_filter_vscpclass = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "filter_vscpclass");
-    if ( NULL != str_filter_vscpclass ) {
-		wxString wrkstr = wxString::FromAscii( str_filter_vscpclass );
-		filter_vscpclass = readStringValue( wrkstr );
-	}
-    
-    uint16_t mask_vscpclass = 0;
-    const char *str_mask_vscpclass = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "mask_vscpclass");
-    if ( NULL != str_mask_vscpclass ) mask_vscpclass = readStringValue( wxString::FromAscii( str_mask_vscpclass ) );
-    
-    uint16_t filter_vscptype = 0;
-    const char *str_filter_vscptype = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "filter_vscptype");
-    if ( NULL != str_filter_vscptype ) filter_vscptype = readStringValue( wxString::FromAscii(str_filter_vscptype) );
-    
-    uint16_t mask_vscptype = 0;
-    const char *str_mask_vscptype = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "mask_vscptype");
-    if ( NULL != str_mask_vscptype ) mask_vscptype = readStringValue( wxString::FromAscii(str_mask_vscptype ) );
-    
-    wxString strFilterGuid;
-    const char *str_filter_vscpguid = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "filter_vscpguid");
-    if ( NULL != str_filter_vscpguid ) strFilterGuid = wxString::FromAscii(str_filter_vscpguid);
-    strFilterGuid = strFilterGuid.Trim();
-    strFilterGuid = strFilterGuid.Trim(false);
-    
-    wxString strMaskGuid;
-    const char *str_mask_vscpguid = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "mask_vscpguid");
-    if ( NULL != str_mask_vscpguid ) strMaskGuid = wxString::FromAscii(str_mask_vscpguid);
-    strMaskGuid = strMaskGuid.Trim();
-    strMaskGuid = strMaskGuid.Trim(false);
-    
-    uint8_t index = 0;
-    const char *str_vscpindex = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "vscpindex");
-    if ( NULL != str_vscpindex ) index = readStringValue( wxString::FromAscii(str_vscpindex) );
-    
-    uint8_t zone = 0;
-    const char *str_vscpzone = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "vscpzone");
-    if ( NULL != str_vscpzone ) zone = readStringValue( wxString::FromAscii(str_vscpzone) );
-    
-    uint8_t subzone = 0;
-    const char *str_vscpsubzone = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "vscpsubzone");
-    if ( NULL != str_vscpsubzone ) index = readStringValue( wxString::FromAscii(str_vscpsubzone) );
-    
-    bool bEnableRow = false;
-    const char *str_check_enablerow = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "check_enablerow");
-    if ( (NULL != str_check_enablerow) && NULL != strstr( "true", str_check_enablerow ) ) bEnableRow = true;
-        
-    bool bEndScan = false;
-    const char *str_check_endscan = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "check_endscan");
-    if ( (NULL != str_check_endscan) && NULL != strstr( "true", str_check_endscan ) ) bEndScan = true;
-    
-    bool bCheckIndex = false;
-    const char *str_check_index = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "check_index");
-    if ( (NULL != str_check_index) && NULL != strstr( "true", str_check_index ) ) bCheckIndex = true;
-    
-    bool bCheckZone = false;
-    const char *str_check_zone = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "check_zone");
-    if ( (NULL != str_check_zone) && NULL != strstr( "true", str_check_zone ) ) bCheckZone = true;
-    
-    bool bCheckSubZone = false;
-    const char *str_check_subzone = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "check_subzone");
-    if ( (NULL != str_check_subzone) && NULL != strstr( "true", str_check_subzone ) ) bCheckSubZone = true;
-    
-    wxString strAllowedFrom;
-    const char *str_allowedfrom = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "allowedfrom");
-    if ( NULL != str_allowedfrom ) strAllowedFrom = wxString::FromAscii(str_allowedfrom);
-    
-    wxString strAllowedTo;
-    const char *str_allowedto = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "allowedto");
-    if ( NULL != str_allowedto ) strAllowedTo = wxString::FromAscii(str_allowedto);
-    
-    wxString strAllowedTime;
-    const char *str_allowedtime = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "allowedtime");
-    if ( NULL != str_allowedtime ) strAllowedTime = wxString::FromAscii(str_allowedtime);
-    
-    bool bCheckMonday = false;
-    const char *str_monday = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "monday");
-    if ( (NULL != str_monday) && NULL != strstr( "true", str_monday ) ) bCheckMonday = true;
-    
-    bool bCheckTuesday = false;
-    const char *str_tuesday = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "tuesday");
-    if ( (NULL != str_tuesday) && NULL != strstr( "true", str_tuesday ) ) bCheckTuesday = true;
-    
-    bool bCheckWednesday = false;
-    const char *str_wednesday = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "wednesday");
-    if ( (NULL != str_wednesday) && NULL != strstr( "true", str_wednesday ) ) bCheckWednesday = true;
-    
-    bool bCheckThursday = false;
-    const char *str_thursday = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "thursday");
-    if ( (NULL != str_thursday) && NULL != strstr( "true", str_thursday ) ) bCheckThursday = true;
-    
-    bool bCheckFriday = false;
-    const char *str_friday = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "friday");
-    if ( (NULL != str_friday) && NULL != strstr( "true", str_friday ) ) bCheckFriday = true;
-    
-    bool bCheckSaturday = false;
-    const char *str_saturday = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "saturday");
-    if ( (NULL != str_saturday) && NULL != strstr( "true", str_saturday ) ) bCheckSaturday = true;
-    
-    bool bCheckSunday = false;
-    const char *str_sunday = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "sunday");
-    if ( (NULL != str_sunday) && NULL != strstr( "true", str_sunday ) ) bCheckSunday = true;
-    
-    uint32_t action = 0;
-    const char *str_action = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "action");
-    if ( NULL != str_action ) action = readStringValue( wxString::FromAscii(str_action) );
-    
-    wxString strActionParameter;
-    const char *str_actionparameter = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "actionparameter");
-    if ( NULL != str_actionparameter ) strActionParameter = wxString::FromAscii(str_actionparameter);
-    
-    wxString strComment;
-    const char *str_comment = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "comment");
-    if ( NULL != str_comment ) strComment = wxString::FromAscii(str_comment);
-    
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Decision Matrix Post"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += wxString::Format(_("<meta http-equiv=\"refresh\" content=\"2;url=%s/vscp/dm"), strHost.GetData() );
-    buildPage += wxString::Format(_("?from=%d"), id );
-    buildPage += _("\">");
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    buildPage += navstr;
-    
-    buildPage += _(WEB_DMPOST_BODY_START);
-        
-    if (bNew) {
-        pElement = new dmElement;
-    }
-
-    if ( bNew || ( id >= 0 ) ) {
-
-        if ( bNew || ((0 == id) && !bNew) || ( id < pObject->m_dm.getRowCount() ) ) {
-
-            if (!bNew) pElement = pObject->m_dm.getRow(id);
-
-            if (NULL != pElement) {
-
-                if (-1 == filter_priority) {
-                    pElement->m_vscpfilter.mask_priority = 0;
-                    pElement->m_vscpfilter.filter_priority = 0;
-                } 
-                else {
-                    pElement->m_vscpfilter.mask_priority = mask_priority;
-                    pElement->m_vscpfilter.filter_priority = filter_priority;
-                }
-
-                if (-1 == filter_vscpclass) {
-                    pElement->m_vscpfilter.mask_class = 0;
-                    pElement->m_vscpfilter.filter_class = 0;
-                } 
-                else {
-                    pElement->m_vscpfilter.mask_class = mask_vscpclass;
-                    pElement->m_vscpfilter.filter_class = filter_vscpclass;
-                }
-
-                if (-1 == filter_vscptype) {
-                    pElement->m_vscpfilter.mask_type = 0;
-                    pElement->m_vscpfilter.filter_type = 0;
-                } 
-                else {
-                    pElement->m_vscpfilter.mask_type = mask_vscptype;
-                    pElement->m_vscpfilter.filter_type = filter_vscptype;
-                }
-
-                if (0 == strFilterGuid.Length()) {
-                    for (int i = 0; i < 16; i++) {
-                        pElement->m_vscpfilter.mask_GUID[i] = 0;
-                        pElement->m_vscpfilter.filter_GUID[i] = 0;
-                    }
-                } 
-                else {
-                    getGuidFromStringToArray(pElement->m_vscpfilter.mask_GUID,
-                            strMaskGuid);
-                    getGuidFromStringToArray(pElement->m_vscpfilter.filter_GUID,
-                            strFilterGuid);
-                }
-
-                pElement->m_index = index;
-                pElement->m_zone = zone;
-                pElement->m_subzone = subzone;
-
-                pElement->m_control = 0;
-                if (bEnableRow) pElement->m_control |= DM_CONTROL_ENABLE;
-                if (bEndScan) pElement->m_control |= DM_CONTROL_DONT_CONTINUE_SCAN;
-                if (bCheckIndex) pElement->m_control |= DM_CONTROL_CHECK_INDEX;
-                if (bCheckZone) pElement->m_control |= DM_CONTROL_CHECK_ZONE;
-                if (bCheckSubZone) pElement->m_control |= DM_CONTROL_CHECK_SUBZONE;
-
-                pElement->m_timeAllow.m_fromTime.ParseDateTime(strAllowedFrom);
-                pElement->m_timeAllow.m_endTime.ParseDateTime(strAllowedTo);
-                pElement->m_timeAllow.parseActionTime(strAllowedTime);
-
-                wxString weekdays;
-
-                if (bCheckMonday) weekdays = _("m"); else weekdays = _("-");
-                if (bCheckTuesday) weekdays += _("t"); else weekdays += _("-");
-                if (bCheckWednesday) weekdays += _("w"); else weekdays += _("-");
-                if (bCheckThursday) weekdays += _("t"); else weekdays += _("-");
-                if (bCheckFriday) weekdays += _("f"); else weekdays += _("-");
-                if (bCheckSaturday) weekdays += _("s"); else weekdays += _("-");
-                if (bCheckSunday) weekdays += _("s"); else weekdays += _("-");
-                pElement->m_timeAllow.setWeekDays(weekdays);
-
-                pElement->m_action = action;
-
-                pElement->m_actionparam = strActionParameter;
-                pElement->m_comment = strComment;
-                
-                pElement->m_strGroupID = strGroupID;
-
-                pElement->m_triggCounter = 0;
-                pElement->m_errorCounter = 0;
-
-                if (bNew) {
-                    // add the DM row to the matrix
-                    pObject->m_dm.addElement(pElement);
-                }
-
-                // Save decision matrix
-                pObject->m_dm.save();
 
-                buildPage += wxString::Format(_("<br><br>DM Entry has been saved. id=%d"), id);
+        // Enable UDP interface
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_UDP_ENABLE)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            m_udpSrvObj.m_bEnable = atoi((const char *)pValue) ? true : false;
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // UDP interface address/port
+        if (0 ==
+            vscp_strcasecmp((const char *)pName, VSCPDB_CONFIG_NAME_UDP_ADDR)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            m_udpSrvObj.m_interface = std::string((const char *)pValue);
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // UDP User
+        if (0 ==
+            vscp_strcasecmp((const char *)pName, VSCPDB_CONFIG_NAME_UDP_USER)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            m_udpSrvObj.m_user = std::string((const char *)pValue);
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // UDP User Password
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_UDP_PASSWORD)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            m_udpSrvObj.m_password = std::string((const char *)pValue);
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // UDP un-secure enable
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_UDP_UNSECURE_ENABLE)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            m_udpSrvObj.m_bAllowUnsecure =
+              atoi((const char *)pValue) ? true : false;
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // UDP Filter
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_UDP_FILTER)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            vscp_readFilterFromString(&m_udpSrvObj.m_filter,
+                                      std::string((const char *)pValue));
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // UDP Mask
+        if (0 ==
+            vscp_strcasecmp((const char *)pName, VSCPDB_CONFIG_NAME_UDP_MASK)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            vscp_readMaskFromString(&m_udpSrvObj.m_filter,
+                                    std::string((const char *)pValue));
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // UDP GUID
+        if (0 ==
+            vscp_strcasecmp((const char *)pName, VSCPDB_CONFIG_NAME_UDP_GUID)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            m_udpSrvObj.m_guid.getFromString((const char *)pValue);
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // UDP Enable ACK
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_UDP_ACK_ENABLE)) {
+            pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+            m_udpSrvObj.m_bAck = atoi((const char *)pValue) ? true : false;
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
+        }
+
+        // Enable Multicast interface
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_MULTICAST_ENABLE)) {
+            m_bEnableMulticast = atoi((const char *)pValue) ? true : false;
+            continue;
+        }
+
+        // Path to DM database file
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_DM_PATH_DB)) {
+            m_dm.m_path_db_vscp_dm = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Path to DM XML file
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_DM_PATH_XML)) {
+            m_dm.m_staticXMLPath = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Path to variable database
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_VARIABLES_PATH_DB)) {
+            m_variables.m_dbFilename = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Path to variable XML
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_VARIABLES_PATH_XML)) {
+            m_variables.m_xmlPath = std::string((const char *)pValue);
+            continue;
+        }
+
+        // VSCP data database path
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_PATH_DB_EVENTS)) {
+            m_path_db_vscp_data = std::string((const char *)pValue);
+            continue;
+        }
+
+        // * * * WEB server * * *
+
+        // Web server enable
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_web_bEnable = true;
             } else {
-                buildPage += wxString::Format(_("<br><br>Memory problem id=%d. Unable to save record"), id);
+                m_web_bEnable = false;
             }
-
-        } else {
-            buildPage += wxString::Format(_("<br><br>Record id=%d is to large. Unable to save record"), id);
+            continue;
         }
-    } else {
-        buildPage += wxString::Format(_("<br><br>Record id=%d is wrong. Unable to save record"), id);
+
+        // Web server document root
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_DOCUMENT_ROOT)) {
+            m_web_document_root = std::string((const char *)pValue);
+            continue;
+        }
+
+        // listening ports for web server
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_LISTENING_PORTS)) {
+            m_web_listening_ports = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Index files
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_INDEX_FILES)) {
+            m_web_index_files = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Authdomain
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_AUTHENTICATION_DOMAIN)) {
+            m_web_authentication_domain = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Enable authdomain check
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_ENABLE_AUTH_DOMAIN_CHECK)) {
+            if (atoi((const char *)pValue)) {
+                m_enable_auth_domain_check = true;
+            } else {
+                m_enable_auth_domain_check = false;
+            }
+            continue;
+        }
+
+        // Path to cert file
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_CERTIFICATE)) {
+            m_web_ssl_certificate = std::string((const char *)pValue);
+            continue;
+        }
+
+        // SSL certificate chain
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_CERTIFICAT_CHAIN)) {
+            m_web_ssl_certificate_chain = std::string((const char *)pValue);
+            continue;
+        }
+
+        // SSL verify peer
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_VERIFY_PEER)) {
+            if (atoi((const char *)pValue)) {
+                m_web_ssl_verify_peer = true;
+            } else {
+                m_web_ssl_verify_peer = false;
+            }
+            continue;
+        }
+
+        // SSL CA path
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_CA_FILE)) {
+            m_web_ssl_ca_path = std::string((const char *)pValue);
+            continue;
+        }
+
+        // SSL CA file
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_CA_FILE)) {
+            m_web_ssl_ca_file = std::string((const char *)pValue);
+            continue;
+        }
+
+        // SSL verify depth
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_VERIFY_DEPTH)) {
+            m_web_ssl_verify_depth = atoi((const char *)pValue);
+            continue;
+        }
+
+        // SSL default verify path
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_SSL_DEFAULT_VERIFY_PATHS)) {
+            if (atoi((const char *)pValue)) {
+                m_web_ssl_default_verify_paths = true;
+            } else {
+                m_web_ssl_default_verify_paths = false;
+            }
+            continue;
+        }
+
+        // SSL chipher list
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_CHIPHER_LIST)) {
+            m_web_ssl_cipher_list = std::string((const char *)pValue);
+            continue;
+        }
+
+        // SSL protocol version
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_PROTOCOL_VERSION)) {
+            m_web_ssl_protocol_version = atoi((const char *)pValue);
+            continue;
+        }
+
+        // SSL short trust
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSL_SHORT_TRUST)) {
+            if (atoi((const char *)pValue)) {
+                m_web_ssl_short_trust = true;
+            } else {
+                m_web_ssl_short_trust = false;
+            }
+            continue;
+        }
+
+        // CGI interpreter
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_CGI_INTERPRETER)) {
+            m_web_cgi_interpreter = std::string((const char *)pValue);
+            continue;
+        }
+
+        // CGI pattern
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_CGI_PATTERN)) {
+            m_web_cgi_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // CGI environment
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_CGI_ENVIRONMENT)) {
+            m_web_cgi_environment = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Protect URI
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_PROTECT_URI)) {
+            m_web_protect_uri = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Web trottle
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_TROTTLE)) {
+            m_web_trottle = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Enable directory listings
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_ENABLE_DIRECTORY_LISTING)) {
+            if (atoi((const char *)pValue)) {
+                m_web_enable_directory_listing = true;
+            } else {
+                m_web_enable_directory_listing = false;
+            }
+            continue;
+        }
+
+        // Enable keep alive
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_ENABLE_KEEP_ALIVE)) {
+            if (atoi((const char *)pValue)) {
+                m_web_enable_keep_alive = true;
+            } else {
+                m_web_enable_keep_alive = false;
+            }
+            continue;
+        }
+
+        // Keep alive timout ms
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_KEEP_ALIVE_TIMEOUT_MS)) {
+            m_web_keep_alive_timeout_ms = atol((const char *)pValue);
+            continue;
+        }
+
+        // IP ACL
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_ACCESS_CONTROL_LIST)) {
+            m_web_access_control_list = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Extra mime types
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_EXTRA_MIME_TYPES)) {
+            m_web_extra_mime_types = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Number of threads
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_NUM_THREADS)) {
+            m_web_num_threads = atoi((const char *)pValue);
+            continue;
+        }
+
+        // Hide file patterns
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_HIDE_FILE_PATTERNS)) {
+            m_web_hide_file_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Run as user
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_RUN_AS_USER)) {
+            m_web_run_as_user = std::string((const char *)pValue);
+            continue;
+        }
+
+        // URL rewrites
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_URL_REWRITE_PATTERNS)) {
+            m_web_url_rewrite_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Hide file patterns
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_HIDE_FILE_PATTERNS)) {
+            m_web_hide_file_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // web request timout
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_REQUEST_TIMEOUT_MS)) {
+            m_web_request_timeout_ms = atol((const char *)pValue);
+            continue;
+        }
+
+        // web linger timout
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_LINGER_TIMEOUT_MS)) {
+            m_web_linger_timeout_ms = atol((const char *)pValue);
+            continue;
+        }
+
+        // Decode URL
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_DECODE_URL)) {
+            if (atoi((const char *)pValue)) {
+                m_web_decode_url = true;
+            } else {
+                m_web_decode_url = false;
+            }
+            continue;
+        }
+
+        // Global auth. file
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_GLOBAL_AUTHFILE)) {
+            m_web_global_auth_file = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Per directory auth. file
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_PER_DIRECTORY_AUTH_FILE)) {
+            m_web_per_directory_auth_file = std::string((const char *)pValue);
+            continue;
+        }
+
+        // SSI patterns
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_SSI_PATTERNS)) {
+            m_web_ssi_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Access control allow origin
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_WEB_ACCESS_CONTROL_ALLOW_ORIGIN)) {
+            m_web_access_control_allow_origin =
+              std::string((const char *)pValue);
+            continue;
+        }
+
+        // Access control allow methods
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_WEB_ACCESS_CONTROL_ALLOW_METHODS)) {
+            m_web_access_control_allow_methods =
+              std::string((const char *)pValue);
+            continue;
+        }
+
+        // Access control alow heraders
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_WEB_ACCESS_CONTROL_ALLOW_HEADERS)) {
+            m_web_access_control_allow_headers =
+              std::string((const char *)pValue);
+            continue;
+        }
+
+        // Error pages
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_ERROR_PAGES)) {
+            m_web_error_pages = std::string((const char *)pValue);
+            continue;
+        }
+
+        // TCP no delay
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_TCP_NO_DELAY)) {
+            m_web_tcp_nodelay = atol((const char *)pValue);
+            continue;
+        }
+
+        // File max age
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_STATIC_FILE_MAX_AGE)) {
+            m_web_static_file_max_age = atol((const char *)pValue);
+            continue;
+        }
+
+        // Transport security max age
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_WEB_STRICT_TRANSPORT_SECURITY_MAX_AGE)) {
+            m_web_strict_transport_security_max_age =
+              atol((const char *)pValue);
+            continue;
+        }
+
+        // Enable sendfile call
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_ALLOW_SENDFILE_CALL)) {
+            if (atoi((const char *)pValue)) {
+                m_web_allow_sendfile_call = true;
+            } else {
+                m_web_allow_sendfile_call = false;
+            }
+            continue;
+        }
+
+        // Additional headers
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_ADDITIONAL_HEADERS)) {
+            m_web_additional_header = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Max request size
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_MAX_REQUEST_SIZE)) {
+            m_web_max_request_size = atol((const char *)pValue);
+            continue;
+        }
+
+        // Allow index script resource
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_WEB_ALLOW_INDEX_SCRIPT_RESOURCE)) {
+            if (atoi((const char *)pValue)) {
+                m_web_allow_index_script_resource = true;
+            } else {
+                m_web_allow_index_script_resource = false;
+            }
+            continue;
+        }
+
+        // Duktape script patterns
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_DUKTAPE_SCRIPT_PATTERN)) {
+            m_web_duktape_script_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Lua preload file
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_LUA_PRELOAD_FILE)) {
+            m_web_lua_preload_file = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Lua script patterns
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEB_LUA_SCRIPT_PATTERN)) {
+            m_web_lua_script_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Lua server page patterns
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_LUA_SERVER_PAGE_PATTERN)) {
+            m_web_lua_server_page_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Lua websocket patterns
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_LUA_WEBSOCKET_PATTERN)) {
+            m_web_lua_websocket_patterns = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Lua background script
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_WEB_LUA_BACKGROUND_SCRIPT)) {
+            m_web_lua_background_script = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Lua background script params
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_WEB_LUA_BACKGROUND_SCRIPT_PARAMS)) {
+            m_web_lua_background_script_params =
+              std::string((const char *)pValue);
+            continue;
+        }
+
+        // * * * Websockets * * *
+
+        // Web server enable
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEBSOCKET_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_bWebsocketsEnable = true;
+            } else {
+                m_bWebsocketsEnable = false;
+            }
+            continue;
+        }
+
+        // Document root for websockets
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEBSOCKET_DOCUMENT_ROOT)) {
+            m_websocket_document_root = std::string((const char *)pValue);
+            continue;
+        }
+
+        // Websocket timeout
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_WEBSOCKET_TIMEOUT_MS)) {
+            m_websocket_timeout_ms = atol((const char *)pValue);
+            continue;
+        }
+
+        // * * * Automation * * *
+
+        // Enable automation
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_AUTOMATION_ENABLE)) {
+
+            if (atoi((const char *)pValue)) {
+                m_automation.enableAutomation();
+            } else {
+                m_automation.enableAutomation();
+            }
+            continue;
+        }
+
+        // Automation zone
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_AUTOMATION_ZONE)) {
+            m_automation.setZone(atoi((const char *)pValue));
+            continue;
+        }
+
+        // Automation sub zone
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_AUTOMATION_SUBZONE)) {
+            m_automation.setSubzone(atoi((const char *)pValue));
+            continue;
+        }
+
+        // Automation longitude
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_AUTOMATION_LONGITUDE)) {
+            m_automation.setLongitude(atof((const char *)pValue));
+            continue;
+        }
+
+        // Automation latitude
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_AUTOMATION_LATITUDE)) {
+            m_automation.setLatitude(atof((const char *)pValue));
+            continue;
+        }
+
+        // Automation enable sun rise event
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_AUTOMATION_SUNRISE_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_automation.enableSunRiseEvent();
+            } else {
+                m_automation.disableSunRiseEvent();
+            }
+            continue;
+        }
+
+        // Automation enable sun set event
+        if (0 == vscp_strcasecmp((const char *)pName,
+                                 VSCPDB_CONFIG_NAME_AUTOMATION_SUNSET_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_automation.enableSunSetEvent();
+            } else {
+                m_automation.disableSunSetEvent();
+            }
+            continue;
+        }
+
+        // Automation enable sunset twilight event
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_AUTOMATION_SUNSET_TWILIGHT_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_automation.enableSunSetTwilightEvent();
+            } else {
+                m_automation.disableSunSetTwilightEvent();
+            }
+            continue;
+        }
+
+        // Automation enable sunrise twilight event
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_AUTOMATION_SUNRISE_TWILIGHT_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_automation.enableSunRiseTwilightEvent();
+            } else {
+                m_automation.disableSunRiseTwilightEvent();
+            }
+            continue;
+        }
+
+        // Automation segment controller event enable
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_AUTOMATION_SEGMENT_CTRL_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_automation.enableSegmentControllerHeartbeat();
+            } else {
+                m_automation.disableSegmentControllerHeartbeat();
+            }
+            continue;
+        }
+
+        // Automation, segment controller heartbeat interval
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_AUTOMATION_SEGMENT_CTRL_INTERVAL)) {
+            m_automation.setSegmentControllerHeartbeatInterval(
+              atol((const char *)pValue));
+            continue;
+        }
+
+        // Automation heartbeat event enable
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_AUTOMATION_HEARTBEAT_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_automation.enableHeartbeatEvent();
+            } else {
+                m_automation.disableHeartbeatEvent();
+            }
+            continue;
+        }
+
+        // Automation heartbeat interval
+        if (0 ==
+            vscp_strcasecmp((const char *)pName,
+                            VSCPDB_CONFIG_NAME_AUTOMATION_HEARTBEAT_INTERVAL)) {
+            m_automation.setHeartbeatEventInterval(atol((const char *)pValue));
+            continue;
+        }
+
+        // Automation capabilities event enable
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_AUTOMATION_CAPABILITIES_ENABLE)) {
+            if (atoi((const char *)pValue)) {
+                m_automation.enableCapabilitiesEvent();
+            } else {
+                m_automation.disableCapabilitiesEvent();
+            }
+            continue;
+        }
+
+        // Automation capabilities interval
+        if (0 == vscp_strcasecmp(
+                   (const char *)pName,
+                   VSCPDB_CONFIG_NAME_AUTOMATION_CAPABILITIES_INTERVAL)) {
+            m_automation.setCapabilitiesEventInterval(
+              atol((const char *)pValue));
+            continue;
+        }
     }
 
+    sqlite3_finalize(ppStmt);
 
-    buildPage += _(WEB_COMMON_END); // Common end code 
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
+    pthread_mutex_unlock(&m_db_vscp_configMutex);
+
+    return true;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_dmdelete
+// readUdpNodes
+//
+// Read in defined UDP nodes
+//
 //
 
-int 
-CControlObject::websrv_serve_dmdelete( const void *cls,
-                                        const char *mime,
-                                        struct websrv_Session *session,
-                                        struct MHD_Connection *connection)
+bool
+CControlObject::readUdpNodes(void)
 {
-    int ret,i;
-    wxString str;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    dmElement *pElement = NULL;
- 
-       // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
+    char *pErrMsg    = 0;
+    const char *psql = "SELECT * FROM udpnode";
+    sqlite3_stmt *ppStmt;
+
+    // If UDP is disabled we are done
+    if (!m_udpSrvObj.m_bEnable) return true;
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "readUdpNodes: Database is not open.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_prepare(m_db_vscp_daemon, psql, -1, &ppStmt, NULL)) {
+        syslog(LOG_ERR, "readUdpNodes: prepare query failed.");
+        return false;
+    }
+
+    while (SQLITE_ROW == sqlite3_step(ppStmt)) {
+
+        const unsigned char *p;
+
+        // If not enabled move on
+        if (!sqlite3_column_int(ppStmt, VSCPDB_ORDINAL_UDPNODE_ENABLE))
+            continue;
+
+        pthread_mutex_lock(&m_udpSrvObj.m_mutexUDPInfo);
+
+        udpRemoteClientInfo *pudpClient = new udpRemoteClientInfo;
+        if (NULL == pudpClient) {
+            syslog(LOG_ERR,
+                   "readUdpNodes: Failed to allocate storage for UDP node.");
+            pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
+            continue;
         }
-        else {
-            strHost = _("http://") + strHost;
+
+        // Broadcast
+        pudpClient->m_bSetBroadcast = false;
+        if (sqlite3_column_int(ppStmt, VSCPDB_ORDINAL_UDPNODE_SET_BROADCAST)) {
+            pudpClient->m_bSetBroadcast = true;
+        } // Interface
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_UDPNODE_INTERFACE);
+        if (NULL != p) {
+            pudpClient->m_remoteAddress = std::string((const char *)p);
         }
+
+        //  Filter
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_UDPNODE_FILTER);
+        if (NULL != p) {
+            std::string wxstr = std::string((const char *)p);
+            if (!vscp_readFilterFromString(&pudpClient->m_filter, wxstr)) {
+                syslog(LOG_ERR,
+                       "readUdpNodes: Failed to set filter for UDP node.");
+            }
+        }
+
+        // Mask
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_UDPNODE_MASK);
+        if (NULL != p) {
+            std::string wxstr = std::string((const char *)p);
+            if (!vscp_readMaskFromString(&pudpClient->m_filter, wxstr)) {
+                syslog(LOG_ERR,
+                       "readUdpNodes: Failed to set mask for UDP node.");
+            }
+        }
+
+        // Encryption
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_UDPNODE_ENCRYPTION);
+        if (NULL != p) {
+            std::string wxstr         = std::string((const char *)p);
+            pudpClient->m_nEncryption = vscp_getEncryptionCodeFromToken(wxstr);
+        }
+
+        // Add to list
+        pudpClient->m_index = 0;
+        m_udpSrvObj.m_remotes.push_back(pudpClient);
+
+        pthread_mutex_unlock(&m_udpSrvObj.m_mutexUDPInfo);
     }
-    
-    // id
-    long id = -1;
-    const char *str_id = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "id");
-    if ( NULL != str_id ) id = atoi(str_id);
-        
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Decision Matrix Delete"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += wxString::Format(_("<meta http-equiv=\"refresh\" content=\"2;url=%s/vscp/dm"), strHost.GetData() );
-    buildPage += wxString::Format(_("?from=%d"), id + 1 );
-    buildPage += _("\">");
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    buildPage += navstr;
-    
-    buildPage += _(WEB_DMEDIT_BODY_START);
-    
-    if ( pObject->m_dm.removeRow( id ) ) {
-        buildPage += wxString::Format(_("<br>Deleted record id = %d"), id);
-        // Save decision matrix
-        pObject->m_dm.save();
-    }
-    else {
-        buildPage += wxString::Format(_("<br>Failed to remove record id = %d"), id);
-    }
-    
-    buildPage += _(WEB_COMMON_END);     // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
+
+    sqlite3_finalize(ppStmt);
+
+    return true;
 }
 
-
-
-
 ///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_variables_list
+// readMulticastChannels
+//
+// Read in defined multicast channels
+//
 //
 
-int
-CControlObject::websrv_serve_variables_list( const void *cls,
-                                                const char *mime,
-                                                struct websrv_Session *session,
-                                                struct MHD_Connection *connection)
+bool
+CControlObject::readMulticastChannels(void)
 {
-    int ret;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    long upperLimit = 50;
-    
-    // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
-        }
-        else {
-            strHost = _("http://") + strHost;
-        }
-    }
-            
-    // From
-    long nFrom = 0;
-    const char *str_from = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "from");
-    if ( NULL != str_from ) nFrom = atoi(str_from);
-    // Check limits
-    if (nFrom > pObject->m_VSCP_Variables.m_listVariable.GetCount()) nFrom = 0;
-    
-    // Count
-    uint16_t nCount = 50;
-    const char *str_count = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "count");
-    if ( NULL != str_count ) nCount = atoi(str_count);
-    // Check limits
-    if ((nFrom+nCount) > pObject->m_VSCP_Variables.m_listVariable.GetCount()) {
-        upperLimit = pObject->m_VSCP_Variables.m_listVariable.GetCount()-nFrom;
-    }
-    else {
-        upperLimit = nFrom+nCount;
-    }
-    
-    // Navigation button
-    const char *str_navbtn = 
-                    MHD_lookup_connection_value(connection, 
-                                                    MHD_GET_ARGUMENT_KIND, 
-                                                    "navbtn");
-    if ( NULL == str_navbtn ) {
-        //nFrom = 0;
-        if ((nFrom+nCount) > pObject->m_VSCP_Variables.m_listVariable.GetCount()) {
-            upperLimit = pObject->m_VSCP_Variables.m_listVariable.GetCount()-nFrom;
-        }
-        else {
-            upperLimit = nFrom+nCount;
-        }
-    }
-    else if (NULL != strstr("first",str_navbtn)) {
-        nFrom = 0;
-        if ((nFrom+nCount) > pObject->m_VSCP_Variables.m_listVariable.GetCount()) {
-            upperLimit = pObject->m_VSCP_Variables.m_listVariable.GetCount()-nFrom;
-        }
-        else {
-            upperLimit = nFrom+nCount;
-        }
-    }
-    else if (NULL != strstr("previous", str_navbtn) ) {
-        
-        if ( 0 != nFrom ) {    
-            
-            nFrom -= nCount;
-            upperLimit = nFrom+nCount;
-            
-            if ( nFrom < 0 ) {
-                nFrom = 0;
-                if ((nFrom-nCount) < 0) {
-                    upperLimit = pObject->m_VSCP_Variables.m_listVariable.GetCount()- nFrom;
-                }
-                else {
-                    upperLimit = nFrom-nCount;
-                }
-            }
-            
-            if (upperLimit < 0) {
-                upperLimit = nCount;
-            }
-        }
-        
-    }
-    else if (NULL != strstr("next",str_navbtn)) {
+    char *pErrMsg    = 0;
+    const char *psql = "SELECT * FROM multicast";
+    sqlite3_stmt *ppStmt;
 
-        if ( upperLimit < pObject->m_VSCP_Variables.m_listVariable.GetCount() ) {
-            nFrom += nCount;
-            if (nFrom >= pObject->m_VSCP_Variables.m_listVariable.GetCount()) {
-                nFrom = pObject->m_VSCP_Variables.m_listVariable.GetCount() - nCount;
-                if ( nFrom < 0 ) nFrom = 0;
-            }
-        
-            if ((nFrom+nCount) > pObject->m_VSCP_Variables.m_listVariable.GetCount()) {
-                upperLimit = pObject->m_VSCP_Variables.m_listVariable.GetCount();
-            }
-            else {
-                upperLimit = nFrom+nCount;
+    // If multicast is disabled we are done
+    if (!m_bEnableMulticast) return true;
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "readMulticastChannels: Database is not open.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_prepare(m_db_vscp_daemon, psql, -1, &ppStmt, NULL)) {
+        syslog(LOG_ERR, "readMulticastChannels: prepare query failed.");
+        return false;
+    }
+
+    while (SQLITE_ROW == sqlite3_step(ppStmt)) {
+
+        const unsigned char *p;
+
+        // If not enabled move on
+        if (!sqlite3_column_int(ppStmt, VSCPDB_ORDINAL_MULTICAST_ENABLE))
+            continue;
+
+        multicastChannelItem *pChannel = new multicastChannelItem;
+        if (NULL == pChannel) {
+            syslog(LOG_ERR,
+                   "readMulticastChannels: Failed to allocate storage for "
+                   "multicast node.");
+            continue;
+        }
+
+        // Default is to let everything come through
+        vscp_clearVSCPFilter(&pChannel->m_txFilter);
+        vscp_clearVSCPFilter(&pChannel->m_rxFilter);
+
+        // public interface
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_MULTICAST_PUBLIC);
+        if (NULL != p) {
+            pChannel->m_public = std::string((const char *)p);
+        }
+
+        // Port
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_MULTICAST_PORT);
+
+        // group
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_MULTICAST_GROUP);
+        if (NULL != p) {
+            pChannel->m_gropupAddress = std::string((const char *)p);
+        } // ttl
+        pChannel->m_ttl =
+          sqlite3_column_int(ppStmt, VSCPDB_ORDINAL_MULTICAST_TTL);
+
+        // bAck
+        pChannel->m_bSendAck =
+          sqlite3_column_int(ppStmt, VSCPDB_ORDINAL_MULTICAST_SENDACK) ? true
+                                                                       : false;
+
+        // Allow unsecure
+        pChannel->m_bAllowUnsecure =
+          sqlite3_column_int(ppStmt, VSCPDB_ORDINAL_MULTICAST_ALLOW_UNSECURE)
+            ? true
+            : false;
+
+        // GUID
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_MULTICAST_GUID);
+        if (NULL != p) {
+            pChannel->m_guid.getFromString((const char *)p);
+        }
+
+        //  TX Filter
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_MULTICAST_TXFILTER);
+        if (NULL != p) {
+            std::string wxstr = std::string((const char *)p);
+            if (!vscp_readFilterFromString(&pChannel->m_txFilter, wxstr)) {
+                syslog(LOG_ERR,
+                       "readMulticastChannels: Failed to set TX "
+                       "filter for multicast channel.");
             }
         }
 
-    }
-    else if (NULL != strstr("last",str_navbtn)) {
-        nFrom = pObject->m_VSCP_Variables.m_listVariable.GetCount() - nCount;
-        if ( nFrom < 0 ) {
-            nFrom = 0;
-            upperLimit = pObject->m_VSCP_Variables.m_listVariable.GetCount();
-        }
-        else {
-            upperLimit = pObject->m_VSCP_Variables.m_listVariable.GetCount();
-        }
-    }
-
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Variables"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    buildPage += navstr;
-    
-    buildPage += _(WEB_VARLIST_BODY_START);
-    
-    {
-        wxString wxstrurl = wxString::Format(_("%s/vscp/variables"), 
-                                                strHost.GetData() );
-        buildPage += wxString::Format( _(WEB_COMMON_LIST_NAVIGATION),
-                wxstrurl.GetData(),
-                nFrom,
-                ((nFrom + nCount) < pObject->m_VSCP_Variables.m_listVariable.GetCount()) ? 
-                    nFrom + nCount - 1 : pObject->m_VSCP_Variables.m_listVariable.GetCount() - 1,
-                pObject->m_VSCP_Variables.m_listVariable.GetCount(),
-                nCount,
-                nFrom,
-                _("false" ) );
-        buildPage += _("<br>");
-    } 
-
-    wxString strBuf;
-
-    // Display Variables List
-    
-    if ( 0 == pObject->m_VSCP_Variables.m_listVariable.GetCount() ) {
-        buildPage += _("<br>Variables list is empty!<br>");
-    }
-    else {
-        buildPage += _(WEB_VARLIST_TR_HEAD);
-    }
-    
-    if (nFrom < 0) nFrom = 0;
-    
-    for ( int i=nFrom;i<upperLimit;i++) {
-        
-        CVSCPVariable *pVariable = 
-                pObject->m_VSCP_Variables.m_listVariable.Item( i )->GetData();
-        
-        {
-            wxString url_dmedit = 
-                    wxString::Format(_("%s/vscp/varedit?id=%d"),
-                                        strHost.GetData(),
-                                        i );
-            wxString str = wxString::Format(_(WEB_COMMON_TR_CLICKABLE_ROW),
-                                                url_dmedit.GetData() );
-            buildPage += str;
-        }
-
-        // Client id    
-        buildPage += _(WEB_IFLIST_TD_CENTERED);
-        buildPage += wxString::Format(_("<form name=\"input\" action=\"%s/vscp/vardelete?id=%d\" method=\"get\">%d<input type=\"submit\" value=\"x\"><input type=\"hidden\" name=\"id\"value=\"%d\"></form>"), 
-                        strHost.GetData(), i, i, i );
-        buildPage += _("</td>");
-        
-        if (NULL != pVariable) {
-
-            // Variable type
-            buildPage += _("<td>");
-            switch (pVariable->getType()) {
-
-            case VSCP_DAEMON_VARIABLE_CODE_UNASSIGNED:
-                buildPage += _("Unassigned");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_STRING:
-                buildPage += _("String");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_BOOLEAN:
-                buildPage += _("Boolean");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_INTEGER:
-                buildPage += _("Integer");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_LONG:
-                buildPage += _("Long");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_DOUBLE:
-                buildPage += _("Double");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_VSCP_MEASUREMENT:
-                buildPage += _("Measurement");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT:
-                buildPage += _("Event");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_GUID:
-                buildPage += _("GUID");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_DATA:
-                buildPage += _("Event data");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_CLASS:
-                buildPage += _("Event class");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_TYPE:
-                buildPage += _("Event type");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_TIMESTAMP:
-                buildPage += _("Event timestamp");
-                break;
-
-            case VSCP_DAEMON_VARIABLE_CODE_DATETIME:
-                buildPage += _("Date and time");
-                break;
-
-            default:
-                buildPage += _("Unknown type");
-                break;
-
+        // TX Mask
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_MULTICAST_TXMASK);
+        if (NULL != p) {
+            std::string wxstr = std::string((const char *)p);
+            if (!vscp_readMaskFromString(&pChannel->m_txFilter, wxstr)) {
+                syslog(LOG_ERR,
+                       "readMulticastChannels: Failed to set TX "
+                       "mask for multicast channel.");
             }
-            buildPage += _("</td>");
-
-            
-            // Variable entry
-            buildPage += _("<td>");
-
-
-            buildPage += _("<div id=\"small\">");
-
-            buildPage += _("<h4>");
-            buildPage += pVariable->getName();
-            buildPage += _("</h4>");
-            
-            wxString str;
-            pVariable->writeVariableToString(str);
-            buildPage += _("<b>Value:</b> ");
-            buildPage += str;
-            
-            buildPage += _("<br>");
-            buildPage += _("<b>Note:</b> ");
-            buildPage += pVariable->getNote();
-            
-            buildPage += _("<br>");
-            buildPage += _("<b>Persistent: </b> ");
-            if ( pVariable->isPersistent() ) {
-                buildPage += _("yes");
-            }
-            else {
-                buildPage += _("no");
-            }
-
-            buildPage += _("</div>");
-
-        }
-        else {
-            buildPage += _("Internal error: Non existent variable entry.");
         }
 
-        buildPage += _("</td>");
-        buildPage += _("</tr>");
+        //  RX Filter
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_MULTICAST_RXFILTER);
+        if (NULL != p) {
+            std::string wxstr = std::string((const char *)p);
+            if (!vscp_readFilterFromString(&pChannel->m_rxFilter, wxstr)) {
+                syslog(LOG_ERR,
+                       "readMulticastChannels: Failed to set RX "
+                       "filter for multicast channel.");
+            }
+        }
 
+        // RX Mask
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_MULTICAST_RXMASK);
+        if (NULL != p) {
+            std::string wxstr = std::string((const char *)p);
+            if (!vscp_readMaskFromString(&pChannel->m_rxFilter, wxstr)) {
+                syslog(LOG_ERR,
+                       "readMulticastChannels: Failed to set RX "
+                       "mask for multicast channel.");
+            }
+        }
+
+        // Encryption
+        p = sqlite3_column_text(ppStmt, VSCPDB_ORDINAL_UDPNODE_ENCRYPTION);
+        if (NULL != p) {
+            std::string wxstr       = std::string((const char *)p);
+            pChannel->m_nEncryption = vscp_getEncryptionCodeFromToken(wxstr);
+        }
+
+        // Add to list
+        pChannel->m_index = 0;
+        m_multicastObj.m_channels.push_back(pChannel);
     }
-       
-    buildPage += _(WEB_DMLIST_TABLE_END);
-    
-    {
-        wxString wxstrurl = wxString::Format(_("%s/vscp/variables"), 
-                                                strHost.GetData() );
-        buildPage += wxString::Format( _(WEB_COMMON_LIST_NAVIGATION),
-                wxstrurl.GetData(),
-                nFrom,
-                ((nFrom + nCount) < pObject->m_VSCP_Variables.m_listVariable.GetCount()) ? 
-                    nFrom + nCount - 1 : pObject->m_VSCP_Variables.m_listVariable.GetCount() - 1,
-                pObject->m_VSCP_Variables.m_listVariable.GetCount(),
-                nCount,
-                nFrom,
-                _("false") );
-    }
-     
-    buildPage += _(WEB_COMMON_END);     // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret; 
+
+    sqlite3_finalize(ppStmt);
+
+    return true;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_variables_edit
+// doCreateUdpNodeTable
+//
+// Create the UDP node database
 //
 
-int 
-CControlObject::websrv_serve_variables_edit( const void *cls,
-                                                const char *mime,
-                                                struct websrv_Session *session,
-                                                struct MHD_Connection *connection)
+bool
+CControlObject::doCreateUdpNodeTable(void)
 {
-    int ret,i;
-    wxString str;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    CVSCPVariable *pVariable = NULL;
-    
-    // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
-        }
-        else {
-            strHost = _("http://") + strHost;
-        }
-    }
-    
-    // id
-    long id = -1;
-    const char *str_id = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "id");
-    if ( NULL != str_id ) id = atoi(str_id);
-    
-    // type
-    uint8_t nType = VSCP_DAEMON_VARIABLE_CODE_UNASSIGNED;
-    const char *str_variable_type = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "type");
-    if ( NULL != str_variable_type ) nType = atoi(str_variable_type);
-    
-    // Flag for new variable row
-    bool bNew = false;
-    const char *str_new = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "new");
-    if ( (NULL != str_new) && NULL != strstr( "true", str_new ) ) bNew = true;
-    
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Variable Edit"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s") ) ) ) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    
-    buildPage += navstr;
-    
-    buildPage += _(WEB_VAREDIT_BODY_START);
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_UDPNODE_CREATE;
 
-    if ( !bNew && ( id < pObject->m_VSCP_Variables.m_listVariable.GetCount() ) ) {
-        pVariable = pObject->m_VSCP_Variables.m_listVariable.Item(id)->GetData();
+    syslog(LOG_INFO, "Creating udpnode table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP udpnode table - database closed.");
+        return false;
     }
 
-    if (bNew || (NULL != pVariable)) {
-        
-        if ( bNew ) {
-            buildPage += _("<br><span id=\"optiontext\">New record.</span><br>");
-        }
-        else {
-            buildPage += wxString::Format(_("<br><span id=\"optiontext\">Record = %d.</span><br>"), id);
-        }
-        
-        buildPage += _("<br><form method=\"get\" action=\"");
-        buildPage += strHost;
-        buildPage += _("/vscp/varpost");
-        buildPage += _("\" name=\"varedit\">");
-        
-        // Hidden id
-        buildPage += wxString::Format(_("<input name=\"id\" value=\"%d\" type=\"hidden\">"), id );
-        
-        if (bNew) {     
-            // Hidden new
-            buildPage += _("<input name=\"new\" value=\"true\" type=\"hidden\">");
-        }
-        else {
-            // Hidden new
-            buildPage += _("<input name=\"new\" value=\"false\" type=\"hidden\">");
-        }
-        
-        // Hidden type
-        buildPage += _("<input name=\"type\" value=\"");
-        buildPage += wxString::Format(_("%d"), ( bNew ? nType : pVariable->getType()) );
-        buildPage += _("\" type=\"hidden\"></input>");
-        
-        buildPage += _("<h4>Variable:</h4> <span id=\"optiontext\"></span><br>");
+    pthread_mutex_lock(&m_db_vscp_configMutex);
 
-        buildPage += _("<table class=\"invisable\"><tbody><tr class=\"invisable\">");
-
-        buildPage += _("<td class=\"invisable\">Name:</td><td class=\"invisable\">");
-        if ( !bNew ) {
-            buildPage += pVariable->getName();
-            buildPage += _("<input name=\"value_name\" value=\"");
-            buildPage += pVariable->getName();
-            buildPage += _("\" type=\"hidden\">");
-        }
-        else {
-            buildPage += _("<textarea cols=\"50\" rows=\"1\" name=\"value_name\"></textarea>");
-        }
-        buildPage += _("</td></tr><tr>");
-        buildPage += _("<td class=\"invisable\">Value:</td><td class=\"invisable\">");
-        
-        if (!bNew ) nType = pVariable->getType();
-        
-        if ( nType  == VSCP_DAEMON_VARIABLE_CODE_STRING ) {
-            
-            buildPage += _("<textarea cols=\"50\" rows=\"1\" name=\"value_string\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString str;
-                pVariable->getValue( &str );
-                buildPage += str;
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_BOOLEAN ) {
-            
-            bool bValue = false;
-            if ( !bNew ) pVariable->getValue( &bValue );
-            
-            buildPage += _("<input type=\"radio\" name=\"value_boolean\" value=\"true\" ");
-            if ( !bNew ) 
-                buildPage += wxString::Format(_("%s"), 
-                                bValue ? _("checked >true ") : _(">true ") );
-            else {
-                buildPage += _(">true ");
-            }
-            
-            buildPage += _("<input type=\"radio\" name=\"value_boolean\" value=\"false\" ");
-            if ( !bNew ) 
-                buildPage += wxString::Format(_("%s"), 
-                                        !bValue ? _("checked >false ") : _(">false ") );
-            else {
-                buildPage += _(">false ");
-            }
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_INTEGER ) {
-            
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_integer\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                int val;
-                pVariable->getValue( &val );
-                buildPage += wxString::Format(_("%d"), val );
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_LONG ) {
-            
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_long\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                long val;
-                pVariable->getValue( &val );
-                buildPage += wxString::Format(_("%ld"), val );
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_DOUBLE ) {
-            
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_double\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                double val;
-                pVariable->getValue( &val );
-                buildPage += wxString::Format(_("%f"), val );
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_VSCP_MEASUREMENT ) {
-            buildPage += _("<textarea cols=\"50\" rows=\"1\" name=\"value_measurement\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString str;
-                pVariable->writeVariableToString( str );
-                buildPage += str;
-            }
-            
-            buildPage += _("</textarea>");
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT ) {
-            
-            buildPage += _("<table>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("VSCP class");
-             buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_class\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                buildPage += wxString::Format(_("0x%x"), pVariable->m_event.vscp_class );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("VSCP type: ");
-            buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_type\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                buildPage += wxString::Format(_("0x%x"), pVariable->m_event.vscp_type );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("GUID: ");
-            buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"50\" rows=\"1\" name=\"value_guid\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString strGUID;
-                writeGuidArrayToString( pVariable->m_event.GUID, strGUID );
-                buildPage += wxString::Format(_("%s"), strGUID.GetData() );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("Timestamp: ");
-            buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_timestamp\">");
-            if ( bNew ) {
-                buildPage += _("0");
-            }
-            else {
-                buildPage += wxString::Format(_("0x%x"), pVariable->m_event.timestamp );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("OBID: ");
-            buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_obid\">");
-            if ( bNew ) {
-                buildPage += _("0");
-            }
-            else {
-                buildPage += wxString::Format(_("0x%X"), pVariable->m_event.obid );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("Head: ");
-            buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_head\">");
-            if ( bNew ) {
-                buildPage += _("0");
-            }
-            else {
-                buildPage += wxString::Format(_("0x%02x"), pVariable->m_event.head );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("CRC: ");
-            buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_crc\">");
-            if ( bNew ) {
-                buildPage += _("0");
-            }
-            else {
-                buildPage += wxString::Format(_("0x%08x"), pVariable->m_event.crc );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("Data size: ");
-            buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_sizedata\">");
-            if ( bNew ) {
-                buildPage += _("0");
-            }
-            else {
-                buildPage += wxString::Format(_("%d"), pVariable->m_event.sizeData );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("<tr><td>");
-            buildPage += _("Data: ");
-            buildPage += _("</td><td>");
-            buildPage += _("<textarea cols=\"50\" rows=\"4\" name=\"value_data\">");
-            if ( bNew ) {
-                buildPage += _("0");
-            }
-            else {
-                wxString strData;
-                writeVscpDataToString( &pVariable->m_event, strData );
-                buildPage += wxString::Format(_("%s"), strData.GetData() );
-            }
-            
-            buildPage += _("</textarea>");
-            buildPage += _("</td></tr>");
-            
-            buildPage += _("</table>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_GUID ) {
-            
-            buildPage += _("<textarea cols=\"50\" rows=\"1\" name=\"value_guid\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString strGUID;
-                pVariable->writeVariableToString(strGUID);
-                buildPage += strGUID;
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_DATA ) {
-            
-            buildPage += _("<textarea cols=\"50\" rows=\"5\" name=\"value_data\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString strData;
-                writeVscpDataToString( &pVariable->m_event, strData );
-                buildPage += strData.GetData();
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_CLASS ) {
-            
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_class\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString str;
-                pVariable->writeVariableToString( str );
-                buildPage += str;
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_TYPE ) {
-            
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_type\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString str;
-                pVariable->writeVariableToString( str );
-                buildPage += str;
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_TIMESTAMP ) {
-            
-            buildPage += _("<textarea cols=\"10\" rows=\"1\" name=\"value_timestamp\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString str;
-                pVariable->writeVariableToString( str );
-                buildPage += str;
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else if ( nType == VSCP_DAEMON_VARIABLE_CODE_DATETIME ) {
-            
-            buildPage += _("<textarea cols=\"20\" rows=\"1\" name=\"value_date_time\">");
-            if ( bNew ) {
-                buildPage += _("");
-            }
-            else {
-                wxString str;
-                pVariable->writeVariableToString( str );
-                buildPage += str;
-            }
-            
-            buildPage += _("</textarea>");
-            
-        }
-        else {
-            // Invalid type
-            buildPage += _("Invalid type - Something is very wrong!");
-        }
-        
-        
-        buildPage += _("</tr><tr><td>Persistence: </td><td>");
-
-        buildPage += _("<input type=\"radio\" name=\"persistent\" value=\"true\" ");
-        
-        if ( !bNew ) {
-            buildPage += wxString::Format(_("%s"), 
-                pVariable->isPersistent() ? _("checked >Persistent ") : _(">Persistent ") );
-        }
-        else {
-            buildPage += _("checked >Persistent ");
-        }
-        
-         buildPage += _("<input type=\"radio\" name=\"persistent\" value=\"false\" ");
-         
-        if ( !bNew ) {
-            buildPage += wxString::Format(_("%s"), 
-                !pVariable->isPersistent() ? _("checked >Non persistent ") : _(">Non persistent ") );
-        }
-        else {
-            buildPage += _(">Non persistent ");
-        }
-        
-        buildPage += _("</td></tr>");
-        
-        
-        buildPage += _("</tr><tr><td>Note: </td><td>");
-        buildPage += _("<textarea cols=\"50\" rows=\"5\" name=\"note\">");
-        if (bNew) {
-            buildPage += _("");
-        } 
-        else {
-            buildPage += pVariable->getNote();
-        }
-
-        buildPage += _("</textarea>");
-
-        buildPage += _("</td></tr></table>");
-
-        buildPage += _(WEB_VAREDIT_TABLE_END);
-
-        //buildPage += _(WEB_VAREDIT_SUBMIT);
-    } 
-    else {
-        buildPage += _("<br><b>Error: Non existent id</b>");
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP udpnode table with error %s.",
+               pErrMsg);
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+        return false;
     }
-    
-    
-    wxString wxstrurl = wxString::Format(_("%s/vscp/varpost"), 
-                                                strHost.GetData() );
-    buildPage += wxString::Format( _(WEB_VAREDIT_SUBMIT),
-                                    wxstrurl.GetData() );
-    
-    buildPage += _("</form>");
-    buildPage += _(WEB_COMMON_END);     // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
+
+    pthread_mutex_unlock(&m_db_vscp_configMutex);
+
+    return true;
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_variables_post
+// doCreateMulticastTable
+//
+// Create the multicast database
+//
 //
 
-int 
-CControlObject::websrv_serve_variables_post( const void *cls,
-                                                const char *mime,
-                                                struct websrv_Session *session,
-                                                struct MHD_Connection *connection)
+bool
+CControlObject::doCreateMulticastTable(void)
 {
-    int ret,i;
-    wxString str;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    CVSCPVariable *pVariable = NULL;
-    
-    // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
-        }
-        else {
-            strHost = _("http://") + strHost;
-        }
-    }
-    
-    // id
-    long id = -1;
-    const char *str_id = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "id");
-    if ( NULL != str_id ) id = atoi(str_id);
-    
-    uint8_t nType = VSCP_DAEMON_VARIABLE_CODE_UNASSIGNED;
-    const char *str_variable_type = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "type");
-    if ( NULL != str_variable_type ) nType = atoi(str_variable_type);
-    
-    wxString strName;
-    const char *str_name = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_name");
-    if ( NULL != str_name ) strName = wxString::FromAscii(str_name);
-    
-    // Flag for new variable row
-    bool bNew = false;
-    const char *str_new = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "new");
-    if ( (NULL != str_new) && NULL != strstr( "true", str_new ) ) bNew = true;
-    
-    // Flag for persistence
-    bool bPersistent = true;
-    const char *str_persistent = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "persistent");
-    if ( (NULL != str_persistent) && NULL != strstr( "false", str_persistent ) ) bPersistent = false;
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_MULTICAST_CREATE;
 
-    wxString strNote;
-    const char *str_note = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "note");
-    if ( NULL != str_note ) strNote = wxString::FromAscii(str_note);
-    
-    wxString strValueString;
-    const char *str_string = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_string");
-    if ( NULL != str_string ) strValueString = wxString::FromAscii(str_string);
-    
-           
-    bool bValueBoolean = false;
-    const char *str_boolean = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_boolean");
-    if ( (NULL != str_boolean) && NULL != strstr( "true", str_boolean ) ) bValueBoolean = true;
-    
-    int value_integer = 0;
-    const char *str_integer = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_integer");
-    str = wxString::FromAscii(str_integer);
-    if ( NULL != str_integer ) value_integer = readStringValue( str );
-       
-    long value_long = 0;
-    const char *str_long = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_long");
-    str = wxString::FromAscii(str_long);
-    if ( NULL != str_long ) value_long = readStringValue( str );
-    
-    double value_double = 0;
-    const char *str_double = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_double");
-    if ( NULL != str_double ) value_double = atof( str_double );
-    
-    wxString strMeasurement;
-    const char *str_measurement = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_measurement");
-    if ( NULL != str_measurement ) strMeasurement = wxString::FromAscii(str_measurement);
-    
-    uint16_t value_class = 0;
-    const char *str_class = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_class");
-    if ( NULL != str_class ) value_class = readStringValue( wxString::FromAscii(str_class) );
-    
-    uint16_t value_type = 0;
-    const char *str_type = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_type");
-    if ( NULL != str_type ) value_type = readStringValue( wxString::FromAscii(str_type) );
-    
-    wxString strGUID;
-    const char *str_guid = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_guid");
-    if ( NULL != str_guid ) strGUID = wxString::FromAscii(str_guid);
-    
-    uint32_t value_timestamp = 0;
-    const char *str_timestamp = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_timestamp");
-    if ( NULL != str_timestamp ) value_timestamp = readStringValue( wxString::FromAscii(str_timestamp) );
-    
-    uint32_t value_obid = 0;
-    const char *str_obid = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_obid");
-    if ( NULL != str_obid ) value_obid = readStringValue( wxString::FromAscii(str_obid) );
-    
-    uint8_t value_head = 0;
-    const char *str_head = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_head");
-    if ( NULL != str_head ) value_head = readStringValue( wxString::FromAscii(str_head) );
-    
-    uint32_t value_crc = 0;
-    const char *str_crc = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_crc");
-    if ( NULL != str_crc ) value_crc = readStringValue( wxString::FromAscii(str_crc) );
-    
-    uint16_t value_sizedata = 0;
-    const char *str_sizedata = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_sizedata");
-    if ( NULL != str_sizedata ) value_sizedata = readStringValue( wxString::FromAscii(str_sizedata) );
-    
-    wxString strData;
-    const char *str_data = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_data");
-    if ( NULL != str_data ) strData = wxString::FromAscii(str_data);
-    
-    wxString strDateTime;
-    const char *str_date_time = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "value_date_time");
-    if ( NULL != str_date_time ) strDateTime = wxString::FromAscii(str_date_time);
-    
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Variable Post"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += wxString::Format(_("<meta http-equiv=\"refresh\" content=\"2;url=%s/vscp/variables"), strHost.GetData() );
-    buildPage += wxString::Format(_("?from=%d"), id );
-    buildPage += _("\">");
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    buildPage += navstr;
-    
-    buildPage += _(WEB_VARPOST_BODY_START);
-        
-    if (bNew) {
-        pVariable = new CVSCPVariable;
+    syslog(LOG_INFO, "Creating multicast table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP multicast table - database closed.");
+        return false;
     }
 
-    if (bNew || (id >= 0)) {
+    pthread_mutex_lock(&m_db_vscp_configMutex);
 
-        if (bNew || 
-                ((0 == id) && !bNew) || 
-                (id < pObject->m_VSCP_Variables.m_listVariable.GetCount()) ) {
-
-            if (!bNew) pVariable = pObject->m_VSCP_Variables.m_listVariable.Item(id)->GetData();
-
-            if (NULL != pVariable) {
-
-                // Set the type
-                pVariable->setPersistent( bPersistent );
-                pVariable->setType( nType );
-                pVariable->m_note = strNote;
-                pVariable->setName( strName );
-                
-                switch ( nType ) {
-
-                case VSCP_DAEMON_VARIABLE_CODE_UNASSIGNED:
-                    buildPage += _("Error: Variable code is unassigned.<br>");
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_STRING:
-                    pVariable->setValue( strValueString );
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_BOOLEAN:
-                    pVariable->setValue( bValueBoolean );
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_INTEGER:
-                    pVariable->setValue( value_integer );
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_LONG:
-                    pVariable->setValue( value_long );
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_DOUBLE:
-                    pVariable->setValue( value_double );
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_VSCP_MEASUREMENT:
-                    uint16_t size;
-                    getVscpDataArrayFromString( pVariable->m_normInteger, 
-                                                    &size,
-                                                    strMeasurement );
-                    pVariable->m_normIntSize = size;
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT:
-                    pVariable->m_event.vscp_class = value_class;
-                    pVariable->m_event.vscp_type = value_type;
-                    getGuidFromStringToArray( pVariable->m_event.GUID, strGUID );
-                    getVscpDataFromString( &pVariable->m_event,
-                                            strData );
-                    pVariable->m_event.crc = value_crc;
-                    pVariable->m_event.head = value_head;
-                    pVariable->m_event.obid = value_obid;
-                    pVariable->m_event.timestamp = value_timestamp;        
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_GUID:
-                    getGuidFromStringToArray( pVariable->m_event.GUID, strGUID );
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_DATA:
-                    getVscpDataFromString( &pVariable->m_event,
-                                            strData );
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_CLASS:
-                    pVariable->m_event.vscp_class = value_class;
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_TYPE:
-                    pVariable->m_event.vscp_type = value_type;
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_VSCP_EVENT_TIMESTAMP:
-                    pVariable->m_event.timestamp = value_timestamp;
-                    break;
-
-                case VSCP_DAEMON_VARIABLE_CODE_DATETIME:
-                    pVariable->m_timestamp.ParseDateTime( strDateTime );
-                    break;
-
-                default:
-                    buildPage += _("Error: Variable code is unknown.<br>");
-                    break;
-
-                }
-                
-                // If new variable add it
-                if (bNew ) {
-                    pObject->m_VSCP_Variables.add( pVariable );
-                }
-
-                // Save variables
-                pObject->m_VSCP_Variables.save();
-                
-                buildPage += wxString::Format(_("<br><br>Variable has been saved. id=%d"), id);
-
-            }
-            else {
-                buildPage += wxString::Format(_("<br><br>Memory problem id=%d. Unable to save record"), id);
-            }
-
-        } 
-        else {
-            buildPage += wxString::Format(_("<br><br>Record id=%d is to large. Unable to save record"), id);
-        }
-    } 
-    else {
-        buildPage += wxString::Format(_("<br><br>Record id=%d is wrong. Unable to save record"), id);
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP multicast table with error %s.",
+               pErrMsg);
+        pthread_mutex_unlock(&m_db_vscp_configMutex);
+        return false;
     }
 
+    pthread_mutex_unlock(&m_db_vscp_configMutex);
 
-    buildPage += _(WEB_COMMON_END); // Common end code 
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
+    return true;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_variables_delete
+// doCreateUserTable
+//
+// Create the user table
+//
 //
 
-int 
-CControlObject::websrv_serve_variables_delete( const void *cls,
-                                                const char *mime,
-                                                struct websrv_Session *session,
-                                                struct MHD_Connection *connection)
+bool
+CControlObject::doCreateUserTable(void)
 {
-    int ret,i;
-    wxString str;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    CVSCPVariable *pVariable = NULL;
- 
-       // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
-        }
-        else {
-            strHost = _("http://") + strHost;
-        }
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_USER_CREATE;
+
+    syslog(LOG_INFO, "Creating user table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP user table - closed.");
+        return false;
     }
-    
-    // id
-    long id = -1;
-    const char *str_id = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "id");
-    if ( NULL != str_id ) id = atoi(str_id);
-        
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - Variable Delete"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += wxString::Format(_("<meta http-equiv=\"refresh\" content=\"2;url=%s/vscp/variables"), strHost.GetData() );
-    buildPage += wxString::Format(_("?from=%d"), id + 1 );
-    buildPage += _("\">");
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(
+          LOG_ERR, "Failed to create VSCP user table with error %s.", pErrMsg);
+        return false;
     }
-    buildPage += navstr;
-    
-    buildPage += _(WEB_VAREDIT_BODY_START);
-    
-    wxlistVscpVariableNode *node = 
-            pObject->m_VSCP_Variables.m_listVariable.Item( id );
-    if ( pObject->m_VSCP_Variables.m_listVariable.DeleteNode( node )  ) {
-        buildPage += wxString::Format(_("<br>Deleted record id = %d"), id);
-        // Save variables
-        pObject->m_VSCP_Variables.save();
-    }
-    else {
-        buildPage += wxString::Format(_("<br>Failed to remove record id = %d"), id);
-    }
-    
-    buildPage += _(WEB_COMMON_END);     // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
+
+    return true;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
-// websrv_serve_variables_new
+// doCreateDriverTable
+//
+// Create the driver table
+//
 //
 
-int 
-CControlObject::websrv_serve_variables_new( const void *cls,
-                                                const char *mime,
-                                                struct websrv_Session *session,
-                                                struct MHD_Connection *connection)
+bool
+CControlObject::doCreateDriverTable(void)
 {
-    int ret,i;
-    wxString str;
-    VSCPInformation vscpinfo;
-    CControlObject *pObject = (CControlObject *) cls;
-    struct MHD_Response *response;
-    CVSCPVariable *pVariable = NULL;
- 
-       // Get connection type
-    const MHD_ConnectionInfo *pProtocolInfo = 
-            MHD_get_connection_info(connection, 
-                                        MHD_CONNECTION_INFO_PROTOCOL );
-    // Get hostname
-    wxString strHost = _("http://localhost:8080");
-    const char *str_host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "host");
-    if ( NULL != str_host ) {
-        strHost = wxString::FromAscii(str_host);
-        if ( NULL != pProtocolInfo ) {
-            strHost = _("https://") + strHost;
-        }
-        else {
-            strHost = _("http://") + strHost;
-        }
-    }
-    
-        
-    wxString buildPage;
-    buildPage = wxString::Format(_(WEB_COMMON_HEAD), _("VSCP - New variable"));
-    buildPage += _(WEB_STYLE_START);
-    buildPage += _(WEB_COMMON_CSS);     // CSS style Code
-    buildPage += _(WEB_STYLE_END);
-    buildPage += _(WEB_COMMON_JS);      // Common Javascript code
-    buildPage += _(WEB_COMMON_HEAD_END_BODY_START);
-    
-    // Insert server url into navigation menu 
-    wxString navstr = _(WEB_COMMON_MENU);
-    int pos;
-    while ( wxNOT_FOUND != ( pos = navstr.Find(_("%s")))) {
-        buildPage += navstr.Left( pos );
-        navstr = navstr.Right(navstr.Length() - pos - 2);
-    }
-    buildPage += navstr;
-    
-    buildPage += _(WEB_VAREDIT_BODY_START);
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_DRIVER_CREATE;
 
-    buildPage += _("<br><div style=\"text-align:center\">");
-    
-    buildPage += _("<br><form method=\"get\" action=\"");
-    buildPage += strHost;
-    buildPage += _("/vscp/varedit");
-    buildPage += _("\" name=\"varnewstep1\">");
-    
-    buildPage += _("<input name=\"new\" value=\"true\" type=\"hidden\">");
-    
-    buildPage += _("<select name=\"type\">");
-    buildPage += _("<option value=\"1\">String value</option>");
-    buildPage += _("<option value=\"2\">Boolean value</option>");
-    buildPage += _("<option value=\"3\">Integer value</option>");
-    buildPage += _("<option value=\"4\">Long value</option>");
-    buildPage += _("<option value=\"5\">Floating point value</option>");
-    buildPage += _("<option value=\"6\">VSCP data coding</option>");
-    buildPage += _("<option value=\"7\">VSCP event (Level II)</option>");
-    buildPage += _("<option value=\"8\">VSCP event GUID</option>");
-    buildPage += _("<option value=\"9\">VSCP event data</option>");
-    buildPage += _("<option value=\"10\">VSCP event class</option>");
-    buildPage += _("<option value=\"11\">VSCP event type</option>");
-    buildPage += _("<option value=\"12\">VSCP event timestamp</option>");
-    buildPage += _("<option value=\"13\">Date + Time in iso format</option>");
-    buildPage += _("</select>");
-    
-    buildPage += _("<br></div>");
-    buildPage += _(WEB_VARNEW_SUBMIT);
-    //wxString wxstrurl = wxString::Format(_("%s/vscp/varedit?new=true"), 
-    //                                            strHost.GetData() );
-    //buildPage += wxString::Format( _(WEB_VARNEW_SUBMIT),
-    //                                wxstrurl.GetData() );
-    
-    buildPage += _("</form>");
-    
-    buildPage += _(WEB_COMMON_END); // Common end code
-    
-    char *ppage = new char[ buildPage.Length() + 1 ];
-    memset(ppage, 0, buildPage.Length() + 1 );
-    memcpy( ppage, buildPage.ToAscii(), buildPage.Length() );        
-    
-    // return page 
-    response = MHD_create_response_from_buffer( strlen(ppage),
-                                                    (void *)ppage,
-                                                    MHD_RESPMEM_MUST_FREE );
-    
-    websrv_add_session_cookie(session, response);
-    
-    MHD_add_response_header( response,
-                                MHD_HTTP_HEADER_CONTENT_ENCODING,
-                                mime);
-    
-    ret = MHD_queue_response( connection,
-                                MHD_HTTP_OK,
-                                response);
-    
-    MHD_destroy_response( response );
-    
-    return ret;
+    syslog(LOG_INFO, "Creating driver table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP driver table - closed.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP driver table with error %s.",
+               pErrMsg);
+        return false;
+    }
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// request_completed_callback
+// doCreateGuidTable
+//
+// Create the GUID table
+//
 //
 
-int
-CControlObject::websrv_post_iterator( void *cls,
-                                        enum MHD_ValueKind kind,
-                                        const char *key,
-                                        const char *filename,
-                                        const char *content_type,
-                                        const char *transfer_encoding,
-                                        const char *data, 
-                                        uint64_t off, 
-                                        size_t size )
+bool
+CControlObject::doCreateGuidTable(void)
 {
-    struct websrv_Request *request = (struct websrv_Request *)cls;
-    struct websrv_Session *session = request->session;
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_GUID_CREATE;
 
-    if ( 0 == strcmp("DONE", key) ) {
-        //fprintf(stderr,
-        //        "Session `%s' submitted `%s', `%s'\n",
-        //        session->m_sid,
-        //        session->value_1,
-        //        session->value_2);
-        return MHD_YES;
+    syslog(LOG_INFO, "Creating GUID discovery table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP GUID table - closed.");
+        return false;
     }
-    
-    if (0 == strcmp("v1", key)) {
-        
-        if ( size + off > sizeof( session->value_1 ) )
-            size = sizeof( session->value_1 ) - off;
-        
-        memcpy( &session->value_1[ off ],
-                data,
-                size );
-        
-        if ( size + off < sizeof( session->value_1 ) ) {
-            session->value_1[ size + off ] = '\0';
-        }
-        
-        return MHD_YES;
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(
+          LOG_ERR, "Failed to create VSCP GUID table with error %s.", pErrMsg);
+        return false;
     }
-    
-    if ( 0 == strcmp("v2", key) ) {
-    
-        if ( size + off > sizeof( session->value_2 ) ) {
-            size = sizeof( session->value_2 ) - off;
-        }
-        
-        memcpy( &session->value_2[off],
-                data,
-                size );
-        
-        if ( size + off < sizeof( session->value_2 ) )
-            session->value_2[ size + off ] = '\0';
-        
-        return MHD_YES;
-    }
-    
-    syslog(LOG_ERR, "Unsupported form value `%s'\n", key);
-    return MHD_YES;
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// websrv_request_callback_completed
+// doCreateLocationTable
+//
+// Create the Location table
+//
 //
 
-void
-CControlObject::websrv_request_callback_completed(void *cls,
-                                            struct MHD_Connection *connection,
-                                            void **con_cls,
-                                            enum MHD_RequestTerminationCode toe)
+bool
+CControlObject::doCreateLocationTable(void)
 {
-    struct websrv_Request *request = (struct websrv_Request *) *con_cls;
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_LOCATION_CREATE;
 
-    if (NULL == request) {
-        return;
+    syslog(LOG_INFO, "Creating location table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP location table - closed.");
+        return false;
     }
-    
-    if (NULL != request->session) {
-        request->session->m_referenceCount--;
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP location table with error %s.",
+               pErrMsg);
+        return false;
     }
-    
-    if (NULL != request->pp) {
-        MHD_destroy_post_processor(request->pp);
-    }
-    
-    free(request);
+
+    return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// doCreateMdfCacheTable
+//
+// Create the mdf cache table
+//
+//
 
+bool
+CControlObject::doCreateMdfCacheTable(void)
+{
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_MDF_CREATE;
 
+    syslog(LOG_INFO, "Creating MDF table.");
 
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP mdf table - closed.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(
+          LOG_ERR, "Failed to create VSCP mdf table with error %s.", pErrMsg);
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// doCreateSimpleUiTable
+//
+// Create the simple UI table
+//
+//
+
+bool
+CControlObject::doCreateSimpleUiTable(void)
+{
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_SIMPLE_UI_CREATE;
+
+    syslog(LOG_INFO, "Creating simple ui table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP simple ui table - closed.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP simple ui table with error %s.",
+               pErrMsg);
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// doCreateSimpleUiItemTable
+//
+// Create the simple UI item table
+//
+//
+
+bool
+CControlObject::doCreateSimpleUiItemTable(void)
+{
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_SIMPLE_UI_ITEM_CREATE;
+
+    syslog(LOG_INFO, "Creating simple ui item table..");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP simple UI item table - closed.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP simple UI item table with error %s.",
+               pErrMsg);
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// doCreateZoneTable
+//
+// Create the zone table
+//
+
+bool
+CControlObject::doCreateZoneTable(void)
+{
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_ZONE_CREATE;
+
+    syslog(LOG_INFO, "Creating zone table..");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP zone table - closed.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(
+          LOG_ERR, "Failed to create VSCP zone table with error %s.", pErrMsg);
+        return false;
+    }
+
+    // Fill with default info
+    std::string sql = "BEGIN;";
+    for (int i = 0; i < 256; i++) {
+        sql += vscp_str_format("INSERT INTO 'zone' (idx_zone, name) "
+                               "VALUES( %d, 'zone%d' );",
+                               i,
+                               i);
+    }
+
+    sql += vscp_str_format(VSCPDB_ZONE_UPDATE,
+                           "All zones",
+                           "Zone = 255 represents all zones.",
+                           255L);
+    sql += "COMMIT;";
+    if (SQLITE_OK !=
+        sqlite3_exec(
+          m_db_vscp_daemon, (const char *)sql.c_str(), NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to insert last VSCP default zone table entry %d. "
+               "Error %s",
+               255,
+               pErrMsg);
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// doCreateSubZoneTable
+//
+// Create the subzone table
+//
+//
+
+bool
+CControlObject::doCreateSubZoneTable(void)
+{
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_SUBZONE_CREATE;
+
+    syslog(LOG_INFO, "Creating sub-zone table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP subzone table - closed.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP subzone table with error %s.",
+               pErrMsg);
+        return false;
+    }
+
+    // Fill with default info
+    std::string sql = "BEGIN;";
+    for (int i = 0; i < 256; i++) {
+        sql += vscp_str_format("INSERT INTO 'subzone' (idx_subzone, name) "
+                               "VALUES( %d, 'subzone%d' );",
+                               i,
+                               i);
+    }
+
+    sql += vscp_str_format(VSCPDB_SUBZONE_UPDATE,
+                           "All subzones",
+                           "Subzone = 255 represents all subzones of a zone.",
+                           255L);
+    sql += "COMMIT;";
+    if (SQLITE_OK !=
+        sqlite3_exec(
+          m_db_vscp_daemon, (const char *)sql.c_str(), NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to insert last VSCP default subzone table entry %d. "
+               "Error %s",
+               255,
+               pErrMsg);
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// doCreateUserdefTableTable
+//
+// Create the userdef table
+//
+//
+
+bool
+CControlObject::doCreateUserdefTableTable(void)
+{
+    char *pErrMsg    = 0;
+    const char *psql = VSCPDB_TABLE_CREATE;
+
+    syslog(LOG_INFO, "Creating userdef table.");
+
+    // Check if database is open
+    if (NULL == m_db_vscp_daemon) {
+        syslog(LOG_ERR, "Failed to create VSCP userdef table - closed.");
+        return false;
+    }
+
+    if (SQLITE_OK !=
+        sqlite3_exec(m_db_vscp_daemon, psql, NULL, NULL, &pErrMsg)) {
+        syslog(LOG_ERR,
+               "Failed to create VSCP userdef table with error %s.",
+               pErrMsg);
+        return false;
+    }
+
+    return true;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // clientMsgWorkerThread
-//
-
-clientMsgWorkerThread::clientMsgWorkerThread()
-: wxThread(wxTHREAD_JOINABLE)
-{
-    m_bQuit = false;
-    m_pCtrlObject = NULL;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// deviceWorkerThread
-//
-
-clientMsgWorkerThread::~clientMsgWorkerThread()
-{
-    ;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Entry
 //
 // Is there any messages to send from Level II clients. Send it/them to all
 // devices/clients except for itself.
 //
 
-void *clientMsgWorkerThread::Entry()
+void *
+clientMsgWorkerThread(void *userdata)
 {
-    VSCPEventList::compatibility_iterator nodeVSCP;
+    std::list<vscpEvent *>::iterator it;
     vscpEvent *pvscpEvent = NULL;
 
     // Must be a valid control object pointer
-    if (NULL == m_pCtrlObject) return NULL;
+    CControlObject *pObj = (CControlObject *)userdata;
+    if (NULL == pObj) return NULL;
 
-    while (!TestDestroy() && !m_bQuit) {
+    while (!pObj->m_bQuit_clientMsgWorkerThread) {
+
         // Wait for event
-        if (wxSEMA_TIMEOUT ==
-                m_pCtrlObject->m_semClientOutputQueue.WaitTimeout(500)) continue;
+        if ((-1 == vscp_sem_wait(&pObj->m_semClientOutputQueue, 500)) &&
+            errno == ETIMEDOUT) {
+            continue;
+        }
 
-        if (m_pCtrlObject->m_clientOutputQueue.GetCount()) {
-            
-            m_pCtrlObject->m_mutexClientOutputQueue.Lock();
-            nodeVSCP = m_pCtrlObject->m_clientOutputQueue.GetFirst();
-            pvscpEvent = nodeVSCP->GetData();
-            m_pCtrlObject->m_clientOutputQueue.DeleteNode(nodeVSCP);
-            m_pCtrlObject->m_mutexClientOutputQueue.Unlock();
+        if (pObj->m_clientOutputQueue.size()) {
 
-            if ((NULL != pvscpEvent)) {
-                // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-                // * * * * Send event to all Level II clients (not to ourself )  * * * *
-                // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+            pthread_mutex_lock(&pObj->m_mutexClientOutputQueue);
+            pvscpEvent = pObj->m_clientOutputQueue.front();
+            pObj->m_clientOutputQueue.pop_front();
+            // pvscpEvent = *it;
+            pthread_mutex_unlock(&pObj->m_mutexClientOutputQueue);
 
-                m_pCtrlObject->sendEventAllClients(pvscpEvent, pvscpEvent->obid);
+            if (NULL != pvscpEvent) {
+
+                // * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+                //
+                // Send event to all Level II clients (not to
+                // ourself )
+                //
+                // * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+                pObj->sendEventAllClients(pvscpEvent, pvscpEvent->obid);
 
             } // Valid event
 
             // Delete the event
-            if (NULL != pvscpEvent) deleteVSCPevent(pvscpEvent);
+            if (NULL != pvscpEvent) vscp_deleteVSCPevent(pvscpEvent);
+            pvscpEvent = NULL;
 
         } // while
 
     } // while
 
     return NULL;
-
 }
-
-
-///////////////////////////////////////////////////////////////////////////////
-// OnExit
-//
-
-void clientMsgWorkerThread::OnExit()
-{
-    ;
-}
-
-

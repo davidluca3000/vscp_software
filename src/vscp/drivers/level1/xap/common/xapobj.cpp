@@ -7,7 +7,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2019 Ake Hedman,
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
@@ -20,14 +20,14 @@
 // the Free Software Foundation, 59 Temple Place - Suite 330,
 // Boston, MA 02111-1307, USA.
 //
-// $RCSfile: xapobj.cpp,v $                                       
-// $Date: 2005/10/04 20:15:08 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.7 $ 
 
-#include "stdlib.h"
-#include "stdio.h"
-#include "limits.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
+
+#include <canal.h>
+#include <canal_macro.h>
+
 #include "xapobj.h"
 #include "dlldrvobj.h"
 
@@ -760,7 +760,7 @@ void *workThreadxAPClientSend( void *pObject )
 #else
 	if ( -1 == ( sock = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP ) ) ) {
 
-                SYSLOG( LOG_CRIT, "xapdrv: Faild to create send socket.");
+                SYSLOG( LOG_CRIT, "xapdrv: Failed to create send socket.");
 
 		sock = 0;
 		pthread_exit( &errorCode );
@@ -894,7 +894,7 @@ void *workThreadTransmit( void *pObject )
 	
 	}
 	else {
-		//SYSLOG( LOG_CRIT, "canald: Faild to create send socket. Functionality disabled.");
+		//SYSLOG( LOG_CRIT, "canald: Failed to create send socket. Functionality disabled.");
 #ifdef WIN32
 		sock = NULL;
 		ExitThread( errorCode );
@@ -1280,7 +1280,7 @@ void *workThreadReceive( void *pObject )
 							sizeof ( on ) );
 		}
 		else {
-			//SYSLOG( LOG_CRIT, "canald: Faild to create send socket. Functionality disabled.");
+			//SYSLOG( LOG_CRIT, "canald: Failed to create send socket. Functionality disabled.");
 #ifdef WIN32
 			bcastsock = NULL;
 			ExitThread( errorCode );

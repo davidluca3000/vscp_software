@@ -2,7 +2,7 @@
 //
 // Define a new application type
 //
-// Copyright (C) 2002-2011 Ake Hedman akhe@grodansparadis.com 
+// Copyright (C) 2002-2018 Ake Hedman akhe@grodansparadis.com 
 //
 // This software is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -20,13 +20,12 @@
 // Boston, MA 02111-1307, USA.
 //
  
-#if !defined(AFX_CANALDAEMON_H__D7E6521D_8D1A_49E9_9F38_36244F430B38__INCLUDED_)
-#define AFX_CANALDAEMON_H__D7E6521D_8D1A_49E9_9F38_36244F430B38__INCLUDED_
+#if !defined(VSCPDAEMON_H__D7E6521D_8D1A_49E9_9F38_36244F430B38__INCLUDED_)
+#define VSCPDAEMON_H__D7E6521D_8D1A_49E9_9F38_36244F430B38__INCLUDED_
 
 
 
-#include "../../common/controlobject.h"
-
+#include <controlobject.h>
 
 
 
@@ -57,4 +56,4 @@ private:
 
 */
 
-#endif // AFX_CANALDAEMON_H__D7E6521D_8D1A_49E9_9F38_36244F430B38__INCLUDED_
+#endif // VSCPDAEMON_H__D7E6521D_8D1A_49E9_9F38_36244F430B38__INCLUDED_

@@ -8,7 +8,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2017 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
@@ -21,10 +21,6 @@
 // the Free Software Foundation, 59 Temple Place - Suite 330,
 // Boston, MA 02111-1307, USA.
 //
-// $RCSfile: can4vscpdrv.cpp,v $                                       
-// $Date: 2005/05/23 21:32:54 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.2 $ 
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -90,7 +86,7 @@ extern "C" long CanalOpen( const char *pDevice, unsigned long flags )
 	CCan4VSCPObj *pdrvObj = new CCan4VSCPObj();
 	if ( NULL != pdrvObj ) {
 
-		if ( pdrvObj->open( pDevice, flags ) ){
+		if ( CANAL_ERROR_SUCCESS == pdrvObj->open( pDevice, flags ) ){
 
 			if ( !( h = theApp->addDriverObject( pdrvObj ) ) ) {
 				delete pdrvObj;
@@ -151,7 +147,22 @@ extern "C" int CanalSend( long handle, PCANALMSG pCanalMsg  )
 {
 	CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
 	if ( NULL == pdrvObj ) return 0;
-	return ( pdrvObj->writeMsg( pCanalMsg ) ? CANAL_ERROR_SUCCESS : CANAL_ERROR_GENERIC );
+	return pdrvObj->writeMsg( pCanalMsg );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// CanalSend blocking
+//
+
+#ifdef WIN32
+extern "C" int WINAPI EXPORT CanalBlockingSend( long handle, PCANALMSG pCanalMsg, unsigned long timeout )
+#else
+extern "C" int CanalBlockingSend( long handle, PCANALMSG pCanalMsg  )
+#endif
+{
+    CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
+    if ( NULL == pdrvObj ) return 0;
+    return pdrvObj->writeMsgBlocking( pCanalMsg, timeout );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -167,7 +178,22 @@ extern "C" int CanalReceive( long handle, PCANALMSG pCanalMsg  )
 	CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
 	if ( NULL == pdrvObj ) return 0;
 
-	return ( pdrvObj->readMsg( pCanalMsg ) ? CANAL_ERROR_SUCCESS : CANAL_ERROR_GENERIC );
+	return pdrvObj->readMsg( pCanalMsg );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// CanalReceive blocking
+//
+
+#ifdef WIN32
+extern "C" int WINAPI EXPORT CanalBlockingReceive( long handle, PCANALMSG pCanalMsg, unsigned long timeout )
+#else
+extern "C" int CanalBlockingReceive( long handle, PCANALMSG pCanalMsg, unsigned long timeout )
+#endif
+{
+	CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
+	if ( NULL == pdrvObj ) return 0;
+	return pdrvObj->readMsgBlocking( pCanalMsg, timeout );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -198,7 +224,7 @@ extern "C" int CanalGetStatus( long handle, PCANALSTATUS pCanalStatus  )
 {
 	CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
 	if ( NULL == pdrvObj ) return 0;
-	return ( pdrvObj->getStatus( pCanalStatus )  ? CANAL_ERROR_SUCCESS : CANAL_ERROR_GENERIC );
+	return pdrvObj->getStatus( pCanalStatus );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -213,7 +239,7 @@ extern "C" int CanalGetStatistics( long handle, PCANALSTATISTICS pCanalStatistic
 {
 	CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
 	if ( NULL == pdrvObj ) return 0;
-	return ( pdrvObj->getStatistics( pCanalStatistics )  ? CANAL_ERROR_SUCCESS : CANAL_ERROR_GENERIC );
+	return pdrvObj->getStatistics( pCanalStatistics );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -228,7 +254,7 @@ extern "C" int CanalSetFilter( long handle, unsigned long filter )
 {
 	CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
 	if ( NULL == pdrvObj ) return 0;
-	return ( pdrvObj->setFilter( filter ) ? CANAL_ERROR_SUCCESS : CANAL_ERROR_GENERIC );
+	return pdrvObj->setFilter( filter );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -243,7 +269,7 @@ extern "C" int CanalSetMask( long handle, unsigned long mask )
 {
 	CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
 	if ( NULL == pdrvObj ) return 0;
-	return ( pdrvObj->setMask( mask )  ? CANAL_ERROR_SUCCESS : CANAL_ERROR_GENERIC );
+	return pdrvObj->setMask( mask );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -305,6 +331,35 @@ extern "C" const char * CanalGetVendorString( void )
 {
 	return CANAL_DLL_VENDOR;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// CanalGetDriverInfo
+//
+
+#ifdef WIN32
+extern "C" const char * WINAPI EXPORT CanalGetDriverInfo( void )
+#else
+extern "C" const char * CanalGetReceiveHandle( void )
+#endif
+{
+	return DRIVERINFO;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// getReceiveHandle
+//
+
+#ifdef WIN32
+extern "C" HANDLE WINAPI EXPORT getReceiveHandle( long handle )
+#else
+extern "C" HANDLE CanalGetReceiveHandle( long handle )
+#endif
+{
+	CCan4VSCPObj *pdrvObj =  theApp->getDriverObject( handle );
+	if ( NULL == pdrvObj ) return 0;
+	return pdrvObj->getReceiveHandle();
+}
+
 
 
 

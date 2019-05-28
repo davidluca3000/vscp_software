@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     25/02/2007 22:46:25
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -93,10 +93,20 @@ class dlgVSCPMsg: public wxDialog
 public:
     /// Constructors
     dlgVSCPMsg();
-    dlgVSCPMsg( wxWindow* parent, wxWindowID id = SYMBOL_DLGVSCPMSG_IDNAME, const wxString& caption = SYMBOL_DLGVSCPMSG_TITLE, const wxPoint& pos = SYMBOL_DLGVSCPMSG_POSITION, const wxSize& size = SYMBOL_DLGVSCPMSG_SIZE, long style = SYMBOL_DLGVSCPMSG_STYLE );
+    dlgVSCPMsg( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DLGVSCPMSG_IDNAME, 
+                    const wxString& caption = SYMBOL_DLGVSCPMSG_TITLE, 
+                    const wxPoint& pos = SYMBOL_DLGVSCPMSG_POSITION, 
+                    const wxSize& size = SYMBOL_DLGVSCPMSG_SIZE, 
+                    long style = SYMBOL_DLGVSCPMSG_STYLE );
 
     /// Creation
-    bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DLGVSCPMSG_IDNAME, const wxString& caption = SYMBOL_DLGVSCPMSG_TITLE, const wxPoint& pos = SYMBOL_DLGVSCPMSG_POSITION, const wxSize& size = SYMBOL_DLGVSCPMSG_SIZE, long style = SYMBOL_DLGVSCPMSG_STYLE );
+    bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DLGVSCPMSG_IDNAME, 
+                    const wxString& caption = SYMBOL_DLGVSCPMSG_TITLE, 
+                    const wxPoint& pos = SYMBOL_DLGVSCPMSG_POSITION, 
+                    const wxSize& size = SYMBOL_DLGVSCPMSG_SIZE, 
+                    long style = SYMBOL_DLGVSCPMSG_STYLE );
 
     /// Destructor
     ~dlgVSCPMsg();

@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     Fri 26 Oct 2007 11:57:04 CEST
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -37,7 +37,7 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+// 
 
 #ifndef _DLGVSCPINTERFACESETTINGS_H_
 #define _DLGVSCPINTERFACESETTINGS_H_
@@ -54,7 +54,7 @@
 #include "wx/propdlg.h"
 ////@end includes
 
-#include "../common/vscp.h"
+#include <vscp.h>
 
 /*!
  * Forward declarations
@@ -88,10 +88,20 @@ class dlgVscpInterfaceSettings: public wxPropertySheetDialog
 public:
   /// Constructors
   dlgVscpInterfaceSettings();
-  dlgVscpInterfaceSettings( wxWindow* parent, wxWindowID id = SYMBOL_DLGVSCPINTERFACESETTINGS_IDNAME, const wxString& caption = SYMBOL_DLGVSCPINTERFACESETTINGS_TITLE, const wxPoint& pos = SYMBOL_DLGVSCPINTERFACESETTINGS_POSITION, const wxSize& size = SYMBOL_DLGVSCPINTERFACESETTINGS_SIZE, long style = SYMBOL_DLGVSCPINTERFACESETTINGS_STYLE );
+  dlgVscpInterfaceSettings( wxWindow* parent, 
+                                wxWindowID id = SYMBOL_DLGVSCPINTERFACESETTINGS_IDNAME, 
+                                const wxString& caption = SYMBOL_DLGVSCPINTERFACESETTINGS_TITLE, 
+                                const wxPoint& pos = SYMBOL_DLGVSCPINTERFACESETTINGS_POSITION, 
+                                const wxSize& size = SYMBOL_DLGVSCPINTERFACESETTINGS_SIZE, 
+                                long style = SYMBOL_DLGVSCPINTERFACESETTINGS_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DLGVSCPINTERFACESETTINGS_IDNAME, const wxString& caption = SYMBOL_DLGVSCPINTERFACESETTINGS_TITLE, const wxPoint& pos = SYMBOL_DLGVSCPINTERFACESETTINGS_POSITION, const wxSize& size = SYMBOL_DLGVSCPINTERFACESETTINGS_SIZE, long style = SYMBOL_DLGVSCPINTERFACESETTINGS_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DLGVSCPINTERFACESETTINGS_IDNAME, 
+                    const wxString& caption = SYMBOL_DLGVSCPINTERFACESETTINGS_TITLE, 
+                    const wxPoint& pos = SYMBOL_DLGVSCPINTERFACESETTINGS_POSITION, 
+                    const wxSize& size = SYMBOL_DLGVSCPINTERFACESETTINGS_SIZE, 
+                    long style = SYMBOL_DLGVSCPINTERFACESETTINGS_STYLE );
 
   /// Destructor
   ~dlgVscpInterfaceSettings();
@@ -145,7 +155,6 @@ public:
   wxPanel* m_panelServer;
   wxTextCtrl* m_RemoteServerDescription;
   wxTextCtrl* m_RemoteServerURL;
-  wxTextCtrl* m_RemoteServerPort;
   wxTextCtrl* m_RemoteServerUsername;
   wxTextCtrl* m_RemoteServerPassword;
   wxCheckBox* m_fullLevel2;
@@ -165,7 +174,6 @@ public:
     ID_PANEL_INTERFACE_REMOTE = 16024,
     ID_TEXTCTRL = 16025,
     ID_RemoteServerURL = 16026,
-    ID_RemoteServerPort = 16027,
     ID_RemoteServerUsername = 16028,
     ID_RemoteServerPassword = 16029,
     ID_CHECKBOX2 = 16009,

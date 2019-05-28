@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     24/10/2012 14:35:37
 // RCS-ID:      
-/// Copyright:   (C) 2012-2014 
+/// Copyright:   (C) 2012-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -36,8 +36,8 @@
 //  this file might be covered by the GNU General Public License.
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
-//  eurosource at info@eurosource.se, http://www.eurosource.se
-/////////////////////////////////////////////////////////////////////////////
+//  Ake Hedman, Grodans Paradis AB, akhe@grodansparadis.com
+//
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
 #pragma implementation "frmsimpleuserinterfacegenerator.h"
@@ -451,7 +451,12 @@ SimpleUserInterfaceGenerator::SimpleUserInterfaceGenerator()
   Init();
 }
 
-SimpleUserInterfaceGenerator::SimpleUserInterfaceGenerator( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+SimpleUserInterfaceGenerator::SimpleUserInterfaceGenerator( wxWindow* parent, 
+                                                                wxWindowID id, 
+                                                                const wxString& caption, 
+                                                                const wxPoint& pos, 
+                                                                const wxSize& size, 
+                                                                long style )
 {
   Init();
   Create( parent, id, caption, pos, size, style );
@@ -462,7 +467,12 @@ SimpleUserInterfaceGenerator::SimpleUserInterfaceGenerator( wxWindow* parent, wx
 // SimpleUserInterfaceGenerator creator
 //
 
-bool SimpleUserInterfaceGenerator::Create( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+bool SimpleUserInterfaceGenerator::Create( wxWindow* parent, 
+                                                wxWindowID id, 
+                                                const wxString& caption, 
+                                                const wxPoint& pos, 
+                                                const wxSize& size, 
+                                                long style )
 {
 ////@begin SimpleUserInterfaceGenerator creation
   wxFrame::Create( parent, id, caption, pos, size, style );

@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     Thu 28 Jun 2007 14:13:52 CEST
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2017 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -86,10 +86,20 @@ class dlgCanalMsg: public wxDialog
 public:
   /// Constructors
   dlgCanalMsg();
-  dlgCanalMsg( wxWindow* parent, wxWindowID id = SYMBOL_DLGCANALMSG_IDNAME, const wxString& caption = SYMBOL_DLGCANALMSG_TITLE, const wxPoint& pos = SYMBOL_DLGCANALMSG_POSITION, const wxSize& size = SYMBOL_DLGCANALMSG_SIZE, long style = SYMBOL_DLGCANALMSG_STYLE );
+  dlgCanalMsg( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DLGCANALMSG_IDNAME, 
+                    const wxString& caption = SYMBOL_DLGCANALMSG_TITLE, 
+                    const wxPoint& pos = SYMBOL_DLGCANALMSG_POSITION, 
+                    const wxSize& size = SYMBOL_DLGCANALMSG_SIZE, 
+                    long style = SYMBOL_DLGCANALMSG_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DLGCANALMSG_IDNAME, const wxString& caption = SYMBOL_DLGCANALMSG_TITLE, const wxPoint& pos = SYMBOL_DLGCANALMSG_POSITION, const wxSize& size = SYMBOL_DLGCANALMSG_SIZE, long style = SYMBOL_DLGCANALMSG_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DLGCANALMSG_IDNAME, 
+                    const wxString& caption = SYMBOL_DLGCANALMSG_TITLE, 
+                    const wxPoint& pos = SYMBOL_DLGCANALMSG_POSITION, 
+                    const wxSize& size = SYMBOL_DLGCANALMSG_SIZE, 
+                    long style = SYMBOL_DLGCANALMSG_STYLE );
 
   /// Destructor
   ~dlgCanalMsg();

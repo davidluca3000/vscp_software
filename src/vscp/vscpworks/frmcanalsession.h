@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     Mon 16 Apr 2007 19:23:48 CEST
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -97,9 +97,19 @@ class frmCANALSession: public wxFrame
 public:
     /// Constructors
     frmCANALSession();
-    frmCANALSession( wxWindow* parent, wxWindowID id = SYMBOL_FRMCANALSESSION_IDNAME, const wxString& caption = SYMBOL_FRMCANALSESSION_TITLE, const wxPoint& pos = SYMBOL_FRMCANALSESSION_POSITION, const wxSize& size = SYMBOL_FRMCANALSESSION_SIZE, long style = SYMBOL_FRMCANALSESSION_STYLE );
+    frmCANALSession( wxWindow* parent, 
+                        wxWindowID id = SYMBOL_FRMCANALSESSION_IDNAME, 
+                        const wxString& caption = SYMBOL_FRMCANALSESSION_TITLE, 
+                        const wxPoint& pos = SYMBOL_FRMCANALSESSION_POSITION, 
+                        const wxSize& size = SYMBOL_FRMCANALSESSION_SIZE, 
+                        long style = SYMBOL_FRMCANALSESSION_STYLE );
 
-    bool Create( wxWindow* parent, wxWindowID id = SYMBOL_FRMCANALSESSION_IDNAME, const wxString& caption = SYMBOL_FRMCANALSESSION_TITLE, const wxPoint& pos = SYMBOL_FRMCANALSESSION_POSITION, const wxSize& size = SYMBOL_FRMCANALSESSION_SIZE, long style = SYMBOL_FRMCANALSESSION_STYLE );
+    bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_FRMCANALSESSION_IDNAME, 
+                    const wxString& caption = SYMBOL_FRMCANALSESSION_TITLE, 
+                    const wxPoint& pos = SYMBOL_FRMCANALSESSION_POSITION, 
+                    const wxSize& size = SYMBOL_FRMCANALSESSION_SIZE, 
+                    long style = SYMBOL_FRMCANALSESSION_STYLE );
 
     /// Destructor
     ~frmCANALSession();

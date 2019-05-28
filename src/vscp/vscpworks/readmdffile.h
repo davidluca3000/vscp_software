@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     21/12/2007 17:17:04
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -86,10 +86,20 @@ class ReadMDFfile: public wxDialog
 public:
   /// Constructors
   ReadMDFfile();
-  ReadMDFfile( wxWindow* parent, wxWindowID id = SYMBOL_READMDFFILE_IDNAME, const wxString& caption = SYMBOL_READMDFFILE_TITLE, const wxPoint& pos = SYMBOL_READMDFFILE_POSITION, const wxSize& size = SYMBOL_READMDFFILE_SIZE, long style = SYMBOL_READMDFFILE_STYLE );
+  ReadMDFfile( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_READMDFFILE_IDNAME, 
+                    const wxString& caption = SYMBOL_READMDFFILE_TITLE, 
+                    const wxPoint& pos = SYMBOL_READMDFFILE_POSITION, 
+                    const wxSize& size = SYMBOL_READMDFFILE_SIZE, 
+                    long style = SYMBOL_READMDFFILE_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_READMDFFILE_IDNAME, const wxString& caption = SYMBOL_READMDFFILE_TITLE, const wxPoint& pos = SYMBOL_READMDFFILE_POSITION, const wxSize& size = SYMBOL_READMDFFILE_SIZE, long style = SYMBOL_READMDFFILE_STYLE );
+  bool Create( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_READMDFFILE_IDNAME, 
+                    const wxString& caption = SYMBOL_READMDFFILE_TITLE, 
+                    const wxPoint& pos = SYMBOL_READMDFFILE_POSITION, 
+                    const wxSize& size = SYMBOL_READMDFFILE_SIZE, 
+                    long style = SYMBOL_READMDFFILE_STYLE );
 
   /// Destructor
   ~ReadMDFfile();

@@ -7,7 +7,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014
+// Copyright (C) 2000-2019 Ake Hedman,
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
@@ -20,10 +20,6 @@
 // the Free Software Foundation, 59 Temple Place - Suite 330,
 // Boston, MA 02111-1307, USA.
 //
-// $RCSfile: xapobj.h,v $                                       
-// $Date: 2005/10/03 16:30:12 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.6 $ 
 
 #if !defined(XAPOBJ__INCLUDED_)
 #define XAPOBJ__INCLUDED_
@@ -35,6 +31,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include "stdio.h"
 #include <time.h>
 #include <winsock.h>
 
@@ -63,16 +60,16 @@
 
 #endif
 
-#include "../../../../common/canal.h"
-#include "../../../../common/vscp.h"
-#include "../../../../common/canal_macro.h"
-#include "../../../../../common/dllist.h"
+#include <canal.h>
+#include <vscp.h>
+#include <canal_macro.h>
+#include <dllist.h>
 
 
-#define CANAL_DLL_XAPDRV_OBJ_MUTEX	"___CANAL__DLL_XAPDRV_OBJ_MUTEX____"
-#define CANAL_DLL_XAPDRV_PORT_MUTEX	"___CANAL__DLL_XAPDRV_PORT_MUTEX____"
-#define CANAL_DLL_XAPDRV_RECEIVE_MUTEX	"___CANAL__DLL_XAPDRV_RECEIVE_MUTEX____"
-#define CANAL_DLL_XAPDRV_TRANSMIT_MUTEX "___CANAL__DLL_XAPDRV_TRANSMIT_MUTEX____"
+#define CANAL_DLL_XAPDRV_OBJ_MUTEX	TEXT("___CANAL__DLL_XAPDRV_OBJ_MUTEX____")
+#define CANAL_DLL_XAPDRV_PORT_MUTEX	TEXT("___CANAL__DLL_XAPDRV_PORT_MUTEX____")
+#define CANAL_DLL_XAPDRV_RECEIVE_MUTEX	TEXT("___CANAL__DLL_XAPDRV_RECEIVE_MUTEX____")
+#define CANAL_DLL_XAPDRV_TRANSMIT_MUTEX TEXT("___CANAL__DLL_XAPDRV_TRANSMIT_MUTEX____")
 
 // Max messages in input queue
 #define XAP_MAX_RCVMSG		512
@@ -389,7 +386,7 @@ public:
 			1				1					0			Reject
 			1				1					1			Accept
 
-		Formula is !( ( filter îd ) & mask )
+		Formula is !( ( filter ï¿½d ) & mask )
 	*/
 	uint32_t m_filter;
 

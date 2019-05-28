@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     21/12/2007 17:16:15
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -86,10 +86,20 @@ class WriteRegister: public wxDialog
 public:
   /// Constructors
   WriteRegister();
-  WriteRegister( wxWindow* parent, wxWindowID id = SYMBOL_WRITEREGISTER_IDNAME, const wxString& caption = SYMBOL_WRITEREGISTER_TITLE, const wxPoint& pos = SYMBOL_WRITEREGISTER_POSITION, const wxSize& size = SYMBOL_WRITEREGISTER_SIZE, long style = SYMBOL_WRITEREGISTER_STYLE );
+  WriteRegister( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_WRITEREGISTER_IDNAME, 
+                    const wxString& caption = SYMBOL_WRITEREGISTER_TITLE, 
+                    const wxPoint& pos = SYMBOL_WRITEREGISTER_POSITION, 
+                    const wxSize& size = SYMBOL_WRITEREGISTER_SIZE, 
+                    long style = SYMBOL_WRITEREGISTER_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_WRITEREGISTER_IDNAME, const wxString& caption = SYMBOL_WRITEREGISTER_TITLE, const wxPoint& pos = SYMBOL_WRITEREGISTER_POSITION, const wxSize& size = SYMBOL_WRITEREGISTER_SIZE, long style = SYMBOL_WRITEREGISTER_STYLE );
+  bool Create( wxWindow* parent, 
+                wxWindowID id = SYMBOL_WRITEREGISTER_IDNAME, 
+                const wxString& caption = SYMBOL_WRITEREGISTER_TITLE, 
+                const wxPoint& pos = SYMBOL_WRITEREGISTER_POSITION, 
+                const wxSize& size = SYMBOL_WRITEREGISTER_SIZE, 
+                long style = SYMBOL_WRITEREGISTER_STYLE );
 
   /// Destructor
   ~WriteRegister();

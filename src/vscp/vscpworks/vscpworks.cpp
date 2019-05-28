@@ -5,7 +5,7 @@
 // Modified by:
 // Created:     Thu 28 Jun 2007 10:05:16 CEST
 // RCS-ID:
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:
 // This program is free software; you can redistribute it and/or
@@ -37,33 +37,38 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+//
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
 #pragma implementation "vscpworks.h"
 #endif
 
-// For compilers that support precompilation, includes "wx/wx.h".
-#include "wx/wxprec.h"
-
-#ifdef __BORLANDC__
-#pragma hdrstop
+#ifdef WIN32
+#include <winsock2.h>
 #endif
+
+// For compilers that support precompilation, includes "wx/wx.h".
+//#include "wx/wxprec.h"
+
+//#include <vld.h>
+
+// https://msdn.microsoft.com/en-us/library/x98tx3cf.aspx
+//#define _CRTDBG_MAP_ALLOC
+//#include <stdlib.h>
+//#include <crtdbg.h>
 
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
 
-////@begin includes
-////@end includes
-
 // Configuration stuff
-#include <wx/config.h>
+#include <wx/config.h> 
 #include <wx/confbase.h>
 #include <wx/fileconf.h>
 #include <wx/wfstream.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
+#include <wx/debug.h> 
 
 #ifdef __WXMSW__
 #include <wx/msw/regconf.h>
@@ -86,18 +91,25 @@
 
 // This file links platform dependent stuff
 #include "platform.h"
-#include "../common/vscp.h"
-#include "../common/vscphelper.h"
-#include "../common/vscpeventhelper.h"
-#include "../common/mdf.h"
-#include "../common/vscp_class.h"
-#include "../common/vscp_type.h"
+#include <vscp.h>
+#include <vscphelper.h>
+#include <vscpeventhelper.h>
+#include <vscpmulticast.h>
+#include <mdf.h>
+#include <frmdeviceconfig.h>
+#include <frmvscpsession.h>
+#include <vscp_class.h>
+#include <vscp_type.h>
 #include "vscpworks.h"
 
+#include <sockettcp.h>
+
+// Global nodes info
 canal_nodeinfo g_nodesCANAL[ MAX_NUMBER_OF_NODES ];
 vscp_nodeinfo g_nodesVSCP[ MAX_NUMBER_OF_NODES ];
 int g_cntCanalNodes;
 int g_cntVscpNodes;
+
 appConfiguration g_Config;
 VSCPInformation g_vscpinfo;
 
@@ -105,17 +117,11 @@ VSCPInformation g_vscpinfo;
 WX_DEFINE_LIST(LIST_CANAL_IF);
 WX_DEFINE_LIST(LIST_VSCP_IF);
 
-////@begin XPM images
-////@end XPM images
-
-
 /*!
 * Application instance implementation
 */
 
-////@begin implement app
-IMPLEMENT_APP( VscpworksApp )
-////@end implement app
+IMPLEMENT_APP( VscpworksApp ) 
 
 
 /*!
@@ -131,8 +137,6 @@ IMPLEMENT_CLASS( VscpworksApp, wxApp )
 
 BEGIN_EVENT_TABLE( VscpworksApp, wxApp )
 
-////@begin VscpworksApp event table entries
-////@end VscpworksApp event table entries
 
 END_EVENT_TABLE()
 
@@ -142,12 +146,64 @@ END_EVENT_TABLE()
 
 VscpworksApp::VscpworksApp()
 {
-	// Fix for menu problems in UBUNTU
-	// http://trac.wxwidgets.org/ticket/14302
-	wxSetEnv(wxT("UBUNTU_MENUPROXY"), wxT("0"));
-	
+    // Fix for menu problems in UBUNTU
+    // http://trac.wxwidgets.org/ticket/14302
+    wxSetEnv(wxT("UBUNTU_MENUPROXY"), wxT("0"));
+
+    // Set assert handler
+#if (wxMAJOR_VERSION >= 3)
+    wxSetAssertHandler( VscpworksApp::AssertHandler );
+#endif
+    
+    // net_skeleton generates on no receiving socket at other end
+    // we can safely dismiss.
+#ifdef WIN32	
+    WSADATA wsaData;                    // Windows socket DLL structure 
+
+    // Load Winsock 2.0 DLL
+    if ( WSAStartup( MAKEWORD( 2, 0 ), &wsaData ) != 0 ) {
+        fprintf( stderr, "Multicast WSAStartup() failed" );
+    }
+#else
+    //int set = 1;
+    //setsockopt(sd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
+    signal(SIGPIPE, SIG_IGN);
+#endif	
+    
     Init();
     wxSocketBase::Initialize();
+}
+
+char *reverse(const char * const s)
+{
+  if ( NULL == s ) return NULL;
+  
+  size_t i, len = strlen(s);
+  char *r = (char *)malloc(len + 1);
+
+  for(i = 0; i < len; ++i) {
+    r[i] = s[len - i - 1];
+  }
+  
+  r[len] = 0;
+  return r;
+}
+
+char *rstrstr( const char *s1, const char *s2)
+{
+  size_t  s1len = strlen(s1);
+  size_t  s2len = strlen(s2);
+  char *s;
+
+  if (s2len > s1len) return NULL;
+  
+  for (s = (char *)s1 + s1len - s2len; s >= s1; --s) {
+    if ( 0 == strncmp(s, s2, s2len) ) {
+      return s;
+    }
+  }
+  
+  return NULL;
 }
 
 
@@ -157,8 +213,6 @@ VscpworksApp::VscpworksApp()
 
 void VscpworksApp::Init()
 {
-    ////@begin VscpworksApp member initialisation
-    ////@end VscpworksApp member initialisation
 
     /*
     // Test filter
@@ -197,10 +251,15 @@ void VscpworksApp::Init()
     }
     */
 
-	//wxStandardPaths stdPath;
-	g_Config.m_strPathLogFile = wxStandardPaths::Get().GetTempDir();
-	g_Config.m_strPathLogFile += _("/vscpworks.log");
-	g_Config.m_strPathTemp = wxStandardPaths::Get().GetTempDir();
+    m_pmulticastWorkerThread = NULL;
+
+    m_bUseGlobalConfig = false; // Store config in users folder
+
+    g_Config.m_strPathLogFile = wxStandardPaths::Get().GetTempDir();
+    g_Config.m_strPathLogFile += _("\\vscpworks.log");
+    g_Config.m_strPathTemp = wxStandardPaths::Get().GetTempDir();
+
+
 
     int i,j;
     for ( i=0; i<MAX_NUMBER_OF_NODES; i++ ) {
@@ -228,8 +287,14 @@ void VscpworksApp::Init()
     g_cntCanalNodes = 0;  // No nodes yet
     g_cntVscpNodes = 0;   // No nodes yet
 
-    g_Config.m_sizeWidth = VSCPWORKS_MAIN_WINDOW_DEFAULT_WIDTH;
-    g_Config.m_sizeHeight = VSCPWORKS_MAIN_WINDOW_DEFAULT_HEGHT;
+    g_Config.m_sizeMainFrameWidth = VSCPWORKS_MAIN_WINDOW_DEFAULT_WIDTH;
+    g_Config.m_sizeMainFrameHeight = VSCPWORKS_MAIN_WINDOW_DEFAULT_HEGHT;
+
+    g_Config.m_sizeConfigurationFrameWidth = VSCPWORKS_DEVICECONFIG_SIZE.GetWidth();
+    g_Config.m_sizeConfigurationFrameHeight = VSCPWORKS_DEVICECONFIG_SIZE.GetHeight();
+
+    g_Config.m_sizeSessionFrameWidth = VSCPWORKS_SESSION_SIZE.GetWidth();
+    g_Config.m_sizeSessionFrameHeight = VSCPWORKS_SESSION_SIZE.GetHeight();
 
     g_Config.m_VscpTrmitShowField[0] = true;
     g_Config.m_VscpTrmitShowField[1] = true;
@@ -291,13 +356,54 @@ void VscpworksApp::Init()
     g_Config.m_VscpRcvFrameRxbPyamas = true;  // Yes use pyamas look
     g_Config.m_UseSymbolicNames = true;       // Yes use symbolic names
 
-    g_Config.m_VscpRegisterReadResendTimeout = VSCP_REGISTER_READ_RESEND_TIMEOUT;
-    g_Config.m_VscpRegisterReadErrorTimeout = VSCP_REGISTER_READ_ERROR_TIMEOUT;
-    g_Config.m_VscpRegisterReadMaxRetries = VSCP_REGISTER_READ_MAX_TRIES;
+    g_Config.m_CANALRegResendTimeout = VSCP_CANAL_RESEND_TIMEOUT;
+    g_Config.m_CANALRegErrorTimeout = VSCP_CANAL_ERROR_TIMEOUT;
+    g_Config.m_CANALRegMaxRetries = VSCP_CANAL_MAX_TRIES;
 
-	g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_HEX;
+    g_Config.m_TCPIP_ResponseTimeout = VSCPWORKS_TCPIP_DEFAULT_RESPONSE_TIMEOUT;
+    g_Config.m_TCPIPRegMaxRetries = VSCPWORKS_TCPIP_REGISTER_READ_MAX_TRIES;
+    g_Config.m_TCPIPRegResendTimeout = VSCPWORKS_TCPIP_REGISTER_READ_RESEND_TIMEOUT;
+    g_Config.m_TCPIPRegErrorTimeout = VSCPWORKS_TCPIP_REGISTER_READ_ERROR_TIMEOUT;
 
-	g_Config.m_bConfirmDelete = true;
+    g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_HEX;
+
+    g_Config.m_bConfirmDelete = true;
+
+    g_Config.bGuidWritable = false;
+    g_Config.m_manufacturerId = 0;
+    g_Config.m_manufacturerSubId = 0;
+    
+    /*
+     
+     Testblock for sockettcp lib
+     
+    char errbuf[200];
+    char buf[8192];
+    stcp_connection *conn;
+    conn = stcp_connect_client( "185.144.156.45", 9598, 0, errbuf, sizeof( errbuf ), 5 );
+    if ( NULL != conn ) {
+        
+        stcp_read( conn, buf, sizeof( buf ), 200 );
+        wxPrintf( buf );
+        
+        stcp_write( conn, "user admin\r\n", 12 );
+        stcp_read( conn, buf, sizeof( buf ), 200 );
+        wxPrintf( buf );
+        
+        stcp_write( conn, "pass secret\r\n", 13 );
+        stcp_read( conn, buf, sizeof( buf ), 300 );
+        wxPrintf( buf );
+        
+        stcp_write( conn, "interface list\r\n", 16 );
+        stcp_read( conn, buf, sizeof( buf ), 200 );
+        wxPrintf( buf );
+        
+        stcp_close_connection( conn );
+        
+        conn = NULL;
+    }
+    */ 
+    
 }
 
 /*!
@@ -309,29 +415,53 @@ bool VscpworksApp::OnInit()
     // Get the configuration
     readConfiguration();
 
-    ////@begin VscpworksApp initialisation
-	// Remove the comment markers above and below this block
-	// to make permanent changes to the code.
+    /////////////////////////////////////////////////////////////////////////////
+    //                  Start the mulicast worker thread
+    /////////////////////////////////////////////////////////////////////////////
+    m_pmulticastWorkerThread = new worksMulticastThread;
+
+    if ( NULL != m_pmulticastWorkerThread ) {
+        //m_pmulticastWorkerThread->m_pApp = this;
+        wxThreadError err;
+        if ( wxTHREAD_NO_ERROR == ( err = m_pmulticastWorkerThread->Create() ) ) {
+            m_pmulticastWorkerThread->SetPriority( WXTHREAD_DEFAULT_PRIORITY );
+            if ( wxTHREAD_NO_ERROR != ( err = m_pmulticastWorkerThread->Run() ) ) {
+                delete m_pmulticastWorkerThread;
+                m_pmulticastWorkerThread = NULL;
+                wxMessageBox( _( "Unable to run multicast discovery thread. Functionality is disabled." ) );
+            }
+        }
+        else {
+            delete m_pmulticastWorkerThread;
+            m_pmulticastWorkerThread = NULL;
+            wxMessageBox( _( "Unable to create multicast discovery thread. Functionality is disabled." ) );
+        }
+    }
+    else {
+        wxMessageBox( _( "Unable to create multicast discovery thread. Functionality is disabled." ) );
+    }
 
 #if wxUSE_XPM
-	wxImage::AddHandler(new wxXPMHandler);
+    wxImage::AddHandler(new wxXPMHandler);
 #endif
 #if wxUSE_LIBPNG
-	wxImage::AddHandler(new wxPNGHandler);
+    wxImage::AddHandler(new wxPNGHandler);
 #endif
 #if wxUSE_LIBJPEG
-	wxImage::AddHandler(new wxJPEGHandler);
+    wxImage::AddHandler(new wxJPEGHandler);
 #endif
 #if wxUSE_GIF
-	wxImage::AddHandler(new wxGIFHandler);
+    wxImage::AddHandler(new wxGIFHandler);
 #endif
-	frmMain* mainWindow = new frmMain;
-	mainWindow->Create( NULL );
-	mainWindow->Show(true);
-    ////@end VscpworksApp initialisation
+    frmMain* mainWindow = new frmMain;
+    mainWindow->Create( NULL );
+    mainWindow->Show(true);
 
     //Move( g_Config.m_xpos, g_Config.m_ypos );
-    mainWindow->SetSize(  g_Config.m_xpos, g_Config.m_ypos, g_Config.m_sizeWidth, g_Config.m_sizeHeight );
+    mainWindow->SetSize(  g_Config.m_xposMainFrame, 
+                            g_Config.m_yposMainFrame, 
+                            g_Config.m_sizeMainFrameWidth, 
+                            g_Config.m_sizeMainFrameHeight );
     return true;
 }
 
@@ -365,11 +495,24 @@ int VscpworksApp::OnExit()
     }
     g_Config.m_vscpIfList.clear();
 
-    ////@begin VscpworksApp cleanup
-	return wxApp::OnExit();
-    ////@end VscpworksApp cleanup
+    // Terminate multicast discovery system
+    if ( NULL != m_pmulticastWorkerThread ) {
+        m_mutexmulticastWorkerThread.Lock();
+        m_pmulticastWorkerThread->m_bQuit = true;
+        m_pmulticastWorkerThread->Wait();
+        delete m_pmulticastWorkerThread;
+        m_pmulticastWorkerThread = NULL;
+        m_mutexmulticastWorkerThread.Unlock();
+    }
 
+#ifdef WIN32
+    // Cleanup Winsock
+    WSACleanup();
+#endif
 
+    //_CrtDumpMemoryLeaks();
+
+    return wxApp::OnExit();
 }
 
 
@@ -379,47 +522,47 @@ int VscpworksApp::OnExit()
 
 void VscpworksApp::logMsg( const wxString& wxstr, unsigned char level )
 {
-    level = level;
+#ifndef WIN32
+    (void)level;    // Suppress warning
+#endif
 
     wxString wxdebugmsg;
     wxdebugmsg = _("vscpd :") + wxstr;
 
     wxLogDebug( wxdebugmsg );
 
-#ifdef WIN32
-#ifdef BUILD_VSCPD_SERVICE
-#endif
-#else
+#ifndef WIN32
+
     switch ( level ) {
-        case DAEMON_LOGMSG_DEBUG:
+        case VSCPWORKS_LOGMSG_DEBUG:
             syslog( LOG_DEBUG, "%s", (const char *)wxdebugmsg.ToAscii()  );
             break;
 
-        case DAEMON_LOGMSG_INFO:
+        case VSCPWORKS_LOGMSG_INFO:
             syslog( LOG_INFO, "%s", (const char *)wxdebugmsg.ToAscii() );
             break;
 
-        case DAEMON_LOGMSG_NOTICE:
+        case VSCPWORKS_LOGMSG_NOTICE:
             syslog( LOG_NOTICE, "%s", (const char *)wxdebugmsg.ToAscii() );
             break;
 
-        case DAEMON_LOGMSG_WARNING:
+        case VSCPWORKS_LOGMSG_WARNING:
             syslog( LOG_WARNING, "%s", (const char *)wxdebugmsg.ToAscii() );
             break;
 
-        case DAEMON_LOGMSG_ERROR:
+        case VSCPWORKS_LOGMSG_ERROR:
             syslog( LOG_ERR, "%s", (const char *)wxdebugmsg.ToAscii() );
             break;
 
-        case DAEMON_LOGMSG_CRITICAL:
+        case VSCPWORKS_LOGMSG_CRITICAL:
             syslog( LOG_CRIT, "%s", (const char *)wxdebugmsg.ToAscii() );
             break;
 
-        case DAEMON_LOGMSG_ALERT:
+        case VSCPWORKS_LOGMSG_ALERT:
             syslog( LOG_ALERT, "%s", (const char *)wxdebugmsg.ToAscii() );
             break;
 
-        case DAEMON_LOGMSG_EMERGENCY:
+        case VSCPWORKS_LOGMSG_EMERGENCY:
             syslog( LOG_EMERG, "%s", (const char *)wxdebugmsg.ToAscii() );
             break;
 
@@ -428,6 +571,27 @@ void VscpworksApp::logMsg( const wxString& wxstr, unsigned char level )
 }
 
 
+/////////////////////////////////////////////////////////////////////////////
+// AssertHandler
+//
+#if (wxMAJOR_VERSION >= 3)
+void VscpworksApp::AssertHandler( const wxString &file, 
+                                        int line, 
+                                        const wxString &func, 
+                                        const wxString &cond, 
+                                        const wxString &msg )
+{
+    wxString logmsg = _("ASSERT - ");
+    logmsg += _( " file: " ) + file;
+    logmsg += wxString::Format( _( " line:%d" ), line );
+    logmsg += _( " func: " ) + func;
+    logmsg += _( " cond: " ) + cond;
+    logmsg += _( " msg: " ) + msg;
+
+    ::wxGetApp().logMsg( logmsg, 
+                        VSCPWORKS_LOGMSG_ALERT );
+}
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // loadConfigData
@@ -549,12 +713,12 @@ wxLogDebug( wxstr );
 // Username
 pconfig->Read( _("username"), &wxstr, _("admin") );
 g_Config.m_strUsername = wxstr;
-wxLogDebug( wxstr );	
+wxLogDebug( wxstr );
 
 // Password
 pconfig->Read( _("password"), &wxstr, _("secret") );
 g_Config.m_strPassword = wxstr;
-wxLogDebug( wxstr );	
+wxLogDebug( wxstr );
 
 
 
@@ -1488,18 +1652,23 @@ bool VscpworksApp::readConfiguration( void )
     unsigned long val;
     wxString strcfgfile;
     wxXmlDocument doc;
-    //wxStandardPaths strpath;
 
     strcfgfile = wxStandardPaths::Get().GetUserDataDir();
     strcfgfile += _("/vscpworks.conf");
 
+    if ( !wxFileName::FileExists( strcfgfile ) ) {
+        strcfgfile = wxStandardPaths::Get().GetConfigDir() + _( "/vscpworks.conf" );
+        if ( wxFileName::FileExists( strcfgfile ) ) {
+            m_bUseGlobalConfig = true;
+        }
+        else {
+            return false;
+        }
+    }
 
     if (!doc.Load( strcfgfile ) ) {
         // test global location
-        strcfgfile = wxStandardPaths::Get().GetConfigDir() + _("/vscp/vscpworks.conf");
-        if (!doc.Load( strcfgfile ) ) {
-            return false;
-        }
+        return false;
     }
 
     // start processing the XML file
@@ -1516,209 +1685,294 @@ bool VscpworksApp::readConfiguration( void )
             while (subchild) {
 
                 g_Config.m_strPathTemp = _("/tmp");
-                if (subchild->GetName() == _("width")) {
+                if (subchild->GetName() == _("MainFrameWidth")) {
 
                     unsigned long val;
                     if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
                         if ( val ) {
-                            g_Config.m_sizeWidth = val;
+                            g_Config.m_sizeMainFrameWidth = val;
                         }
                         else {
-                            g_Config.m_sizeWidth = 400;
+                            g_Config.m_sizeMainFrameWidth = 400;
                         }
                     }
 
                 }
-                else if (subchild->GetName() == _("height")) {
+                else if (subchild->GetName() == _("MainFrameHeight")) {
 
                     unsigned long val;
                     if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
                         if ( val ) {
-                            g_Config.m_sizeHeight = val;
+                            g_Config.m_sizeMainFrameHeight = val;
                         }
                         else {
-                            g_Config.m_sizeHeight = 300;
+                            g_Config.m_sizeMainFrameHeight = 300;
                         }
                     }
 
                 }
-                else if (subchild->GetName() == _("xpos")) {
+                else if (subchild->GetName() == _("MainFramexpos")) {
 
                     unsigned long val;
-                    g_Config.m_xpos = 0;
+                    g_Config.m_xposMainFrame = 0;
                     if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
-                        g_Config.m_xpos = val;
+                        g_Config.m_xposMainFrame = val;
                     }
 
                 }
-                else if (subchild->GetName() == _("ypos")) {
+                else if (subchild->GetName() == _("MainFrameypos")) {
 
                     unsigned long val;
-                    g_Config.m_ypos = 0;
+                    g_Config.m_yposMainFrame = 0;
                     if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
-                        g_Config.m_ypos = val;
+                        g_Config.m_yposMainFrame = val;
+                    }
+
+                }
+                else if (subchild->GetName() == _("SessionFrameWidth")) {
+
+                    unsigned long val;
+                    if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
+                        if ( val ) {
+                            g_Config.m_sizeSessionFrameWidth = val;
+                        }
+                        else {
+                            g_Config.m_sizeSessionFrameWidth = 400;
+                        }
+                    }
+
+                }
+                else if (subchild->GetName() == _("SessionFrameHeight")) {
+
+                    unsigned long val;
+                    if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
+                        if ( val ) {
+                            g_Config.m_sizeSessionFrameHeight = val;
+                        }
+                        else {
+                            g_Config.m_sizeSessionFrameHeight = 300;
+                        }
+                    }
+
+                }
+                else if (subchild->GetName() == _("ConfigurationFrameWidth")) {
+
+                    unsigned long val;
+                    if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
+                        if ( val ) {
+                            g_Config.m_sizeConfigurationFrameWidth = val;
+                        }
+                        else {
+                            g_Config.m_sizeConfigurationFrameWidth = 
+                                VSCPWORKS_DEVICECONFIG_SIZE.GetWidth();
+                        }
+                    }
+
+                }
+                else if (subchild->GetName() == _("ConfigurationFrameHeight")) {
+
+                    unsigned long val;
+                    if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
+                        if ( val ) {
+                            g_Config.m_sizeConfigurationFrameHeight = val;
+                        }
+                        else {
+                            g_Config.m_sizeConfigurationFrameHeight = 
+                                VSCPWORKS_DEVICECONFIG_SIZE.GetHeight();
+                        }
                     }
 
                 }
                 else if (subchild->GetName() == _("path2tempfiles")) {
 
                     g_Config.m_strPathTemp = subchild->GetNodeContent();
-					if ( 0 == g_Config.m_strPathTemp.Length() ) {
-						//wxStandardPaths stdPath;
-						g_Config.m_strPathTemp = wxStandardPaths::Get().GetTempDir();
-					}
+                    if ( 0 == g_Config.m_strPathTemp.Length() ) {
+                        //wxStandardPaths stdPath;
+                        g_Config.m_strPathTemp = wxStandardPaths::Get().GetTempDir();
+                    }
 
                 }
                 else if (subchild->GetName() == _("path2logfile")) {
 
-					unsigned long val;
-					//wxStandardPaths stdPath;
+                    g_Config.m_strPathLogFile = subchild->GetNodeContent();
+                    if ( 0 == g_Config.m_strPathLogFile.Length() ) {
+                        g_Config.m_strPathTemp = wxStandardPaths::Get().GetTempDir();
+                    }
 
-					g_Config.m_strPathLogFile = subchild->GetNodeContent();
-					if ( 0 == g_Config.m_strPathLogFile.Length() ) {
-						g_Config.m_strPathTemp = wxStandardPaths::Get().GetTempDir();
-					}
-
-					// enable/disable
-#if wxCHECK_VERSION(3,0,0)                      
+                    // enable/disable                     
                     wxString enable = subchild->GetAttribute(_("enable"), _("false"));
-#else 
-                    wxString enable = subchild->GetPropVal(_("enable"), _("false"));
-#endif                    
+                 
                     if ( enable.IsSameAs(_("true"), false ) ) {
                         g_Config.m_bEnableLog = true;
                     }
 
                     // level
-                    g_Config.m_logLevel = DAEMON_LOGMSG_EMERGENCY;
-#if wxCHECK_VERSION(3,0,0)                     
+                    g_Config.m_logLevel = VSCPWORKS_LOGMSG_EMERGENCY;                   
                     wxString level = subchild->GetAttribute(_("level"), _("0"));
-#else 
-                    wxString level = subchild->GetPropVal(_("level"), _("0"));
-#endif                       
-					level = level.Upper();
-					if ( wxNOT_FOUND  != level.Find(_("DEBUG")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_DEBUG;
-					}
-					if ( wxNOT_FOUND  != level.Find(_("INFO")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_INFO;
-					}
-					if ( wxNOT_FOUND  != level.Find(_("WARNING")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_WARNING;
-					}
-					if ( wxNOT_FOUND  != level.Find(_("ERROR")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_ERROR;
-					}
-					if ( wxNOT_FOUND  != level.Find(_("CRITICAL")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_CRITICAL;
-					}
-					if ( wxNOT_FOUND  != level.Find(_("ALERT")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_ALERT;
-					}
-					if ( wxNOT_FOUND  != level.Find(_("EMERGENCY")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_EMERGENCY;
-					}
-					else {
-						g_Config.m_logLevel = DAEMON_LOGMSG_EMERGENCY;
-					}
-                    if ( level.ToULong( &val, 10 ) ) {
-                        g_Config.m_logLevel = val;
+                      
+                    level = level.Upper();
+                    if ( wxNOT_FOUND  != level.Find(_("DEBUG")) ) {
+                        g_Config.m_logLevel = VSCPWORKS_LOGMSG_DEBUG;
+                    }
+                    else if ( wxNOT_FOUND  != level.Find(_("INFO")) ) {
+                        g_Config.m_logLevel = VSCPWORKS_LOGMSG_INFO;
+                    }
+                    else if ( wxNOT_FOUND  != level.Find(_("WARNING")) ) {
+                        g_Config.m_logLevel = VSCPWORKS_LOGMSG_WARNING;
+                    }
+                    else if ( wxNOT_FOUND  != level.Find(_("ERROR")) ) {
+                        g_Config.m_logLevel = VSCPWORKS_LOGMSG_ERROR;
+                    }
+                    else if ( wxNOT_FOUND  != level.Find(_("CRITICAL")) ) {
+                        g_Config.m_logLevel = VSCPWORKS_LOGMSG_CRITICAL;
+                    }
+                    else if ( wxNOT_FOUND  != level.Find(_("ALERT")) ) {
+                        g_Config.m_logLevel = VSCPWORKS_LOGMSG_ALERT;
+                    }
+                    else if ( wxNOT_FOUND  != level.Find(_("EMERGENCY")) ) {
+                        g_Config.m_logLevel = VSCPWORKS_LOGMSG_EMERGENCY;
+                    }
+                    else {
+                        g_Config.m_logLevel = VSCPWORKS_LOGMSG_EMERGENCY;
                     }
 
                 }
-                else if (subchild->GetName() == _("RegisterReadResendTimeout")) {
+
+                // CANAL communication parameters
+
+                else if (subchild->GetName() == _("CANALReadResendTimeout")) {
 
                     unsigned long val;
-                    g_Config.m_VscpRegisterReadResendTimeout = VSCP_REGISTER_READ_RESEND_TIMEOUT;
+                    g_Config.m_CANALRegResendTimeout = VSCP_CANAL_RESEND_TIMEOUT;
                     if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
-                        g_Config.m_VscpRegisterReadResendTimeout = val;
+                        g_Config.m_CANALRegResendTimeout = val;
                     }
 
                 }
-                else if (subchild->GetName() == _("RegisterReadErrorTimeout")) {
+                else if (subchild->GetName() == _("CANALReadMaxRetries")) {
 
                     unsigned long val;
-                    g_Config.m_VscpRegisterReadErrorTimeout = VSCP_REGISTER_READ_ERROR_TIMEOUT;
+                    g_Config.m_CANALRegMaxRetries = VSCP_CANAL_MAX_TRIES;
                     if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
-                        g_Config.m_VscpRegisterReadErrorTimeout = val;
+                        g_Config.m_CANALRegMaxRetries = val;
                     }
 
                 }
-                else if (subchild->GetName() == _("RegisterReadMaxRetries")) {
+                else if (subchild->GetName() == _("CANALReadErrorTimeout")) {
 
                     unsigned long val;
-                    g_Config.m_VscpRegisterReadMaxRetries = VSCP_REGISTER_READ_MAX_TRIES;
+                    g_Config.m_CANALRegErrorTimeout = VSCP_CANAL_ERROR_TIMEOUT;
                     if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
-                        g_Config.m_VscpRegisterReadMaxRetries = val;
+                        g_Config.m_CANALRegErrorTimeout = val;
+                    }
+
+                }
+                
+
+                // TCP/IP communication parameters
+
+                else if (subchild->GetName() == _("TCPIPResponseTimeout")) {
+
+                    unsigned long val;
+                    g_Config.m_TCPIP_ResponseTimeout = VSCPWORKS_TCPIP_DEFAULT_RESPONSE_TIMEOUT;
+                    if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
+                        if ( val < 1000 ) val = VSCPWORKS_TCPIP_DEFAULT_RESPONSE_TIMEOUT;
+                        g_Config.m_TCPIP_ResponseTimeout = val;
+                    }
+
+                }
+                else if (subchild->GetName() == _("TCPIPReadMaxRetries")) {
+
+                    unsigned long val;
+                    g_Config.m_TCPIPRegMaxRetries = VSCPWORKS_TCPIP_REGISTER_READ_MAX_TRIES;
+                    if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
+                        g_Config.m_TCPIPRegMaxRetries = val;
+                    }
+
+                }
+                else if (subchild->GetName() == _("TCPIPReadResendTimeout")) {
+
+                    unsigned long val;
+                    g_Config.m_TCPIPRegResendTimeout = VSCPWORKS_TCPIP_REGISTER_READ_ERROR_TIMEOUT;
+                    if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
+                        g_Config.m_TCPIPRegResendTimeout = val;
+                    }
+
+                }
+                else if (subchild->GetName() == _("TCPIPReadErrorTimeout")) {
+
+                    unsigned long val;
+                    g_Config.m_TCPIPRegErrorTimeout = VSCPWORKS_TCPIP_REGISTER_READ_ERROR_TIMEOUT;
+                    if ( subchild->GetNodeContent().ToULong( &val, 10 ) ) {
+                        g_Config.m_TCPIPRegErrorTimeout = val;
                     }
 
                 }
 
-				else if (subchild->GetName() == _("NumberBase")) {
+                else if (subchild->GetName() == _("NumberBase")) {
 
                     g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_HEX;
-					wxString str = subchild->GetNodeContent();
-					str = str.Upper();
-					if ( wxNOT_FOUND  != str.Find(_("HEX")) ) {
-						g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_HEX;
-					}
-					if ( wxNOT_FOUND  != str.Find(_("HEXADECIMAL")) ) {
-						g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_HEX;
-					}
-					else if ( wxNOT_FOUND  != str.Find(_("DECIMAL")) ) {
-						g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_DECIMAL;
-					}
+                    wxString str = subchild->GetNodeContent();
+                    str = str.Upper();
+                    if ( wxNOT_FOUND  != str.Find(_("HEX")) ) {
+                        g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_HEX;
+                    }
+                    if ( wxNOT_FOUND  != str.Find(_("HEXADECIMAL")) ) {
+                        g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_HEX;
+                    }
+                    else if ( wxNOT_FOUND  != str.Find(_("DECIMAL")) ) {
+                        g_Config.m_Numberbase = VSCP_DEVCONFIG_NUMBERBASE_DECIMAL;
+                    }
 
                 }
-				else if (subchild->GetName() == _("ConfirmDelete")) {
+                else if (subchild->GetName() == _("ConfirmDelete")) {
 
                     g_Config.m_bConfirmDelete = true;
-					wxString str = subchild->GetNodeContent();
-					str = str.Upper();
-					if ( wxNOT_FOUND  != str.Find(_("FALSE")) ) {
-						g_Config.m_bConfirmDelete = false;
-					}
-					else {
-						g_Config.m_bConfirmDelete = true;
-					}
+                    wxString str = subchild->GetNodeContent();
+                    str = str.Upper();
+                    if ( wxNOT_FOUND  != str.Find(_("FALSE")) ) {
+                        g_Config.m_bConfirmDelete = false;
+                    }
+                    else {
+                        g_Config.m_bConfirmDelete = true;
+                    }
 
                 }
-				else if (subchild->GetName() == _("loglevel")) {
+                else if ( subchild->GetName() == _( "GuidWriteEnable" ) ) {
 
-                    g_Config.m_logLevel = DAEMON_LOGMSG_EMERGENCY;
-					wxString str = subchild->GetNodeContent();
-					str = str.Upper();
-					if ( wxNOT_FOUND  != str.Find(_("DEBUG")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_DEBUG;
-					}
-					if ( wxNOT_FOUND  != str.Find(_("INFO")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_INFO;
-					}
-					if ( wxNOT_FOUND  != str.Find(_("WARNING")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_WARNING;
-					}
-					if ( wxNOT_FOUND  != str.Find(_("ERROR")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_ERROR;
-					}
-					if ( wxNOT_FOUND  != str.Find(_("CRITICAL")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_CRITICAL;
-					}
-					if ( wxNOT_FOUND  != str.Find(_("ALERT")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_ALERT;
-					}
-					if ( wxNOT_FOUND  != str.Find(_("EMERGENCY")) ) {
-						g_Config.m_logLevel = DAEMON_LOGMSG_EMERGENCY;
-					}
-					else {
-						g_Config.m_logLevel = DAEMON_LOGMSG_EMERGENCY;
-					}
+                    wxString wxstr = subchild->GetNodeContent();
+                    if ( wxNOT_FOUND != wxstr.Find( _( "enable" ) ) ) {
+                        g_Config.bGuidWritable = true;
+                    }
 
                 }
+                else if ( subchild->GetName() == _( "ManufacturerGuid" ) ) {
 
+                    wxString wxstr = subchild->GetNodeContent();
+                    if ( 0 != wxstr.Length() ) {
+                        g_Config.m_manufacturerGuid.getFromString( wxstr );
+                    }
+
+                }
+                else if ( subchild->GetName() == _( "ManufacturerId" ) ) {
+
+                    wxString wxstr = subchild->GetNodeContent();
+                    if ( 0 != wxstr.Length() ) {
+                        g_Config.m_manufacturerId = vscp_readStringValue( wxstr );
+                    }
+
+                }
+                else if ( subchild->GetName() == _( "ManufacturerSubId" ) ) {
+
+                    wxString wxstr = subchild->GetNodeContent();
+                    if ( 0 != wxstr.Length() ) {
+                        g_Config.m_manufacturerSubId = vscp_readStringValue( wxstr );
+                    }
+
+                }
 
                 subchild = subchild->GetNext();
             }
-
 
         } 
         else if (child->GetName() == _("vscpclient")) {
@@ -1733,26 +1987,16 @@ bool VscpworksApp::readConfiguration( void )
                     unsigned long gval = 0;
                     unsigned long bval = 0;
 
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString r = subchild->GetAttribute(_("r"), _("0"));
-#else 
-                    wxString r = subchild->GetPropVal(_("r"), _("0"));
-#endif                       
-                    rval = readStringValue( r );		
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString g = subchild->GetAttribute(_("g"), _("0"));
-#else 
-                    wxString g = subchild->GetPropVal(_("g"), _("0"));
-#endif                       
-                    gval = readStringValue( g );	
-
-#if wxCHECK_VERSION(3,0,0)                     
+                  
+                    wxString r = subchild->GetAttribute(_("r"), _("0"));                  
+                    rval = vscp_readStringValue( r );		
+                    
+                    wxString g = subchild->GetAttribute(_("g"), _("0"));                    
+                    gval = vscp_readStringValue( g );	
+                   
                     wxString b = subchild->GetAttribute(_("b"), _("0"));
-#else 
-                    wxString b = subchild->GetPropVal(_("b"), _("0"));
-#endif                       
-                    bval = readStringValue( b );	
+                      
+                    bval = vscp_readStringValue( b );	
 
                     // Assign the colours
                     g_Config.m_VscpRcvFrameRxTextColour = wxColour(rval, gval, bval );
@@ -1762,57 +2006,35 @@ bool VscpworksApp::readConfiguration( void )
                     unsigned long rval = 0;
                     unsigned long gval = 0;
                     unsigned long bval = 0;
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString r = subchild->GetAttribute(_("r"), _("0"));
-#else 
-                    wxString r = subchild->GetPropVal(_("r"), _("0"));
-#endif                       
-                    rval = readStringValue( r );		
-
-#if wxCHECK_VERSION(3,0,0)                     
+                     
+                    wxString r = subchild->GetAttribute(_("r"), _("0"));                   
+                    rval = vscp_readStringValue( r );		
+                    
                     wxString g = subchild->GetAttribute(_("g"), _("0"));
-#else 
-                    wxString g = subchild->GetPropVal(_("g"), _("0"));
-#endif                       
-                    gval = readStringValue( g );	
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString b = subchild->GetAttribute(_("b"), _("0"));
-#else 
-                    wxString b = subchild->GetPropVal(_("b"), _("0"));
-#endif                       
-                    bval = readStringValue( b );
+                      
+                    gval = vscp_readStringValue( g );	
+                  
+                    wxString b = subchild->GetAttribute(_("b"), _("0"));                    
+                    bval = vscp_readStringValue( b );
 
                     // Assign the colours
                     g_Config.m_VscpRcvFrameRxBgColour = wxColour(rval, gval, bval );          
                 }
+
                 if (subchild->GetName() == _("VscpRcvFrameTxTextColour")) {
 
                     unsigned long rval = 0;
                     unsigned long gval = 0;
                     unsigned long bval = 0;
-
-#if wxCHECK_VERSION(3,0,0)                     
+                    
                     wxString r = subchild->GetAttribute(_("r"), _("0"));
-#else 
-                    wxString r = subchild->GetPropVal(_("r"), _("0"));
-#endif                       
-                    rval = readStringValue( r );		
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString g = subchild->GetAttribute(_("g"), _("0"));
-#else 
-                    wxString g = subchild->GetPropVal(_("g"), _("0"));
-#endif                       
-                    gval = readStringValue( g );	
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString b = subchild->GetAttribute(_("b"), _("0"));
-#else 
-                    wxString b = subchild->GetPropVal(_("b"), _("0"));
-#endif                       
-                    bval = readStringValue( b );
+                       
+                    rval = vscp_readStringValue( r );		                    
+                    wxString g = subchild->GetAttribute(_("g"), _("0"));                      
+                    gval = vscp_readStringValue( g );	
+                     
+                    wxString b = subchild->GetAttribute(_("b"), _("0"));                      
+                    bval = vscp_readStringValue( b );
 
                     // Assign the colours
                     g_Config.m_VscpRcvFrameTxTextColour = wxColour(rval, gval, bval );
@@ -1822,27 +2044,15 @@ bool VscpworksApp::readConfiguration( void )
                     unsigned long rval = 0;
                     unsigned long gval = 0;
                     unsigned long bval = 0;
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString r = subchild->GetAttribute(_("r"), _("0"));
-#else 
-                    wxString r = subchild->GetPropVal(_("r"), _("0"));
-#endif                       
-                    rval = readStringValue( r );		
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString g = subchild->GetAttribute(_("g"), _("0"));
-#else 
-                    wxString g = subchild->GetPropVal(_("g"), _("0"));
-#endif                       
-                    gval = readStringValue( g );	
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString b = subchild->GetAttribute(_("b"), _("0"));
-#else 
-                    wxString b = subchild->GetPropVal(_("b"), _("0"));
-#endif                       
-                    bval = readStringValue( b );
+                    
+                    wxString r = subchild->GetAttribute(_("r"), _("0"));               
+                    rval = vscp_readStringValue( r );		
+                    
+                    wxString g = subchild->GetAttribute(_("g"), _("0"));                       
+                    gval = vscp_readStringValue( g );	
+                  
+                    wxString b = subchild->GetAttribute(_("b"), _("0"));                      
+                    bval = vscp_readStringValue( b );
 
                     // Assign the colours
                     g_Config.m_VscpRcvFrameTxBgColour = wxColour(rval, gval, bval );          
@@ -1852,27 +2062,15 @@ bool VscpworksApp::readConfiguration( void )
                     unsigned long rval = 0;
                     unsigned long gval = 0;
                     unsigned long bval = 0;
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString r = subchild->GetAttribute(_("r"), _("0"));
-#else 
-                    wxString r = subchild->GetPropVal(_("r"), _("0"));
-#endif                       
-                    rval = readStringValue( r );		
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString g = subchild->GetAttribute(_("g"), _("0"));
-#else 
-                    wxString g = subchild->GetPropVal(_("g"), _("0"));
-#endif                       
-                    gval = readStringValue( g );	
-
-#if wxCHECK_VERSION(3,0,0)                     
-                    wxString b = subchild->GetAttribute(_("b"), _("0"));
-#else 
-                    wxString b = subchild->GetPropVal(_("b"), _("0"));
-#endif                       
-                    bval = readStringValue( b );
+                   
+                    wxString r = subchild->GetAttribute(_("r"), _("0"));                     
+                    rval = vscp_readStringValue( r );		
+                    
+                    wxString g = subchild->GetAttribute(_("g"), _("0"));                       
+                    gval = vscp_readStringValue( g );	
+                    
+                    wxString b = subchild->GetAttribute(_("b"), _("0"));                      
+                    bval = vscp_readStringValue( b );
 
                     // Assign the colours
                     g_Config.m_VscpRcvFrameLineColour = wxColour(rval, gval, bval );          
@@ -2186,7 +2384,7 @@ bool VscpworksApp::readConfiguration( void )
 
                     vscp_interface *pVSCPif = new vscp_interface;
                     if ( NULL == pVSCPif ) return false;
-                    clearVSCPFilter( &pVSCPif->m_vscpfilter );
+                    vscp_clearVSCPFilter( &pVSCPif->m_vscpfilter );
 
                     wxXmlNode *subsubchild = subchild->GetChildren();
                     while (subsubchild) {
@@ -2199,18 +2397,6 @@ bool VscpworksApp::readConfiguration( void )
                         else if (subsubchild->GetName() == _("host")) {
                             pVSCPif->m_strHost = subsubchild->GetNodeContent();
                             pVSCPif->m_strHost.Trim(false);
-                        }
-                        else if (subsubchild->GetName() == _("port")) {
-
-                            unsigned long val;
-                            pVSCPif->m_port = 9598;
-                            if (  subsubchild->GetNodeContent().ToULong( &val, 10 ) ) {
-                                pVSCPif->m_port = val;
-                            }
-                            else if (subsubchild->GetNodeContent().ToULong( &val, 16 ) ) {
-                                pVSCPif->m_port = val;
-                            }
-
                         }
                         else if (subsubchild->GetName() == _("username")) {
 
@@ -2226,76 +2412,55 @@ bool VscpworksApp::readConfiguration( void )
                             pVSCPif->m_strPassword.Trim();
 
                         }
-						else if (subsubchild->GetName() == _("interfacename")) {
+                        else if (subsubchild->GetName() == _("interfacename")) {
 
                             pVSCPif->m_strInterfaceName = subsubchild->GetNodeContent().Trim();
                             pVSCPif->m_strInterfaceName.Trim(false);
                             pVSCPif->m_strInterfaceName.Trim();
 
                         }
-						else if (subsubchild->GetName() == _("level2")) {
+                        else if (subsubchild->GetName() == _("level2")) {
 
-							wxString str = subsubchild->GetNodeContent().Trim();
-							str = str.Upper();
-							if ( wxNOT_FOUND != str.Find( _("TRUE") )  ) {
-								pVSCPif->m_bLevel2 = true;		
-							}
-							else {
-								pVSCPif->m_bLevel2 = false;	
-							}
+                            wxString str = subsubchild->GetNodeContent().Trim();
+                            str = str.Upper();
+                            if ( wxNOT_FOUND != str.Find( _("TRUE") )  ) {
+                                pVSCPif->m_bLevel2 = true;		
+                            }
+                            else {
+                                pVSCPif->m_bLevel2 = false;	
+                            }
 
                         }
                         else if (subsubchild->GetName() == _("guid")) {
                             wxString str = subsubchild->GetNodeContent();
-                            getGuidFromStringToArray( pVSCPif->m_GUID, str );
+                            vscp_getGuidFromStringToArray( pVSCPif->m_GUID, str );
                         }
-                        else if (subsubchild->GetName() == _("filter")) {
-#if wxCHECK_VERSION(3,0,0)                             
-                            pVSCPif->m_vscpfilter.filter_priority = readStringValue( subsubchild->GetAttribute( _( "priority" ), _("0") ) );
-#else 
-                            pVSCPif->m_vscpfilter.filter_priority = readStringValue( subsubchild->GetPropVal( _( "priority" ), _("0") ) );
-#endif                               
-#if wxCHECK_VERSION(3,0,0)                             
-                            pVSCPif->m_vscpfilter.filter_class = readStringValue( subsubchild->GetAttribute( _( "class" ), _("0") ) );
-#else 
-                            pVSCPif->m_vscpfilter.filter_class = readStringValue( subsubchild->GetPropVal( _( "class" ), _("0") ) );
-#endif                               
-#if wxCHECK_VERSION(3,0,0)                             
-                            pVSCPif->m_vscpfilter.filter_type = readStringValue( subsubchild->GetAttribute( _( "type" ), _("0") ) );
-#else 
-                            pVSCPif->m_vscpfilter.filter_type = readStringValue( subsubchild->GetPropVal( _( "type" ), _("0") ) );
-#endif                               
-#if wxCHECK_VERSION(3,0,0)                                                         
+                        else if (subsubchild->GetName() == _("filter")) {                             
+                            pVSCPif->m_vscpfilter.filter_priority = vscp_readStringValue( subsubchild->GetAttribute( _( "priority" ), _("0") ) );
+
+                             
+                            pVSCPif->m_vscpfilter.filter_class = vscp_readStringValue( subsubchild->GetAttribute( _( "class" ), _("0") ) );
+                              
+                            
+                            pVSCPif->m_vscpfilter.filter_type = vscp_readStringValue( subsubchild->GetAttribute( _( "type" ), _("0") ) );
+                                                                                    
                             wxString strGUID = subsubchild->GetAttribute( _( "GUID" ), 
-#else 
-                            wxString strGUID = subsubchild->GetPropVal( _( "GUID" ), 
-#endif                                       
+                                      
                                 _("00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00") );
-                            getGuidFromStringToArray( pVSCPif->m_vscpfilter.filter_GUID, strGUID );
+                            vscp_getGuidFromStringToArray( pVSCPif->m_vscpfilter.filter_GUID, strGUID );
                         }
                         else if (subsubchild->GetName() == _("mask")) {
-#if wxCHECK_VERSION(3,0,0)                             
-                            pVSCPif->m_vscpfilter.mask_priority = readStringValue( subsubchild->GetAttribute( _( "priority" ), _("0") ) );
-#else 
-                            pVSCPif->m_vscpfilter.mask_priority = readStringValue( subsubchild->GetPropVal( _( "priority" ), _("0") ) );
-#endif                               
-#if wxCHECK_VERSION(3,0,0)                             
-                            pVSCPif->m_vscpfilter.mask_class = readStringValue( subsubchild->GetAttribute( _( "class" ), _("0") ) );
-#else 
-                            pVSCPif->m_vscpfilter.mask_class = readStringValue( subsubchild->GetPropVal( _( "class" ), _("0") ) );
-#endif                               
-#if wxCHECK_VERSION(3,0,0) 
-                            pVSCPif->m_vscpfilter.mask_type = readStringValue( subsubchild->GetAttribute( _( "type" ), _("0") ) );
-#else 
-                            pVSCPif->m_vscpfilter.mask_type = readStringValue( subsubchild->GetPropVal( _( "type" ), _("0") ) );
-#endif   
-#if wxCHECK_VERSION(3,0,0) 
+                            
+                            pVSCPif->m_vscpfilter.mask_priority = vscp_readStringValue( subsubchild->GetAttribute( _( "priority" ), _("0") ) );
+                                                            
+                            pVSCPif->m_vscpfilter.mask_class = vscp_readStringValue( subsubchild->GetAttribute( _( "class" ), _("0") ) );
+                               
+                            pVSCPif->m_vscpfilter.mask_type = vscp_readStringValue( subsubchild->GetAttribute( _( "type" ), _("0") ) );
+   
                             wxString strGUID = subsubchild->GetAttribute( _( "GUID" ), 
-#else 
-                            wxString strGUID = subsubchild->GetPropVal( _( "GUID" ),
-#endif   
+   
                                     _("00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00") );
-                            getGuidFromStringToArray( pVSCPif->m_vscpfilter.mask_GUID, strGUID );
+                            vscp_getGuidFromStringToArray( pVSCPif->m_vscpfilter.mask_GUID, strGUID );
                         }
 
                         subsubchild = subsubchild->GetNext();
@@ -2314,11 +2479,30 @@ bool VscpworksApp::readConfiguration( void )
             } // while interface
 
         } // vscpinterface
+        else if ( child->GetName() == _( "mdfurl" ) ) {
+
+            wxXmlNode *subchild = child->GetChildren();
+            while ( subchild ) {
+
+                if ( subchild->GetName() == _( "translate" ) ) {
+
+                    wxString strFrom = subchild->GetAttribute( _( "from" ), _( "" ) );
+                    wxString strTo = subchild->GetAttribute( _( "to" ), _( "" ) );
+                    
+                    // Both string needs to have a value
+                    if ( strFrom.Length() && strTo.Length() ) {
+                        g_Config.m_mfProxyHashTable[ strFrom ] = strTo;
+                    }
+                }
+
+                subchild = subchild->GetNext();
+
+            }
+        }
 
         child = child->GetNext();
 
     } // while child
-
 
     return true;
 }
@@ -2337,20 +2521,27 @@ bool VscpworksApp::writeConfiguration( void )
     wxString buf;
     //wxStandardPaths strpath;
 
-    strcfgfile = wxStandardPaths::Get().GetUserDataDir();
-    strcfgfile += _("/vscpworks.conf");
+    if ( !m_bUseGlobalConfig ) {
+        strcfgfile = wxStandardPaths::Get().GetUserDataDir();
+        strcfgfile += _( "/vscpworks.conf" );
+    }
+    else {
+        strcfgfile = wxStandardPaths::Get().GetConfigDir() + _( "/vscpworks.conf" );
+    }
 
-	// Backup
-	::wxCopyFile( strcfgfile, strcfgfile + _(".bak") );
+    // Backup
+    if ( wxFileName::FileExists( strcfgfile ) ) {
+        ::wxCopyFile( strcfgfile, strcfgfile + _( ".bak" ) );
+    }
 
     wxFFileOutputStream *pFileStream = new wxFFileOutputStream( strcfgfile );
     if ( NULL == pFileStream ) return false;
 
-    pFileStream->Write("<?xml version = \"1.0\" encoding = \"UTF-8\" ?>\n", 
-        strlen("<?xml version = \"1.0\" encoding = \"UTF-8\" ?>\n") );
+    pFileStream->Write( "<?xml version = \"1.0\" encoding = \"UTF-8\" ?>\n",
+                        strlen( "<?xml version = \"1.0\" encoding = \"UTF-8\" ?>\n" ) );
 
     // VSCP Works configuration start
-    pFileStream->Write("<vscpworksconfig>\n",strlen("<vscpworksconfig>\n"));
+    pFileStream->Write( "<vscpworksconfig>\n\n", strlen( "<vscpworksconfig>\n\n" ) );
 
 
 
@@ -2360,130 +2551,248 @@ bool VscpworksApp::writeConfiguration( void )
 
 
     // General
-    pFileStream->Write("<general>\n",strlen("<general>\n"));
+    pFileStream->Write( "<general>\n", strlen( "<general>\n" ) );
 
-    // Width// General
-    pFileStream->Write("<width>",strlen("<width>"));
-    buf.Printf(_("%d"), g_Config.m_sizeWidth );
-    pFileStream->Write( buf.mb_str(),strlen(buf.mb_str()) );
-    pFileStream->Write("</width>\n",strlen("</width>\n"));
+    // Width MainFrame
+    pFileStream->Write( "<MainFrameWidth>", strlen( "<MainFrameWidth>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_sizeMainFrameWidth );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</MainFrameWidth>\n", strlen( "</MainFrameWidth>\n" ) );
 
-    // Height
-    pFileStream->Write("<height>",strlen("<height>"));
-    buf.Printf(_("%d"), g_Config.m_sizeHeight );
-    pFileStream->Write( buf.mb_str(), strlen(buf.mb_str()) );
-    pFileStream->Write("</height>\n",strlen("</height>\n"));
+    // Height MainFrame
+    pFileStream->Write( "<MainFrameHeight>", strlen( "<MainFrameHeight>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_sizeMainFrameHeight );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</MainFrameHeight>\n", strlen( "</MainFrameHeight>\n" ) );
 
-    // Xpos
-    pFileStream->Write("<xpos>",strlen("<xpos>"));
-    buf.Printf(_("%d"), g_Config.m_xpos );
-    pFileStream->Write( buf.mb_str(), strlen(buf.mb_str()) );
-    pFileStream->Write("</xpos>\n",strlen("</xpos>\n"));
+    // Xpos MainFrame
+    pFileStream->Write( "<MainFramexpos>", strlen( "<MainFramexpos>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_xposMainFrame );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</MainFramexpos>\n", strlen( "</MainFramexpos>\n" ) );
 
-    // Ypos
-    pFileStream->Write("<ypos>",strlen("<ypos>"));
-    buf.Printf(_("%d"), g_Config.m_ypos );
-    pFileStream->Write( buf.mb_str(), strlen(buf.mb_str()) );
-    pFileStream->Write("</ypos>\n",strlen("</ypos>\n"));
+    // Ypos MainFrame
+    pFileStream->Write( "<MainFrameypos>", strlen( "<MainFrameypos>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_yposMainFrame );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</MainFrameypos>\n", strlen( "</MainFrameypos>\n" ) );
+    
+    // Width Session Frame
+    pFileStream->Write( "<SessionFrameWidth>", strlen( "<SessionFrameWidth>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_sizeSessionFrameWidth );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</SessionFrameWidth>\n", strlen( "</SessionFrameWidth>\n" ) );
+
+    // Height Session Frame
+    pFileStream->Write( "<SessionFrameHeight>", strlen( "<SessionFrameHeight>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_sizeSessionFrameHeight );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</SessionFrameHeight>\n", strlen( "</SessionFrameHeight>\n" ) );
+    
+    // Width Configuration Frame
+    pFileStream->Write( "<ConfigurationFrameWidth>", strlen( "<ConfigurationFrameWidth>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_sizeConfigurationFrameWidth );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</ConfigurationFrameWidth>\n", strlen( "</ConfigurationFrameWidth>\n" ) );
+
+    // Height Configuration Frame
+    pFileStream->Write( "<ConfigurationFrameHeight>", strlen( "<ConfigurationFrameHeight>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_sizeConfigurationFrameHeight );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</ConfigurationFrameHeight>\n", strlen( "</ConfigurationFrameHeight>\n" ) );
 
     // Path2TempFile
-    pFileStream->Write("<path2tempfile>",strlen("<path2tempfile>"));
+    pFileStream->Write( "<path2tempfile>", strlen( "<path2tempfile>" ) );
     pFileStream->Write( g_Config.m_strPathTemp.mb_str(), strlen( g_Config.m_strPathTemp.mb_str() ) );
-    pFileStream->Write("</path2tempfile>\n",strlen("</path2tempfile>\n"));
+    pFileStream->Write( "</path2tempfile>\n", strlen( "</path2tempfile>\n" ) );
 
     // Path2LogFile  
-    pFileStream->Write("<path2logfile enable=\"",strlen("<path2logfile enable=\""));
+    pFileStream->Write( "<path2logfile enable=\"", strlen( "<path2logfile enable=\"" ) );
     if ( g_Config.m_bEnableLog ) {
-        pFileStream->Write("true",strlen("true"));
+        pFileStream->Write( "true", strlen( "true" ) );
     }
     else {
-        pFileStream->Write("false",strlen("false"));
+        pFileStream->Write( "false", strlen( "false" ) );
     }
 
-    pFileStream->Write("\" level=\"",strlen("\" level=\""));
+    pFileStream->Write( "\" level=\"", strlen( "\" level=\"" ) );
 
     switch ( g_Config.m_logLevel ) {
-	
-	case DAEMON_LOGMSG_DEBUG:
-		pFileStream->Write("debug",strlen("debug"));
-		break;
 
-	case DAEMON_LOGMSG_INFO:
-		pFileStream->Write("info",strlen("info"));
-		break;
+        case VSCPWORKS_LOGMSG_DEBUG:
+            pFileStream->Write( "debug", strlen( "debug" ) );
+            break;
 
-	case DAEMON_LOGMSG_NOTICE:
-		pFileStream->Write("notice",strlen("notice"));
-		break;
+        case VSCPWORKS_LOGMSG_INFO:
+            pFileStream->Write( "info", strlen( "info" ) );
+            break;
 
-	case DAEMON_LOGMSG_WARNING:
-		pFileStream->Write("warning",strlen("warning"));
-		break;
+        case VSCPWORKS_LOGMSG_NOTICE:
+            pFileStream->Write( "notice", strlen( "notice" ) );
+            break;
 
-	case DAEMON_LOGMSG_ERROR:
-		pFileStream->Write("error",strlen("error"));
-		break;
+        case VSCPWORKS_LOGMSG_WARNING:
+            pFileStream->Write( "warning", strlen( "warning" ) );
+            break;
 
-	case DAEMON_LOGMSG_CRITICAL:
-		pFileStream->Write("critical",strlen("critical"));
-		break;
+        case VSCPWORKS_LOGMSG_ERROR:
+            pFileStream->Write( "error", strlen( "error" ) );
+            break;
 
-	case DAEMON_LOGMSG_ALERT:
-		pFileStream->Write("alert",strlen("alert"));
-		break;
+        case VSCPWORKS_LOGMSG_CRITICAL:
+            pFileStream->Write( "critical", strlen( "critical" ) );
+            break;
 
-	default:
-		pFileStream->Write("emergency",strlen("emergency"));
-		break;
-	}
+        case VSCPWORKS_LOGMSG_ALERT:
+            pFileStream->Write( "alert", strlen( "alert" ) );
+            break;
 
-    pFileStream->Write("\" >",strlen("\" >"));
+        default:
+            pFileStream->Write( "emergency", strlen( "emergency" ) );
+            break;
+    }
+
+    pFileStream->Write( "\" >", strlen( "\" >" ) );
     pFileStream->Write( g_Config.m_strPathLogFile.mb_str(), strlen( g_Config.m_strPathLogFile.mb_str() ) );
-    pFileStream->Write("</path2logfile>\n",strlen("</path2logfile>\n") );
+    pFileStream->Write( "</path2logfile>\n", strlen( "</path2logfile>\n" ) );
 
-    // RegisterReadResendTimeout
-    pFileStream->Write("<RegisterReadResendTimeout>",strlen("<RegisterReadResendTimeout>"));
-    buf.Printf(_("%d"), g_Config.m_VscpRegisterReadResendTimeout );
-    pFileStream->Write( buf.mb_str(), strlen(buf.mb_str()) );
-    pFileStream->Write("</RegisterReadResendTimeout>\n",strlen("</RegisterReadResendTimeout>\n"));
+    // CANALReadMaxRetries
+    pFileStream->Write( "<CANALReadMaxRetries>", strlen( "<CANALReadMaxRetries>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_CANALRegMaxRetries );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</CANALReadMaxRetries>\n", strlen( "</CANALReadMaxRetries>\n" ) );
 
-    // RegisterReadErrorTimeout
-    pFileStream->Write("<RegisterReadErrorTimeout>",strlen("<RegisterReadErrorTimeout>"));
-    buf.Printf(_("%d"), g_Config.m_VscpRegisterReadErrorTimeout );
-    pFileStream->Write( buf.mb_str(), strlen(buf.mb_str()) );
-    pFileStream->Write("</RegisterReadErrorTimeout>\n",strlen("</RegisterReadErrorTimeout>\n"));
+    // CANALReadResendTimeout
+    pFileStream->Write( "<CANALReadResendTimeout>", strlen( "<CANALReadResendTimeout>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_CANALRegResendTimeout );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</CANALReadResendTimeout>\n", strlen( "</CANALReadResendTimeout>\n" ) );
 
-    // RegisterReadMaxRetries
-    pFileStream->Write("<RegisterReadMaxRetries>",strlen("<RegisterReadMaxRetries>"));
-    buf.Printf(_("%d"), g_Config.m_VscpRegisterReadMaxRetries );
-    pFileStream->Write( buf.mb_str(), strlen(buf.mb_str()) );
-    pFileStream->Write("</RegisterReadMaxRetries>\n",strlen("</RegisterReadMaxRetries>\n"));
+    // CANALReadErrorTimeout
+    pFileStream->Write( "<CANALReadErrorTimeout>", strlen( "<CANALReadErrorTimeout>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_CANALRegErrorTimeout );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</CANALReadErrorTimeout>\n", strlen( "</CANALReadErrorTimeout>\n" ) );
 
-	// ConfigNumberBase
-    pFileStream->Write("<NumberBase>",strlen("<NumberBase>"));
-	if ( VSCP_DEVCONFIG_NUMBERBASE_DECIMAL== g_Config.m_Numberbase ) {
-		pFileStream->Write("Decimal",strlen("Decimal"));	
-	}
-	else {
-		pFileStream->Write("Hex",strlen("Hex"));
-	}
-    pFileStream->Write("</NumberBase>\n",strlen("</NumberBase>\n"));
 
-	// ConfirmDelete
-    pFileStream->Write("<ConfirmDelete>",strlen("<ConfirmDelete>"));
-	if ( g_Config.m_bConfirmDelete ) {
-		pFileStream->Write("true",strlen("true"));	
-	}
-	else {
-		pFileStream->Write("false",strlen("false"));
-	}
-    pFileStream->Write("</ConfirmDelete>\n",strlen("</ConfirmDelete>\n"));
+    // TCPIPResponseTimeout
+    pFileStream->Write( "<TCPIPResponseTimeout>", strlen( "<TCPIPResponseTimeout>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_TCPIP_ResponseTimeout );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</TCPIPResponseTimeout>\n", strlen( "</TCPIPResponseTimeout>\n" ) );
+
+    // TCPIPResponseTimeout
+    pFileStream->Write( "<TCPIPSleepAfterCommand>", strlen( "<TCPIPSleepAfterCommand>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_TCPIP_SleepAfterCommand );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</TCPIPSleepAfterCommand>\n", strlen( "</TCPIPSleepAfterCommand>\n" ) );
+
+    // TCPIPReadMaxRetries
+    pFileStream->Write( "<TCPIPReadMaxRetries>", strlen( "<TCPIPReadMaxRetries>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_TCPIPRegMaxRetries );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</TCPIPReadMaxRetries>\n", strlen( "</TCPIPReadMaxRetries>\n" ) );
+
+    // TCPIPReadResendTimeout
+    pFileStream->Write( "<TCPIPReadResendTimeout>", strlen( "<TCPIPReadResendTimeout>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_TCPIPRegResendTimeout );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</TCPIPReadResendTimeout>\n", strlen( "</TCPIPReadResendTimeout>\n" ) );
+
+    // TCPIPReadErrorTimeout
+    pFileStream->Write( "<TCPIPReadErrorTimeout>", strlen( "<TCPIPReadErrorTimeout>" ) );
+    buf.Printf( _( "%d" ), g_Config.m_TCPIPRegErrorTimeout );
+    pFileStream->Write( buf.mb_str(), strlen( buf.mb_str() ) );
+    pFileStream->Write( "</TCPIPReadErrorTimeout>\n", strlen( "</TCPIPReadErrorTimeout>\n" ) );
+
+    // ConfigNumberBase
+    pFileStream->Write( "<NumberBase>", strlen( "<NumberBase>" ) );
+    if ( VSCP_DEVCONFIG_NUMBERBASE_DECIMAL == g_Config.m_Numberbase ) {
+        pFileStream->Write( "Decimal", strlen( "Decimal" ) );
+    }
+    else {
+        pFileStream->Write( "Hex", strlen( "Hex" ) );
+    }
+    pFileStream->Write( "</NumberBase>\n", strlen( "</NumberBase>\n" ) );
+
+    // ConfirmDelete
+    pFileStream->Write( "<ConfirmDelete>", strlen( "<ConfirmDelete>" ) );
+    if ( g_Config.m_bConfirmDelete ) {
+        pFileStream->Write( "true", strlen( "true" ) );
+    }
+    else {
+        pFileStream->Write( "false", strlen( "false" ) );
+    }
+    pFileStream->Write( "</ConfirmDelete>\n", strlen( "</ConfirmDelete>\n" ) );
+
+
+    
+    pFileStream->Write( "<GuidWriteEnable>", strlen( "<GuidWriteEnable>" ) );
+    if ( g_Config.bGuidWritable ) {    
+        pFileStream->Write( "enable", strlen( "enable" ) );
+    }
+    else {
+        pFileStream->Write( "do-not-use", strlen( "do-not-use" ) );
+    }
+    pFileStream->Write( "</GuidWriteEnable>\n", strlen( "</GuidWriteEnable>\n" ) );
+
+    pFileStream->Write( "<ManufacturerGuid>", strlen( "<ManufacturerGuid>" ) );
+    {
+        wxString wxstr;
+        g_Config.m_manufacturerGuid.toString( wxstr );
+        pFileStream->Write( wxstr.mb_str(), strlen( wxstr.mb_str() ) );
+    }
+    pFileStream->Write( "</ManufacturerGuid>\n", strlen( "</ManufacturerGuid>\n" ) );
+
+
+    pFileStream->Write( "<ManufacturerId>", strlen( "<ManufacturerId>" ) );
+    {
+        wxString wxstr;
+        wxstr = wxString::Format( _( "0x%08X" ), g_Config.m_manufacturerId );
+        pFileStream->Write( wxstr.mb_str(), strlen( wxstr.mb_str() ) );
+    }
+    pFileStream->Write( "</ManufacturerId>\n", strlen( "</ManufacturerId>\n" ) );
+
+
+    pFileStream->Write( "<ManufacturerSubId>", strlen( "<ManufacturerSubId>" ) );
+    {
+        wxString wxstr;
+        wxstr = wxString::Format( _( "0x%08X" ), g_Config.m_manufacturerSubId );
+        pFileStream->Write( wxstr.mb_str(), strlen( wxstr.mb_str() ) );
+    }
+    pFileStream->Write( "</ManufacturerSubId>\n", strlen( "</ManufacturerSubId>\n" ) );
 
     // /General
-    pFileStream->Write("</general>\n",strlen("</general>\n"));
+    pFileStream->Write("</general>\n\n",strlen("</general>\n\n"));
 
 
     // **************************************************************************
+
+
+    // mdfurl
+    pFileStream->Write( "<mdfurl>\n", strlen( "<mdfurl>\n" ) );
+
+    MdfProxyHash::iterator it;
+    for ( it = g_Config.m_mfProxyHashTable.begin(); it != g_Config.m_mfProxyHashTable.end(); ++it )
+    {
+        wxString key = it->first, value = it->second;
+        pFileStream->Write( "<translate ", strlen( "<translate " ) );
+
+        pFileStream->Write( "from=\"", strlen( "from=\"" ) );
+        pFileStream->Write( key.mbc_str(), strlen( key.mbc_str() ) );
+        pFileStream->Write( "\" ", strlen( "\" " ) );
+
+        pFileStream->Write( "to=\"", strlen( "to=\"" ) );
+        pFileStream->Write( value.mbc_str(), strlen( value.mbc_str() ) );
+        pFileStream->Write( "\" ", strlen( "\" " ) );
+
+        pFileStream->Write( "/>\n", strlen( "/>\n" ) );
+    }
+
+    pFileStream->Write( "</mdfurl>\n\n", strlen( "</mdfurl>\n\n" ) );
+
+    // **************************************************************************
+
 
 
     // vscpclient
@@ -2659,7 +2968,7 @@ bool VscpworksApp::writeConfiguration( void )
     pFileStream->Write("</VscpRcvFrameLineColour>\n",strlen("</VscpRcvFrameLineColour>\n"));
 
     // /vscpclient
-    pFileStream->Write("</vscpclient>\n",strlen("</vscpclient>\n"));
+    pFileStream->Write("</vscpclient>\n\n",strlen("</vscpclient>\n\n"));
 
 
 
@@ -2697,12 +3006,12 @@ bool VscpworksApp::writeConfiguration( void )
 
             // flags
             pFileStream->Write("<flags>",strlen("<flags>"));
-            buf.Printf(_("%d"), pIf->m_flags );
+            buf.Printf(_("%lu"), pIf->m_flags );
             pFileStream->Write( buf.mb_str(),strlen(buf.mb_str()));
             pFileStream->Write("</flags>\n",strlen("</flags>\n"));	
 
             // CANAL Driver interface stop
-            pFileStream->Write("</canaldriver>\n",strlen("</canaldriver>\n"));
+            pFileStream->Write("</canaldriver>\n\n",strlen("</canaldriver>\n\n"));
 
         }
 
@@ -2736,12 +3045,6 @@ bool VscpworksApp::writeConfiguration( void )
             pFileStream->Write( pIf->m_strHost.mb_str(), strlen( pIf->m_strHost.mb_str() ) );
             pFileStream->Write("</host>\n",strlen("</host>\n"));
 
-            // port
-            pFileStream->Write("<port>",strlen("<port>"));
-            buf.Printf(_("%d"), pIf->m_port );
-            pFileStream->Write( buf.mb_str(),strlen(buf.mb_str()) );
-            pFileStream->Write("</port>\n",strlen("</port>\n"));
-
             // username
             pFileStream->Write("<username>",strlen("<username>"));
             pFileStream->Write( pIf->m_strUser.mb_str(), strlen( pIf->m_strUser.mb_str() ) );
@@ -2752,24 +3055,24 @@ bool VscpworksApp::writeConfiguration( void )
             pFileStream->Write( pIf->m_strPassword.mb_str(), strlen( pIf->m_strPassword.mb_str() ) );
             pFileStream->Write("</password>\n",strlen("</password>\n"));
 
-			// Daemon interface
+            // Daemon interface
             pFileStream->Write("<interfacename>",strlen("<interfacename>"));
             pFileStream->Write( pIf->m_strInterfaceName.mb_str(), strlen( pIf->m_strInterfaceName.mb_str() ) );
             pFileStream->Write("</interfacename>\n",strlen("</interfacename>\n"));
 
-			// Fill Level II support
-			pFileStream->Write("<level2>",strlen("<level2>"));
-			if ( pIf->m_bLevel2 ) {
-				pFileStream->Write( "true", 4 );
-			}
-			else {
-				pFileStream->Write( "false", 5 );
-			}
+            // Fill Level II support
+            pFileStream->Write("<level2>",strlen("<level2>"));
+            if ( pIf->m_bLevel2 ) {
+                pFileStream->Write( "true", 4 );
+            }
+            else {
+                pFileStream->Write( "false", 5 );
+            }
             pFileStream->Write("</level2>\n",strlen("</level2>\n"));
 
             // interface GUID
             pFileStream->Write("<guid>",strlen("<guid>"));
-            writeGuidArrayToString( pIf->m_GUID, buf );	
+            vscp_writeGuidArrayToString( pIf->m_GUID, buf );	
             pFileStream->Write( buf.mb_str(),strlen(buf.mb_str()));	
             pFileStream->Write("</guid>\n",strlen("</guid>\n"));
 
@@ -2783,7 +3086,7 @@ bool VscpworksApp::writeConfiguration( void )
             pFileStream->Write ( buf.mb_str(), strlen( buf.mb_str() ) );
             buf.Printf( _( " GUID=\"" ) );
             pFileStream->Write ( buf.mb_str(), strlen( buf.mb_str() ) );
-            writeGuidArrayToString( pIf->m_vscpfilter.filter_GUID, strGUID );
+            vscp_writeGuidArrayToString( pIf->m_vscpfilter.filter_GUID, strGUID );
             pFileStream->Write( strGUID.mb_str(), strlen( strGUID.mb_str() ) );
             pFileStream->Write( "\">",strlen ( "\">" ) );
             pFileStream->Write( "</filter>\n",strlen ( "</filter>\n" ) );
@@ -2798,20 +3101,20 @@ bool VscpworksApp::writeConfiguration( void )
             pFileStream->Write ( buf.mb_str(), strlen( buf.mb_str() ) );
             buf.Printf( _( " GUID=\"" ) );
             pFileStream->Write ( buf.mb_str(), strlen( buf.mb_str() ) );
-            writeGuidArrayToString( pIf->m_vscpfilter.mask_GUID, strGUID );
+            vscp_writeGuidArrayToString( pIf->m_vscpfilter.mask_GUID, strGUID );
             pFileStream->Write ( strGUID.mb_str(), strlen( strGUID.mb_str() ) );
             pFileStream->Write ( "\">",strlen ( "\">" ) );
             pFileStream->Write ( "</mask>\n",strlen ( "</mask>\n" ) );
 
             // VSCP Daemon interface stop
-            pFileStream->Write("</vscpdaemon>\n",strlen("</vscpdaemon>\n"));
+            pFileStream->Write("</vscpdaemon>\n\n",strlen("</vscpdaemon>\n\n"));
 
         }
 
     }
 
     // Interfaces stop
-    pFileStream->Write("</vscpinterface>\n",strlen("</vscpinterface>\n"));
+    pFileStream->Write("</vscpinterface>\n\n",strlen("</vscpinterface>\n\n"));
 
 
 
@@ -2838,9 +3141,9 @@ bool VscpworksApp::writeConfiguration( void )
 //
 
 bool VscpworksApp::readLevel1Register( CCanalSuperWrapper *pcsw,
-											unsigned char nodeid, 
-											unsigned char reg, 
-											unsigned char *pcontent )
+                                            unsigned char nodeid, 
+                                            unsigned char reg, 
+                                            unsigned char *pcontent )
 {
     bool rv = true;
     int errors = 0;
@@ -2951,7 +3254,7 @@ bool VscpworksApp::writeLevel1Register( CCanalSuperWrapper *pcsw,
             if ( CANAL_ERROR_SUCCESS == pcsw->doCmdReceive( &canalEvent ) ) {   // Valid event
                 if ( (unsigned short)( canalEvent.id & 0xffff ) ==
                     ( 0x0a00 + nodeid ) ) {         // Read reply?
-                        if ( canalEvent.data[ 0 ] == reg ) {                        // Requested register?
+                        if ( canalEvent.data[ 0 ] == reg ) {                    // Requested register?
 
                             if ( *pcontent != canalEvent.data[ 1 ] ) rv = false;
                             // Save read value
@@ -2970,11 +3273,11 @@ bool VscpworksApp::writeLevel1Register( CCanalSuperWrapper *pcsw,
         }
 
         if ( ( ::wxGetLocalTimeMillis() - startTime ) > 
-            g_Config.m_VscpRegisterReadErrorTimeout ) {
+            g_Config.m_CANALRegErrorTimeout ) {
                 errors++;
         }
         else if ( ( ::wxGetLocalTimeMillis() - startTime ) > 
-            g_Config.m_VscpRegisterReadResendTimeout ) {
+            g_Config.m_CANALRegResendTimeout ) {
                 // Send again
                 if ( !bResend) {
                     pcsw->doCmdSend( &canalEvent );
@@ -2982,7 +3285,7 @@ bool VscpworksApp::writeLevel1Register( CCanalSuperWrapper *pcsw,
                 bResend = true;
         }
 
-        if ( errors > g_Config.m_VscpRegisterReadMaxRetries ) {
+        if ( errors > g_Config.m_CANALRegMaxRetries ) {
             rv = false;
             break;
         }
@@ -2997,15 +3300,15 @@ bool VscpworksApp::writeLevel1Register( CCanalSuperWrapper *pcsw,
 //
 
 bool VscpworksApp::readLevel2Register( CCanalSuperWrapper *pcsw,
-										uint8_t *interfaceGUID, 
-										uint32_t reg, 
-										uint8_t *pcontent,
-										uint8_t *pdestGUID,
-										bool bLevel2 )
+                                        uint8_t *interfaceGUID, 
+                                        uint32_t reg, 
+                                        uint8_t *pcontent,
+                                        uint8_t *pdestGUID,
+                                        bool bLevel2 )
 {
-	int i;
+    int i;
     bool rv = true;
-	bool bInterface = false;  // No specific interface set
+    bool bInterface = false;  // No specific interface set
     int errors = 0;
     bool bResend;
     wxString strBuf;
@@ -3014,94 +3317,93 @@ bool VscpworksApp::readLevel2Register( CCanalSuperWrapper *pcsw,
     // Check pointer
     if ( NULL == pcsw ) return false;
 
-	// Check if a specific interface is used
-	for ( i=0; i<16; i++ ) {
-		if ( interfaceGUID[ i ] ) {
-			bInterface= true;
-			break;
-		}
-	}
+    // Check if a specific interface is used
+    for ( i=0; i<16; i++ ) {
+        if ( interfaceGUID[ i ] ) {
+            bInterface= true;
+            break;
+        }
+    }
 
-	if ( bInterface ) {
+    if ( bInterface ) {
 
-		// Event should be sent to a specific interface
+        // Event should be sent to a specific interface
 
-		event.head = VSCP_PRIORITY_NORMAL;
-		event.vscp_class = VSCP_CLASS2_LEVEL1_PROTOCOL;
-		event.vscp_type = VSCP_TYPE_PROTOCOL_READ_REGISTER;
-		
-		memset( event.GUID, 0, 16 );                // We use GUID for interface 
-		
-		event.sizeData = 16 + 2;                    // Interface GUID + nodeid + register to read
-		
-		for ( i=0; i<16; i++ ) {
-			event.data[ i ] = interfaceGUID[ 15 - i ];	
-		}
-			
-		event.data[16] = interfaceGUID[0];          // nodeid
-		event.data[17] = reg;                       // Register to read
-	
-	}
+        event.head = VSCP_PRIORITY_NORMAL;
+        event.vscp_class = VSCP_CLASS2_LEVEL1_PROTOCOL;
+        event.vscp_type = VSCP_TYPE_PROTOCOL_READ_REGISTER;
+        
+        memset( event.GUID, 0, 16 );                // We use GUID for interface 
+        
+        event.sizeData = 16 + 2;                    // Interface GUID + nodeid + register to read
+        
+        for ( i=0; i<16; i++ ) {
+            event.data[ i ] = interfaceGUID[ 15 - i ];
+        }
+            
+        event.data[16] = interfaceGUID[0];          // nodeid
+        event.data[17] = reg;                       // Register to read
+    
+    }
 
-	else {
+    else {
 
-		// Event should be sent to all interfaces
-	
-		// Must have a destination GUID
-		if ( NULL == pdestGUID ) return false;
+        // Event should be sent to all interfaces
+    
+        // Must have a destination GUID
+        if ( NULL == pdestGUID ) return false;
 
-		if ( bLevel2 ) {
+        if ( bLevel2 ) {
 
-			// True real Level II event
+            // True real Level II event
 
-			event.head = VSCP_PRIORITY_NORMAL;
-			event.vscp_class = VSCP_CLASS2_PROTOCOL;
-			event.vscp_type = VSCP2_TYPE_PROTOCOL_READ_REGISTER;
-		
-			memset( event.GUID, 0, 16 );		// We use GUID for interface 
+            event.head = VSCP_PRIORITY_NORMAL;
+            event.vscp_class = VSCP_CLASS2_PROTOCOL;
+            event.vscp_type = VSCP2_TYPE_PROTOCOL_READ_REGISTER;
+        
+            memset( event.GUID, 0, 16 );        // We use GUID for interface 
 
-			event.sizeData = 22;				// nodeid + register to read
-		
-			for ( i=0; i<16; i++ ) {			// Destination GUID
-				event.data[ i ] = pdestGUID[ 15 - i ];	
-			}	
-			event.data[ 16 ] = 0x00;			// Register to read
-			event.data[ 17 ] = 0x00;
-			event.data[ 18 ] = 0x00;
-			event.data[ 19 ] = reg;
-			event.data[ 20 ] = 0x00;			// Read one register
-			event.data[ 21 ] = 0x01;
-		
-		}
-		else {
+            event.sizeData = 22;                // nodeid + register to read
+        
+            for ( i=0; i<16; i++ ) {            // Destination GUID
+                event.data[ i ] = pdestGUID[ 15 - i ];	
+            }	
+            event.data[ 16 ] = 0x00;            // Register to read
+            event.data[ 17 ] = 0x00;
+            event.data[ 18 ] = 0x00;
+            event.data[ 19 ] = reg;
+            event.data[ 20 ] = 0x00;            // Read one register
+            event.data[ 21 ] = 0x01;
+        
+        }
+        else {
 
-			// Level I over CLASS2 to all interfaces 
+            // Level I over CLASS2 to all interfaces 
 
-			event.head = VSCP_PRIORITY_NORMAL;
-			event.vscp_class = VSCP_CLASS2_LEVEL1_PROTOCOL;
-			event.vscp_type = VSCP_TYPE_PROTOCOL_READ_REGISTER;
-		
-			memset( event.GUID, 0, 16 );				// We use GUID for interface 
+            event.head = VSCP_PRIORITY_NORMAL;
+            event.vscp_class = VSCP_CLASS2_LEVEL1_PROTOCOL;
+            event.vscp_type = VSCP_TYPE_PROTOCOL_READ_REGISTER;
+        
+            memset( event.GUID, 0, 16 );                // We use GUID for interface 
+            event.sizeData = 16 + 2;                    // nodeid + register to read
 
-			event.sizeData = 16 + 2;					// nodeid + register to read
-
-			for ( i=0; i<16; i++ ) {
-				event.data[ i ] = pdestGUID[ 15 - i ];	
-			}
-			
-			event.data[16] = 0x00;						// nodeid
-			event.data[17] = reg;                       // Register to read
-			
-		}
-	}
+            for ( i=0; i<16; i++ ) {
+                event.data[ i ] = pdestGUID[ 15 - i ];
+            }
+            
+            event.data[16] = 0x00;                      // nodeid
+            event.data[17] = reg;                       // Register to read
+            
+        }
+    }
 
     bResend = false;
 
     // Send the event
-	pcsw->doCmdClear();
-	event.timestamp = 0;
+    pcsw->doCmdClear();
+    event.timestamp = 0;
     pcsw->doCmdSend( &event );
-	
+    
 
     //wxDateTime start = wxDateTime::Now();
     wxLongLong startTime = ::wxGetLocalTimeMillis();
@@ -3111,62 +3413,62 @@ bool VscpworksApp::readLevel2Register( CCanalSuperWrapper *pcsw,
         if ( pcsw->doCmdDataAvailable() ) {                                     // Message available
             if ( CANAL_ERROR_SUCCESS == pcsw->doCmdReceive( &event ) ) {        // Valid event
                 
-				// Check for correct reply event
-				
-				// Level I Read reply?
-				if ( bInterface && ( VSCP_CLASS1_PROTOCOL == event.vscp_class ) && 
+                // Check for correct reply event
+                
+                // Level I Read reply?
+                if ( bInterface && ( VSCP_CLASS1_PROTOCOL == event.vscp_class ) && 
                     ( VSCP_TYPE_PROTOCOL_RW_RESPONSE == event.vscp_type ) ) {   
                         if ( event.data[ 0 ] == reg ) {                         // Requested register?
                             if ( event.GUID[0] == interfaceGUID[0] ) {          // Correct node?
                                 if ( NULL != pcontent ) {
                                     *pcontent = event.data[ 1 ];
-									break;
+                                    break;
                                 }
                                 break;
                             }
                         } // Check for correct node
                 }
-				// Level II 512 Read reply?
-				else if ( !bInterface && !bLevel2 && 
-					( VSCP_CLASS2_LEVEL1_PROTOCOL == event.vscp_class ) && 
+                // Level II 512 Read reply?
+                else if ( !bInterface && !bLevel2 && 
+                    ( VSCP_CLASS2_LEVEL1_PROTOCOL == event.vscp_class ) && 
                     ( VSCP_TYPE_PROTOCOL_RW_RESPONSE == event.vscp_type ) ) { 
 
-					if ( isSameGUID( pdestGUID, event.GUID ) ) {
-						// Reg we requested?
-						if ( event.data[ 0 ] == reg ) {
-							// OK get the data
-							if ( NULL != pcontent ) {
-								*pcontent = event.data[ 18 ];
-								break;
-							}
-						}
-					}
+                    if ( vscp_isSameGUID( pdestGUID, event.GUID ) ) {
+                        // Reg we requested?
+                        if ( event.data[ 0 ] == reg ) {
+                            // OK get the data
+                            if ( NULL != pcontent ) {
+                                *pcontent = event.data[ 18 ];
+                                break;
+                            }
+                        }
+                    }
 
-				}
-				// Level II Read reply?
-				else if ( !bInterface && bLevel2 && 
-					( VSCP_CLASS2_PROTOCOL == event.vscp_class ) && 
+                }
+                // Level II Read reply?
+                else if ( !bInterface && bLevel2 && 
+                    ( VSCP_CLASS2_PROTOCOL == event.vscp_class ) && 
                     ( VSCP2_TYPE_PROTOCOL_READ_WRITE_RESPONSE == event.vscp_type ) ) { 
-					
-					// from us
-					if ( isSameGUID( pdestGUID, event.GUID ) ) {	
-						
-						uint32_t retreg = ( event.data[ 0 ]  << 24 ) +
-										  (	event.data[ 1 ]  << 16 ) +
-										  (	event.data[ 2 ]  << 8 ) +
-											event.data[ 3 ];
-						
-						// Reg we requested?
-						if ( retreg == reg ) {
-							// OK get the data
-							if ( NULL != pcontent ) {
-								*pcontent = event.data[ 18 ];
-								break;
-							}
-						}
-					}
+                    
+                    // from us
+                    if ( vscp_isSameGUID( pdestGUID, event.GUID ) ) {	
+                        
+                        uint32_t retreg = ( event.data[ 0 ]  << 24 ) +
+                                          (	event.data[ 1 ]  << 16 ) +
+                                          (	event.data[ 2 ]  << 8 ) +
+                                            event.data[ 3 ];
+                        
+                        // Reg we requested?
+                        if ( retreg == reg ) {
+                            // OK get the data
+                            if ( NULL != pcontent ) {
+                                *pcontent = event.data[ 18 ];
+                                break;
+                            }
+                        }
+                    }
 
-				}
+                }
             } // valid event
         }
         else {
@@ -3174,21 +3476,21 @@ bool VscpworksApp::readLevel2Register( CCanalSuperWrapper *pcsw,
         }
 
         if ( ( ::wxGetLocalTimeMillis() - startTime ) >   
-                    g_Config.m_VscpRegisterReadErrorTimeout ) {
+                    g_Config.m_CANALRegErrorTimeout ) {
             errors++;
         }
         else if ( ( ::wxGetLocalTimeMillis() - startTime ) > 
-            g_Config.m_VscpRegisterReadResendTimeout ) {
+            g_Config.m_CANALRegResendTimeout ) {
                 // Send again
                 if ( !bResend) {
-					pcsw->doCmdClear();
-					event.timestamp = 0;
+                    pcsw->doCmdClear();
+                    event.timestamp = 0;
                     pcsw->doCmdSend( &event );
                 }
                 bResend = true;
         }   
 
-        if ( errors > g_Config.m_VscpRegisterReadMaxRetries ) {
+        if ( errors > g_Config.m_CANALRegMaxRetries ) {
             rv = false;
             break;
         }
@@ -3203,15 +3505,15 @@ bool VscpworksApp::readLevel2Register( CCanalSuperWrapper *pcsw,
 //
 
 bool VscpworksApp::writeLevel2Register( CCanalSuperWrapper *pcsw,
-											uint8_t *interfaceGUID, 
-											uint32_t reg, 
-											uint8_t *pcontent,
-											uint8_t *pdestGUID,
-											bool bLevel2 )
+                                            uint8_t *interfaceGUID, 
+                                            uint32_t reg, 
+                                            uint8_t *pcontent,
+                                            uint8_t *pdestGUID,
+                                            bool bLevel2 )
 {
     int i;
-	bool rv = true;
-	bool bInterface = false;  // No specific interface set
+    bool rv = true;
+    bool bInterface = false;  // No specific interface set
     int errors = 0;
     bool bResend;
     wxString strBuf;
@@ -3221,81 +3523,81 @@ bool VscpworksApp::writeLevel2Register( CCanalSuperWrapper *pcsw,
     if ( NULL == pcsw ) return false;
     if ( NULL == pcontent ) return false;
 
-	// Check if a specific interface is used
-	for ( i=0; i<16; i++ ) {
-		if ( interfaceGUID[ i ] ) {
-			bInterface= true;
-			break;
-		}
-	}
+    // Check if a specific interface is used
+    for ( i=0; i<16; i++ ) {
+        if ( interfaceGUID[ i ] ) {
+            bInterface= true;
+            break;
+        }
+    }
 
-	if ( bInterface ) {
+    if ( bInterface ) {
 
-		event.head = VSCP_PRIORITY_NORMAL;
-		event.vscp_class = VSCP_CLASS2_LEVEL1_PROTOCOL;
-		event.vscp_type = VSCP_TYPE_PROTOCOL_WRITE_REGISTER;
-		
-		memset( event.GUID, 0, 16 );              // We use interface GUID
-		
-		event.sizeData = 16 + 3;                  // Interface GUID + nodeid + register to read + valied
-		
-		for ( i=0; i<16; i++ ) {
-			event.data[ i ] = interfaceGUID[ 15 - i ];	
-		}
-		event.data[16] = interfaceGUID[ 0 ];      // nodeid
-		event.data[17] = reg;                     // Register to write
-		event.data[18] = *pcontent;	              // value to write
-	
-	}
-	else {
+        event.head = VSCP_PRIORITY_NORMAL;
+        event.vscp_class = VSCP_CLASS2_LEVEL1_PROTOCOL;
+        event.vscp_type = VSCP_TYPE_PROTOCOL_WRITE_REGISTER;
+        
+        memset( event.GUID, 0, 16 );              // We use interface GUID
+        
+        event.sizeData = 16 + 3;                  // Interface GUID + nodeid + register to read + valied
+        
+        for ( i=0; i<16; i++ ) {
+            event.data[ i ] = interfaceGUID[ 15 - i ];
+        }
+        event.data[16] = interfaceGUID[ 0 ];      // nodeid
+        event.data[17] = reg;                     // Register to write
+        event.data[18] = *pcontent;	              // value to write
+    
+    }
+    else {
 
-		if ( bLevel2 ) {
+        if ( bLevel2 ) {
 
-			// Must have a destination GUID
-			if ( NULL == pdestGUID ) return false;
+            // Must have a destination GUID
+            if ( NULL == pdestGUID ) return false;
 
-			event.head = VSCP_PRIORITY_NORMAL;
-			event.vscp_class = VSCP_CLASS2_PROTOCOL;
-			event.vscp_type = VSCP2_TYPE_PROTOCOL_WRITE_REGISTER;
+            event.head = VSCP_PRIORITY_NORMAL;
+            event.vscp_class = VSCP_CLASS2_PROTOCOL;
+            event.vscp_type = VSCP2_TYPE_PROTOCOL_WRITE_REGISTER;
 
-			memset( event.GUID, 0, 16 );		// We use interface GUID
-		
-			event.sizeData = 21;				// nodeid + register to read
-		
-			for ( i=0; i<16; i++ ) {			// Destination GUID
-				event.data[ i ] = pdestGUID[ 15 - i ];	
-			}
-				
-			event.data[ 16 ] = 0x00;			// Register to write
-			event.data[ 17 ] = 0x00;
-			event.data[ 18 ] = 0x00;
-			event.data[ 19 ] = reg;
-			event.data[ 20 ] = *pcontent;		// Data to write
-		
-		}
-		else {
+            memset( event.GUID, 0, 16 );        // We use interface GUID
+        
+            event.sizeData = 21;                // nodeid + register to read
+        
+            for ( i=0; i<16; i++ ) {            // Destination GUID
+                event.data[ i ] = pdestGUID[ 15 - i ];
+            }
+                
+            event.data[ 16 ] = 0x00;            // Register to write
+            event.data[ 17 ] = 0x00;
+            event.data[ 18 ] = 0x00;
+            event.data[ 19 ] = reg;
+            event.data[ 20 ] = *pcontent;       // Data to write
+        
+        }
+        else {
 
-			// Level I over CLASS2 to all interfaces 
+            // Level I over CLASS2 to all interfaces 
 
-			event.head = VSCP_PRIORITY_NORMAL;
-			event.vscp_class = VSCP_CLASS2_LEVEL1_PROTOCOL;
-			event.vscp_type = VSCP_TYPE_PROTOCOL_WRITE_REGISTER;
+            event.head = VSCP_PRIORITY_NORMAL;
+            event.vscp_class = VSCP_CLASS2_LEVEL1_PROTOCOL;
+            event.vscp_type = VSCP_TYPE_PROTOCOL_WRITE_REGISTER;
 
-			memset( event.GUID, 0, 16 );			// We use interface GUID
-		
-			event.sizeData = 16 + 3;				
+            memset( event.GUID, 0, 16 );            // We use interface GUID
+        
+            event.sizeData = 16 + 3;
 
-			for ( i=0; i<16; i++ ) {		
-				event.data[ i ] = interfaceGUID[ 15 - i ];	
-			}
+            for ( i=0; i<16; i++ ) {
+                event.data[ i ] = interfaceGUID[ 15 - i ];
+            }
 
-			event.data[16] = interfaceGUID[0];        // nodeid
-			event.data[17] = reg;                     // Register to write
-			event.data[18] = *pcontent;	              // value to write
-			
-		}
+            event.data[16] = interfaceGUID[0];        // nodeid
+            event.data[17] = reg;                     // Register to write
+            event.data[18] = *pcontent;	              // value to write
+            
+        }
 
-	}
+    }
 
     bResend = false;
     pcsw->doCmdSend( &event );
@@ -3326,11 +3628,11 @@ bool VscpworksApp::writeLevel2Register( CCanalSuperWrapper *pcsw,
         }
 
         if ( ( ::wxGetLocalTimeMillis() - startTime ) > 
-            g_Config.m_VscpRegisterReadErrorTimeout ) {
+            g_Config.m_CANALRegErrorTimeout ) {
                 errors++;
         }
         else if ( ( ::wxGetLocalTimeMillis() - startTime ) > 
-            g_Config.m_VscpRegisterReadResendTimeout ) {
+            g_Config.m_CANALRegResendTimeout ) {
                 // Send again
                 if ( !bResend) {
                     pcsw->doCmdSend( &event );
@@ -3338,7 +3640,7 @@ bool VscpworksApp::writeLevel2Register( CCanalSuperWrapper *pcsw,
                 bResend = true;
         }
 
-        if ( errors > g_Config.m_VscpRegisterReadMaxRetries ) {
+        if ( errors > g_Config.m_CANALRegMaxRetries ) {
             rv = false;
             break;
         }
@@ -3353,52 +3655,53 @@ bool VscpworksApp::writeLevel2Register( CCanalSuperWrapper *pcsw,
 //
 
 wxString VscpworksApp::getMDFfromDevice( CCanalSuperWrapper *pcsw, 
-											uint8_t *pid, 
-											bool bLevel2,
-											bool bSilent )
+                                            uint8_t *pid, 
+                                            bool bLevel2,
+                                            bool bSilent )
 {
-	wxString strWrk;
-	char url[ 33 ];
+    wxString strWrk;
+    char url[ 33 ];
 
-	memset( url, 0, sizeof( url ) );
+    memset( url, 0, sizeof( url ) );
 
-	if ( bLevel2 ) {
-		
-		// Level 2 device
-		uint8_t *p = (uint8_t *)url;
-		for ( int i=0; i<32; i++ ) {
-			 if ( !pcsw->readLevel1Register( *pid, 
-                                            0xE0 + i, 
-                                            p++ ) ) {
-				if ( !bSilent ) {												
-					::wxMessageBox( _("Unable to read register."), _("VSCP Works"), wxICON_ERROR );
-				}
-				break;
-			 }
-			
-		}
+    if ( bLevel2 ) {
+        
+        // Level 2 device
+        uint8_t *p = (uint8_t *)url;
+        for ( int i=0; i<32; i++ ) {
+            if ( !pcsw->getDllInterface()->readLevel1Register( 0,
+                                                                *pid, 
+                                                                0xE0 + i, 
+                                                                p++ ) ) {
+                if ( !bSilent ) {												
+                    ::wxMessageBox( _("Unable to read register."), _("VSCP Works"), wxICON_ERROR );
+                }
+                break;
+             }
+            
+        }
 
-	}
-	else {
-	
-		// Level 1 device
-		uint8_t *p = (uint8_t *)url;
-		for ( int i=0; i<32; i++ ) {
-			 if ( !readLevel2Register( pcsw,
-										pid, 
-										0xFFFFFFE0 + i, 
-										p++ ) ) {
-				if ( !bSilent ) {
-					::wxMessageBox( _("Unable to read register."), _("VSCP Works"), wxICON_ERROR );
-				}
-				break;
-			 }
-			
-		}
+    }
+    else {
+    
+        // Level 1 device
+        uint8_t *p = (uint8_t *)url;
+        for ( int i=0; i<32; i++ ) {
+             if ( !readLevel2Register( pcsw,
+                                        pid, 
+                                        0xFFFFFFE0 + i, 
+                                        p++ ) ) {
+                if ( !bSilent ) {
+                    ::wxMessageBox( _("Unable to read register."), _("VSCP Works"), wxICON_ERROR );
+                }
+                break;
+             }
+            
+        }
 
-	}
+    }
 
-	return strWrk;
+    return strWrk;
 }
 
 
@@ -3464,6 +3767,10 @@ wxString VscpworksApp::formatString( const wxString& str, const unsigned int wid
     return strWrk;
 }
 
+
+
+
+
 //////////////////////////////////////////////////////////////////////////////
 // getLevel1DmInfo
 //
@@ -3528,7 +3835,7 @@ bool VscpworksApp::getLevel1DmInfo( CCanalSuperWrapper *pcsw,
 bool VscpworksApp::getLevel2DmInfo( CCanalSuperWrapper *pcsw,
                                    unsigned char *interfaceGUID, 
                                    unsigned char *pdata,
-								   bool bLevel2 )
+                                   bool bLevel2 )
 {
     bool rv = true;
     bool bResend;
@@ -3817,9 +4124,10 @@ bool VscpworksApp::loadMDF( wxWindow *pwnd,
 
             if ( USE_DLL_INTERFACE == pcsw->getDeviceType() ) {
                 uint8_t reg;
-                if ( !pcsw->readLevel1Register( *pid,
-                                            0xe0 + i, 
-                                            &reg ) ) return false;
+                if ( !pcsw->getDllInterface()->readLevel1Register( 0,
+                                                                    *pid,
+                                                                    0xe0 + i, 
+                                                                    &reg ) ) return false;
                 mdf_url[ i ] = reg;
             }
             else {
@@ -3894,16 +4202,18 @@ bool VscpworksApp::loadMDF( wxWindow *pwnd,
 }
 
 
+
+
 //////////////////////////////////////////////////////////////////////////////
 // readAllLevel1Registers
 //
 /*
 bool VscpworksApp::readAllLevel1Registers( wxWindow *pwnd,
-											CCanalSuperWrapper *pcsw,
-											uint8_t *pregisters,
-											unsigned char nodeid  )
+                                            CCanalSuperWrapper *pcsw,
+                                            uint8_t *pregisters,
+                                            unsigned char nodeid  )
 {
-	int i;
+    int i;
     unsigned char val;
     bool rv = true;
     int errors = 0;
@@ -3947,7 +4257,7 @@ bool VscpworksApp::readAllLevel1Registers( wxWindow *pwnd,
             rv = false;
             break;
         }
-			
+            
     } // for
 
     return rv;
@@ -3959,9 +4269,9 @@ bool VscpworksApp::readAllLevel1Registers( wxWindow *pwnd,
 //
 
 bool VscpworksApp::readAllLevel2Registers( wxWindow *pwnd,
-											CCanalSuperWrapper *pcsw,
-											uint8_t *pregisters,
-											uint8_t *pinterfaceGUID )
+                                            CCanalSuperWrapper *pcsw,
+                                            uint8_t *pregisters,
+                                            uint8_t *pinterfaceGUID )
 {
     int i;
     unsigned char val;
@@ -4010,7 +4320,7 @@ bool VscpworksApp::readAllLevel2Registers( wxWindow *pwnd,
             rv = false;
             break;
         }
-			
+            
     } // for
 
 
@@ -4023,9 +4333,9 @@ bool VscpworksApp::readAllLevel2Registers( wxWindow *pwnd,
 /*
 wxString VscpworksApp::addMDFInfo( CMDF *pmdf )
 {
-	wxString strHTML;
+    wxString strHTML;
 
-	// MDF Info
+    // MDF Info
     strHTML = _("<h1>MDF Information</h1>");
 
     strHTML += _("<font color=\"#009900\">");
@@ -4154,8 +4464,11 @@ wxString VscpworksApp::addMDFInfo( CMDF *pmdf )
 
     } // manufacturer
 
-	return strHTML;
+    return strHTML;
 }
 
 */
+
+
+
 

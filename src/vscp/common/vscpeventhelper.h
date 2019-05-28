@@ -1,21 +1,29 @@
 // FILE: vscpeventhelper.h
 //
-// Copyright (C) 2002-2014 Ake Hedman akhe@grodansparadis.com
+// This file is part of the VSCP (http://www.vscp.org)
 //
-// This software is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later version.
+// The MIT License (MIT)
 //
-// This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// Library General Public License for more details.
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB
+// <info@grodansparadis.com>
 //
-// You should have received a copy of the GNU Library General Public
-// License along with this library; if not, write to the
-// Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-// Boston, MA 02111-1307, USA.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 //
 
 // HISTORY:
@@ -24,73 +32,52 @@
 
 /*!
     \file vscphelper.h
-    \brief	The vscphelper file contains often used functionality when working with VSCP.
-    \details vscphealper have common used functionality to do things in the VSCP world. 
-    It can be seens as the main toolbox for the VSCP programmer.
+    \brief	The vscphelper file contains often used functionality when working
+   with VSCP. \details vscphealper have common used functionality to do things
+   in the VSCP world. It can be seens as the main toolbox for the VSCP
+   programmer.
  */
-
 
 #if !defined(VSCPEVENTHELPER_H__C2A773AD_8886_40F0_96C4_4DCA663402B2__INCLUDED_)
 #define VSCPEVENTHELPER_H__C2A773AD_8886_40F0_96C4_4DCA663402B2__INCLUDED_
 
-#ifdef VSCP_QT
+#include <map>
+#include <string>
 
-#include <QString>
-#include <QStringList>
-
-#else
-
-
-#include <wx/wx.h>
-#include <wx/hashmap.h>
-#ifndef WIN32
-#include <sys/times.h>
-#endif
-
-#endif
-
-#include "vscp.h"
-#include "vscp_class.h"
-#include "vscp_type.h"
-#include "canal.h"
-#include "../../common/crc.h"
+#include <canal.h>
+#include <crc.h>
+#include <crc8.h>
+#include <vscp.h>
+#include <vscp_class.h>
+#include <vscp_type.h>
 
 // Forward declaration
 class CMDF;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
+#define MAKE_CLASSTYPE_LONG(a, b) ((((unsigned long)a) << 16) + b)
 
-#ifdef VSCP_QT	
-
-#else
-    /// Hashtable for known event VSCP classes
-    WX_DECLARE_HASH_MAP(unsigned long, wxString, wxIntegerHash, wxIntegerEqual, VSCPHashClass);
-
-    /// Hashtable for known event VSCP types
-    WX_DECLARE_HASH_MAP(unsigned long, wxString, wxIntegerHash, wxIntegerEqual, VSCPHashType);
-
-#define MAKE_CLASSTYPE_LONG( a, b ) ((((unsigned long)a)<<16) + b)
-
-    enum VSCPInformationFormat {
-        DEFAULT, 
-	WITH_DECIMAL_PREFIX, 
-	WITH_HEX_PREFIX, 
-	WITH_DECIMAL_SUFFIX, 
-	WITH_HEX_SUFFIX
+    enum VSCPInformationFormat
+    {
+        DEFAULT,
+        WITH_DECIMAL_PREFIX,
+        WITH_HEX_PREFIX,
+        WITH_DECIMAL_SUFFIX,
+        WITH_HEX_SUFFIX
     };
-#endif	
 
     /*!
       @brief This class holds information about VSCP events.
      */
 
-    class VSCPInformation {
-        
-    public:
+    class VSCPInformation
+    {
 
+      public:
         // Constructores/Destructors
         VSCPInformation(void);
         ~VSCPInformation(void);
@@ -98,29 +85,22 @@ extern "C" {
         /*!
           Get a pointer to the VSCP class hashtable.
          */
-        VSCPHashClass *getClassHashPointer(void);
+        std::map<unsigned long, std::string> *getClassHashPointer(void);
 
         /*!
           Get a pointer to the VSCP type hashtable.
          */
-        VSCPHashType *getTypeHashPointer(void);
+        std::map<unsigned long, std::string> *getTypeHashPointer(void);
 
         /*!
           Get class description from class id
          */
-#ifdef VSCP_QT
-#else		 
-        wxString& getClassDescription(int vscp_class);
-#endif		
+        std::string &getClassDescription(int vscp_class);
 
         /*!
           Get type description from class id and type id
          */
-#ifdef VSCP_QT
-#else		 
-        wxString& getTypeDescription(int vscp_class, int vscp_type);
-#endif		
-
+        std::string &getTypeDescription(int vscp_class, int vscp_type);
 
         /*!
             Fills a string  array with class descriptions
@@ -128,71 +108,39 @@ extern "C" {
             \param format Format for list. 0 is just description, 1 is
                 id + description
          */
-#ifdef VSCP_QT
-#else		 
-        void fillClassDescriptions( wxArrayString& strArray, 
-					VSCPInformationFormat format = DEFAULT );
-#endif		
 
+        void fillClassDescriptions(std::deque<std::string> &strArray,
+                                   VSCPInformationFormat format = DEFAULT);
 
-#ifdef VSCP_QT
-#else
-        // We don't want the graphcal UI on apps that don't use it 
-#if ( wxUSE_GUI != 0 )
-        /*!
-            Fills a combobox with class descriptions
-            \param pctrl Pointer to control to fill.
-            \param format Format for list. 0 is just description, 1 is
-                id + description
-         */
-        void fillClassDescriptions(wxControlWithItems *pctrl, 
-					VSCPInformationFormat format = DEFAULT);
-
-#endif
-#endif
         /*!
             Fills a string array with type descriptions
             \param strArray String array to fill.
             \param format Format for list. 0 is just description, 1 is
                 id + description
          */
-#ifdef VSCP_QT
-#else		 
-        void fillTypeDescriptions(wxArrayString& strArray, 
-					unsigned int vscp_class, 
-					VSCPInformationFormat format = DEFAULT);
-#endif		
 
-        // We don't want the graphcal UI on apps that don't use it 
-#ifdef VSCP_QT
-#else		
-#if ( wxUSE_GUI != 0 )
-        /*!
-            Fills a combobox with type descriptions
-            \param pctrl Pointer to control to fill.
-            \param format Format for list. 0 is just description, 1 is
-                id + description
-         */
-        void fillTypeDescriptions(wxControlWithItems *pctrl, 
-					unsigned int vscp_class, 
-					VSCPInformationFormat format = DEFAULT);
+        void fillTypeDescriptions(std::deque<std::string> &strArray,
+                                  unsigned int vscp_class,
+                                  VSCPInformationFormat format = DEFAULT);
 
-#endif
-#endif
+        // We don't want the graphcal UI on apps that don't use it
 
- private:
+      private:
         /// Hash for classes
-        VSCPHashClass m_hashClass;
+        std::map<unsigned long, std::string> m_hashClass;
+        /// Hashtable for known event VSCP classes
+        // XX_DECLARE_HASH_MAP(unsigned long, std::string, wxIntegerHash,
+        // wxIntegerEqual, VSCPHashClass);
 
         /// Hash for types
-        VSCPHashType m_hashType;
+        std::map<unsigned long, std::string> m_hashType;
+        /// Hashtable for known event VSCP types
+        // XX_DECLARE_HASH_MAP(unsigned long, std::string, wxIntegerHash,
+        // wxIntegerEqual, VSCPHashType);
     };
-
 
 #ifdef __cplusplus
 }
 #endif
 
-
 #endif // include define
-

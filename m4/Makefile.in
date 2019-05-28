@@ -21,6 +21,7 @@ VPATH = @srcdir@
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 
+datarootdir = @datarootdir@
 bindir = @bindir@
 sbindir = @sbindir@
 libexecdir = @libexecdir@
@@ -86,7 +87,7 @@ am__include = @am__include@
 am__quote = @am__quote@
 install_sh = @install_sh@
 top_wxbuilddir = @top_wxbuilddir@
-NULL = 
+NULL =
 
 EXTRA_DIST = \
 	codeset.m4 \
@@ -107,8 +108,10 @@ EXTRA_DIST = \
 	stdint_h.m4 \
 	uintmax_t.m4 \
 	ulonglong.m4 \
+	ax_check_enable_debug.m4\
+	ax_check_openssl.m4\
 	vscp.m4 \
-	wxwin.m4 \ 
+	wxwin.m4 \
 	$(NULL)
 
 subdir = m4
@@ -185,6 +188,7 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+
 clean: clean-am
 
 clean-am: clean-generic mostlyclean-am

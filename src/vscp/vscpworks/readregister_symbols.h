@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     14/03/2009 08:40:19
 // RCS-ID:      
-// Copyright:   (C) 2007-2014
+// Copyright:   (C) 2007-2017
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -39,5 +39,5 @@
 //  eurosource at info@eurosource.se, http://www.eurosource.se
 /////////////////////////////////////////////////////////////////////////////
 
-#define ID_READREGIISTER_SYMBOL_0 _("Static text")
-#define ID_READREGIISTER_SYMBOL_1 _("Read Regiister")
+#define ID_READREGISTER_SYMBOL_0 _("Static text")
+#define ID_READREGISTER_SYMBOL_1 _("Read Register")

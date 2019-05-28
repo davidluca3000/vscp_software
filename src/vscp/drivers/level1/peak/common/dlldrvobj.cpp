@@ -7,7 +7,7 @@
 // 
 // This file is part of the VSCP (http://www.vscp.org) 
 //
-// Copyright (C) 2000-2014 
+// Copyright (C) 2000-2015 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // 
 // This file is distributed in the hope that it will be useful,
@@ -20,10 +20,6 @@
 // the Free Software Foundation, 59 Temple Place - Suite 330,
 // Boston, MA 02111-1307, USA.
 //
-// $RCSfile: dlldrvobj.cpp,v $                                       
-// $Date: 2005/01/05 12:16:16 $                                  
-// $Author: akhe $                                              
-// $Revision: 1.2 $ 
 //
 // Linux
 // =====
@@ -60,7 +56,7 @@ CDllDrvObj::CDllDrvObj()
 {
 	m_instanceCounter = 0;
 #ifdef WIN32
-	m_objMutex = CreateMutex( NULL, true, "__CANAL_PEAK_MUTEX__" );
+	m_objMutex = CreateMutex( NULL, true, TEXT("__CANAL_PEAK_MUTEX__") );
 #else
 	pthread_mutex_init( &m_objMutex, NULL );
 #endif
@@ -80,7 +76,7 @@ CDllDrvObj::~CDllDrvObj()
 	
 	for ( int i = 0; i<CANAL_PEAK_DRIVER_MAX_OPEN; i++ ) {
 		
-		if ( NULL == m_drvObjArray[ i ] ) {
+		if ( NULL != m_drvObjArray[ i ] ) {
 			
 			CPeakObj *pdrvObj =  getDriverObject( i );
 			if ( NULL != pdrvObj ) { 

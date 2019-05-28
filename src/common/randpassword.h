@@ -1,10 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 // randPassword.h
 //
-// This file is part is part of CANAL (CAN Abstraction Layer)
+// This file is part is part of VSCP (Very Simple Control Protocol)
 // http://www.vscp.org)
 //
-// Copyright (C) 2000-2011 Ake Hedman, eurosource, <akhe@eurosource.se>
+// Copyright (C) 2000-2019 Ake Hedman, eurosource, <akhe@eurosource.se>
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -38,7 +38,7 @@ public:
     /*!
         generatePassword
         Generate a new password of the give length.
-        \param lengt Length of generated password.
+        \param length Length of generated password.
         \param pPassword Buffer that will hold the generated password
         The buffer should be at least ob byte gretaer then the length
         for the password to have toom for the end of string marker.
@@ -62,7 +62,7 @@ private:
     /*!
         Pool to use for password generation
     */
-    char m_pool[ 255 ];
+    char m_pool[ 256 ];
 
 };
 

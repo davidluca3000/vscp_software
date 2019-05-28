@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     25/02/2007 22:48:03
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2017 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -91,7 +91,12 @@ dlgInterfaceSettings::dlgInterfaceSettings()
     Init();
 }
 
-dlgInterfaceSettings::dlgInterfaceSettings( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+dlgInterfaceSettings::dlgInterfaceSettings( wxWindow* parent, 
+                                                wxWindowID id, 
+                                                const wxString& caption, 
+                                                const wxPoint& pos, 
+                                                const wxSize& size, 
+                                                long style )
 {
     Init();
     Create(parent, id, caption, pos, size, style);
@@ -101,7 +106,12 @@ dlgInterfaceSettings::dlgInterfaceSettings( wxWindow* parent, wxWindowID id, con
  * DlgInterfaceSettings creator
  */
 
-bool dlgInterfaceSettings::Create( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+bool dlgInterfaceSettings::Create( wxWindow* parent, 
+                                        wxWindowID id, 
+                                        const wxString& caption, 
+                                        const wxPoint& pos, 
+                                        const wxSize& size, 
+                                        long style )
 {
 ////@begin dlgInterfaceSettings creation
   SetExtraStyle(wxWS_EX_BLOCK_EVENTS);

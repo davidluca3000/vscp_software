@@ -15,14 +15,14 @@
     <bool name="translate_strings">1</bool>
     <bool name="make_unicode_strings">1</bool>
     <bool name="extract_strings">0</bool>
-    <string name="user_name">"Ake Hedman"</string>
-    <string name="copyright_string">"(C) 2007-2012 Ake Hedman, Grodans Paradis AB, &lt;akhe@grodansparadis.com&gt;"</string>
+    <string name="user_name">"Ake Hedman, Grodans Paradis AB"</string>
+    <string name="copyright_string">"(C) 2007-2018 Ake Hedman, Grodans Paradis AB, &lt;akhe@grodansparadis.com&gt;"</string>
     <string name="resource_prefix">""</string>
     <bool name="use_two_step_construction">1</bool>
     <bool name="use_enums">1</bool>
     <bool name="generate_for_xrced">0</bool>
     <bool name="generate_virtual_eventhandlers">0</bool>
-    <string name="current_platform">"__WXMSW__"</string>
+    <string name="current_platform">"__WXGTK__"</string>
     <string name="target_wx_version">"3.0.0"</string>
     <string name="app_kind">"Standard"</string>
     <string name="cpp_header_comment">"/////////////////////////////////////////////////////////////////////////////
@@ -757,7 +757,7 @@
           <long name="title-mode">0</long>
           <long name="locked">0</long>
           <string name="template-name">"VC++ Project"</string>
-          <bool name="dirty">0</bool>
+          <bool name="dirty">1</bool>
           <long name="makefile-last-written">8470657</long>
           <string name="Compiler name">"VC++ Project"</string>
           <string name="Build mode">"Release"</string>
@@ -784,7 +784,7 @@
           <string name="Executable name">"%EXECUTABLE%"</string>
           <string name="Program arguments">""</string>
           <string name="Working path">"%AUTO%"</string>
-          <string name="Output path">"%AUTO%"</string>
+          <string name="Output path">".\Release\"</string>
           <string name="Objects path">"%AUTO%"</string>
           <string name="Project makefile">"%AUTO%"</string>
           <string name="wxWidgets version">"%WXVERSION%"</string>
@@ -840,7 +840,7 @@
           <long name="title-mode">0</long>
           <long name="locked">0</long>
           <string name="template-name">"VC++ Project"</string>
-          <bool name="dirty">0</bool>
+          <bool name="dirty">1</bool>
           <long name="makefile-last-written">8470657</long>
           <string name="Compiler name">"VC++ Project"</string>
           <string name="Build mode">"Debug"</string>
@@ -867,7 +867,7 @@
           <string name="Executable name">"%EXECUTABLE%"</string>
           <string name="Program arguments">""</string>
           <string name="Working path">"%AUTO%"</string>
-          <string name="Output path">"%AUTO%"</string>
+          <string name="Output path">"vscpworks/Debug"</string>
           <string name="Objects path">"%AUTO%"</string>
           <string name="Project makefile">"%AUTO%"</string>
           <string name="wxWidgets version">"%WXVERSION%"</string>
@@ -4387,7 +4387,6 @@ to the clipboard"</string>
                       <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
                       <string name="proxy-Custom arguments">""</string>
                       <string name="proxy-Custom ctor arguments">""</string>
-                      <bool name="proxy-wxBU_EXACTFIT">1</bool>
                     </document>
                     <document>
                       <string name="title">"wxBitmapButton: ID_BITMAPBUTTON13"</string>
@@ -4458,10 +4457,73 @@ to the clipboard"</string>
                       <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
                       <string name="proxy-Custom arguments">""</string>
                       <string name="proxy-Custom ctor arguments">""</string>
-                      <bool name="proxy-wxBU_EXACTFIT">1</bool>
                     </document>
                   </document>
                 </document>
+              </document>
+              <document>
+                <string name="title">"wxStatusBar: ID_STATUSBAR"</string>
+                <string name="type">"dialog-control-document"</string>
+                <string name="filename">""</string>
+                <string name="icon-name">"statusbar"</string>
+                <long name="is-transient">0</long>
+                <long name="owns-file">1</long>
+                <long name="title-mode">0</long>
+                <long name="locked">0</long>
+                <string name="proxy-type">"wbStatusBarProxy"</string>
+                <string name="proxy-Id name">"ID_STATUSBAR"</string>
+                <long name="proxy-Id value">10000</long>
+                <string name="proxy-Name">""</string>
+                <string name="proxy-Class">"wxStatusBar"</string>
+                <string name="proxy-Base class">"wxStatusBar"</string>
+                <bool name="proxy-External implementation">1</bool>
+                <bool name="proxy-Separate files">0</bool>
+                <string name="proxy-Implementation filename">""</string>
+                <string name="proxy-Header filename">""</string>
+                <string name="proxy-Member variable name">""</string>
+                <string name="proxy-Help text">""</string>
+                <string name="proxy-Tooltip text">""</string>
+                <string name="proxy-Background colour">""</string>
+                <string name="proxy-Foreground colour">""</string>
+                <string name="proxy-Font">""</string>
+                <bool name="proxy-Hidden">0</bool>
+                <bool name="proxy-Enabled">1</bool>
+                <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
+                <long name="proxy-Field count">2</long>
+                <string name="proxy-Field text">""</string>
+                <string name="proxy-Field widths">""</string>
+                <bool name="proxy-wxST_SIZEGRIP">1</bool>
+                <bool name="proxy-wxNO_BORDER">1</bool>
+                <bool name="proxy-wxSIMPLE_BORDER">0</bool>
+                <bool name="proxy-wxDOUBLE_BORDER">0</bool>
+                <bool name="proxy-wxBORDER_THEME">0</bool>
+                <bool name="proxy-wxSUNKEN_BORDER">0</bool>
+                <bool name="proxy-wxRAISED_BORDER">0</bool>
+                <bool name="proxy-wxSTATIC_BORDER">0</bool>
+                <bool name="proxy-wxWANTS_CHARS">0</bool>
+                <bool name="proxy-wxNO_FULL_REPAINT_ON_RESIZE">0</bool>
+                <bool name="proxy-wxFULL_REPAINT_ON_RESIZE">0</bool>
+                <bool name="proxy-wxCLIP_CHILDREN">0</bool>
+                <string name="proxy-Custom styles">""</string>
+                <long name="proxy-X">-1</long>
+                <long name="proxy-Y">-1</long>
+                <long name="proxy-Width">-1</long>
+                <long name="proxy-Height">-1</long>
+                <string name="proxy-AlignH">"Centre"</string>
+                <string name="proxy-AlignV">"Centre"</string>
+                <long name="proxy-Stretch factor">0</long>
+                <long name="proxy-Border">5</long>
+                <bool name="proxy-wxLEFT">1</bool>
+                <bool name="proxy-wxRIGHT">1</bool>
+                <bool name="proxy-wxTOP">1</bool>
+                <bool name="proxy-wxBOTTOM">1</bool>
+                <bool name="proxy-wxSHAPED">0</bool>
+                <bool name="proxy-wxADJUST_MINSIZE">0</bool>
+                <bool name="proxy-wxFIXED_MINSIZE">0</bool>
+                <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
+                <string name="proxy-Custom arguments">""</string>
+                <string name="proxy-Custom ctor arguments">""</string>
+                <string name="proxy-Event sources">""</string>
               </document>
             </document>
           </document>
@@ -6988,6 +7050,70 @@ to the clipboard"</string>
                   </document>
                 </document>
               </document>
+              <document>
+                <string name="title">"wxStatusBar: ID_STATUSBAR"</string>
+                <string name="type">"dialog-control-document"</string>
+                <string name="filename">""</string>
+                <string name="icon-name">"statusbar"</string>
+                <long name="is-transient">0</long>
+                <long name="owns-file">1</long>
+                <long name="title-mode">0</long>
+                <long name="locked">0</long>
+                <string name="proxy-type">"wbStatusBarProxy"</string>
+                <string name="proxy-Id name">"ID_STATUSBAR"</string>
+                <long name="proxy-Id value">10004</long>
+                <string name="proxy-Name">""</string>
+                <string name="proxy-Class">"wxStatusBar"</string>
+                <string name="proxy-Base class">"wxStatusBar"</string>
+                <bool name="proxy-External implementation">1</bool>
+                <bool name="proxy-Separate files">0</bool>
+                <string name="proxy-Implementation filename">""</string>
+                <string name="proxy-Header filename">""</string>
+                <string name="proxy-Member variable name">""</string>
+                <string name="proxy-Help text">""</string>
+                <string name="proxy-Tooltip text">""</string>
+                <string name="proxy-Background colour">""</string>
+                <string name="proxy-Foreground colour">""</string>
+                <string name="proxy-Font">""</string>
+                <bool name="proxy-Hidden">0</bool>
+                <bool name="proxy-Enabled">1</bool>
+                <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
+                <long name="proxy-Field count">2</long>
+                <string name="proxy-Field text">""</string>
+                <string name="proxy-Field widths">""</string>
+                <bool name="proxy-wxST_SIZEGRIP">1</bool>
+                <bool name="proxy-wxNO_BORDER">1</bool>
+                <bool name="proxy-wxSIMPLE_BORDER">0</bool>
+                <bool name="proxy-wxDOUBLE_BORDER">0</bool>
+                <bool name="proxy-wxBORDER_THEME">0</bool>
+                <bool name="proxy-wxSUNKEN_BORDER">0</bool>
+                <bool name="proxy-wxRAISED_BORDER">0</bool>
+                <bool name="proxy-wxSTATIC_BORDER">0</bool>
+                <bool name="proxy-wxWANTS_CHARS">0</bool>
+                <bool name="proxy-wxNO_FULL_REPAINT_ON_RESIZE">0</bool>
+                <bool name="proxy-wxFULL_REPAINT_ON_RESIZE">0</bool>
+                <bool name="proxy-wxCLIP_CHILDREN">0</bool>
+                <string name="proxy-Custom styles">""</string>
+                <long name="proxy-X">-1</long>
+                <long name="proxy-Y">-1</long>
+                <long name="proxy-Width">-1</long>
+                <long name="proxy-Height">-1</long>
+                <string name="proxy-AlignH">"Centre"</string>
+                <string name="proxy-AlignV">"Centre"</string>
+                <long name="proxy-Stretch factor">0</long>
+                <long name="proxy-Border">5</long>
+                <bool name="proxy-wxLEFT">1</bool>
+                <bool name="proxy-wxRIGHT">1</bool>
+                <bool name="proxy-wxTOP">1</bool>
+                <bool name="proxy-wxBOTTOM">1</bool>
+                <bool name="proxy-wxSHAPED">0</bool>
+                <bool name="proxy-wxADJUST_MINSIZE">0</bool>
+                <bool name="proxy-wxFIXED_MINSIZE">0</bool>
+                <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
+                <string name="proxy-Custom arguments">""</string>
+                <string name="proxy-Custom ctor arguments">""</string>
+                <string name="proxy-Event sources">""</string>
+              </document>
             </document>
           </document>
         </document>
@@ -8440,6 +8566,70 @@ to the clipboard"</string>
                     <string name="proxy-Custom ctor arguments">""</string>
                   </document>
                 </document>
+              </document>
+              <document>
+                <string name="title">"wxStatusBar: ID_STATUSBAR"</string>
+                <string name="type">"dialog-control-document"</string>
+                <string name="filename">""</string>
+                <string name="icon-name">"statusbar"</string>
+                <long name="is-transient">0</long>
+                <long name="owns-file">1</long>
+                <long name="title-mode">0</long>
+                <long name="locked">0</long>
+                <string name="proxy-type">"wbStatusBarProxy"</string>
+                <string name="proxy-Id name">"ID_STATUSBAR"</string>
+                <long name="proxy-Id value">10001</long>
+                <string name="proxy-Name">""</string>
+                <string name="proxy-Class">"wxStatusBar"</string>
+                <string name="proxy-Base class">"wxStatusBar"</string>
+                <bool name="proxy-External implementation">1</bool>
+                <bool name="proxy-Separate files">0</bool>
+                <string name="proxy-Implementation filename">""</string>
+                <string name="proxy-Header filename">""</string>
+                <string name="proxy-Member variable name">""</string>
+                <string name="proxy-Help text">""</string>
+                <string name="proxy-Tooltip text">""</string>
+                <string name="proxy-Background colour">""</string>
+                <string name="proxy-Foreground colour">""</string>
+                <string name="proxy-Font">""</string>
+                <bool name="proxy-Hidden">0</bool>
+                <bool name="proxy-Enabled">1</bool>
+                <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
+                <long name="proxy-Field count">2</long>
+                <string name="proxy-Field text">""</string>
+                <string name="proxy-Field widths">""</string>
+                <bool name="proxy-wxST_SIZEGRIP">1</bool>
+                <bool name="proxy-wxNO_BORDER">1</bool>
+                <bool name="proxy-wxSIMPLE_BORDER">0</bool>
+                <bool name="proxy-wxDOUBLE_BORDER">0</bool>
+                <bool name="proxy-wxBORDER_THEME">0</bool>
+                <bool name="proxy-wxSUNKEN_BORDER">0</bool>
+                <bool name="proxy-wxRAISED_BORDER">0</bool>
+                <bool name="proxy-wxSTATIC_BORDER">0</bool>
+                <bool name="proxy-wxWANTS_CHARS">0</bool>
+                <bool name="proxy-wxNO_FULL_REPAINT_ON_RESIZE">0</bool>
+                <bool name="proxy-wxFULL_REPAINT_ON_RESIZE">0</bool>
+                <bool name="proxy-wxCLIP_CHILDREN">0</bool>
+                <string name="proxy-Custom styles">""</string>
+                <long name="proxy-X">-1</long>
+                <long name="proxy-Y">-1</long>
+                <long name="proxy-Width">-1</long>
+                <long name="proxy-Height">-1</long>
+                <string name="proxy-AlignH">"Centre"</string>
+                <string name="proxy-AlignV">"Centre"</string>
+                <long name="proxy-Stretch factor">0</long>
+                <long name="proxy-Border">5</long>
+                <bool name="proxy-wxLEFT">1</bool>
+                <bool name="proxy-wxRIGHT">1</bool>
+                <bool name="proxy-wxTOP">1</bool>
+                <bool name="proxy-wxBOTTOM">1</bool>
+                <bool name="proxy-wxSHAPED">0</bool>
+                <bool name="proxy-wxADJUST_MINSIZE">0</bool>
+                <bool name="proxy-wxFIXED_MINSIZE">0</bool>
+                <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
+                <string name="proxy-Custom arguments">""</string>
+                <string name="proxy-Custom ctor arguments">""</string>
+                <string name="proxy-Event sources">""</string>
               </document>
             </document>
           </document>
@@ -27326,7 +27516,7 @@ to the clipboard"</string>
             <string name="proxy-Event sources">""</string>
             <bool name="proxy-AUI manager">0</bool>
             <string name="proxy-Tab label">"General"</string>
-            <string name="proxy-Tab icon">"copy.xpm"</string>
+            <string name="proxy-Tab icon">"fatbee_v2.ico"</string>
             <document>
               <string name="title">"wxBoxSizer V"</string>
               <string name="type">"dialog-control-document"</string>
@@ -28316,7 +28506,7 @@ to the clipboard"</string>
             <string name="proxy-Event sources">""</string>
             <bool name="proxy-AUI manager">0</bool>
             <string name="proxy-Tab label">"Communication"</string>
-            <string name="proxy-Tab icon">"copy.xpm"</string>
+            <string name="proxy-Tab icon">"fatbee_v2.ico"</string>
             <document>
               <string name="title">"wxBoxSizer V"</string>
               <string name="type">"dialog-control-document"</string>
@@ -28783,7 +28973,7 @@ to the clipboard"</string>
             <string name="proxy-Event sources">""</string>
             <bool name="proxy-AUI manager">0</bool>
             <string name="proxy-Tab label">"Colours"</string>
-            <string name="proxy-Tab icon">"copy.xpm"</string>
+            <string name="proxy-Tab icon">"fatbee_v2.ico"</string>
             <document>
               <string name="title">"wxBoxSizer H"</string>
               <string name="type">"dialog-control-document"</string>
@@ -28889,7 +29079,7 @@ to the clipboard"</string>
             <string name="proxy-Event sources">""</string>
             <bool name="proxy-AUI manager">0</bool>
             <string name="proxy-Tab label">"VSCP Receive View"</string>
-            <string name="proxy-Tab icon">"copy.xpm"</string>
+            <string name="proxy-Tab icon">"fatbee_v2.ico"</string>
             <document>
               <string name="title">"wxBoxSizer V"</string>
               <string name="type">"dialog-control-document"</string>
@@ -34433,7 +34623,7 @@ to the clipboard"</string>
                   <string name="proxy-Implementation filename">""</string>
                   <string name="proxy-Header filename">""</string>
                   <string name="proxy-Member variable name">"m_RemoteServerURL"</string>
-                  <string name="proxy-Initial value">"localhost"</string>
+                  <string name="proxy-Initial value">"localhost:8080"</string>
                   <long name="proxy-Max length">0</long>
                   <string name="proxy-Help text">""</string>
                   <string name="proxy-Tooltip text">""</string>
@@ -34495,216 +34685,6 @@ to the clipboard"</string>
                   <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
                   <string name="proxy-Custom arguments">""</string>
                   <string name="proxy-Custom ctor arguments">""</string>
-                </document>
-              </document>
-              <document>
-                <string name="title">"wxBoxSizer H"</string>
-                <string name="type">"dialog-control-document"</string>
-                <string name="filename">""</string>
-                <string name="icon-name">"sizer"</string>
-                <long name="is-transient">0</long>
-                <long name="owns-file">1</long>
-                <long name="title-mode">0</long>
-                <long name="locked">0</long>
-                <string name="created">"29/6/2007"</string>
-                <string name="proxy-type">"wbBoxSizerProxy"</string>
-                <string name="proxy-Orientation">"Horizontal"</string>
-                <string name="proxy-Member variable name">""</string>
-                <string name="proxy-AlignH">"Right"</string>
-                <string name="proxy-AlignV">"Centre"</string>
-                <long name="proxy-Stretch factor">0</long>
-                <long name="proxy-Border">1</long>
-                <bool name="proxy-wxLEFT">1</bool>
-                <bool name="proxy-wxRIGHT">1</bool>
-                <bool name="proxy-wxTOP">1</bool>
-                <bool name="proxy-wxBOTTOM">1</bool>
-                <bool name="proxy-wxSHAPED">0</bool>
-                <bool name="proxy-wxADJUST_MINSIZE">0</bool>
-                <bool name="proxy-wxFIXED_MINSIZE">0</bool>
-                <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
-                <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
-                <document>
-                  <string name="title">"wxStaticText: wxID_STATIC"</string>
-                  <string name="type">"dialog-control-document"</string>
-                  <string name="filename">""</string>
-                  <string name="icon-name">"statictext"</string>
-                  <long name="is-transient">0</long>
-                  <long name="owns-file">1</long>
-                  <long name="title-mode">0</long>
-                  <long name="locked">0</long>
-                  <string name="created">"29/6/2007"</string>
-                  <string name="proxy-type">"wbStaticTextProxy"</string>
-                  <string name="proxy-Id name">"wxID_STATIC"</string>
-                  <long name="proxy-Id value">5105</long>
-                  <string name="proxy-Name">""</string>
-                  <string name="proxy-Class">"wxStaticText"</string>
-                  <string name="proxy-Base class">"wxStaticText"</string>
-                  <bool name="proxy-External implementation">1</bool>
-                  <bool name="proxy-Separate files">0</bool>
-                  <string name="proxy-Implementation filename">""</string>
-                  <string name="proxy-Header filename">""</string>
-                  <string name="proxy-Member variable name">""</string>
-                  <string name="proxy-Label">"Server port:"</string>
-                  <long name="proxy-Wrapping width">-1</long>
-                  <string name="proxy-Help text">""</string>
-                  <string name="proxy-Tooltip text">""</string>
-                  <string name="proxy-Background colour">""</string>
-                  <string name="proxy-Foreground colour">""</string>
-                  <string name="proxy-Font">""</string>
-                  <bool name="proxy-Hidden">0</bool>
-                  <bool name="proxy-Enabled">1</bool>
-                  <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
-                  <string name="proxy-Data variable">""</string>
-                  <string name="proxy-Data validator">""</string>
-                  <string name="proxy-Data source">""</string>
-                  <string name="proxy-Data class name">""</string>
-                  <string name="proxy-Data class implementation filename">""</string>
-                  <string name="proxy-Data class header filename">""</string>
-                  <string name="proxy-Data class manager window">""</string>
-                  <bool name="proxy-wxALIGN_LEFT">0</bool>
-                  <bool name="proxy-wxALIGN_RIGHT">0</bool>
-                  <bool name="proxy-wxALIGN_CENTRE">0</bool>
-                  <bool name="proxy-wxST_NO_AUTORESIZE">0</bool>
-                  <bool name="proxy-wxNO_BORDER">0</bool>
-                  <bool name="proxy-wxSIMPLE_BORDER">0</bool>
-                  <bool name="proxy-wxDOUBLE_BORDER">0</bool>
-                  <bool name="proxy-wxBORDER_THEME">0</bool>
-                  <bool name="proxy-wxSUNKEN_BORDER">0</bool>
-                  <bool name="proxy-wxRAISED_BORDER">0</bool>
-                  <bool name="proxy-wxSTATIC_BORDER">0</bool>
-                  <bool name="proxy-wxWANTS_CHARS">0</bool>
-                  <bool name="proxy-wxNO_FULL_REPAINT_ON_RESIZE">0</bool>
-                  <bool name="proxy-wxFULL_REPAINT_ON_RESIZE">0</bool>
-                  <string name="proxy-Custom styles">""</string>
-                  <long name="proxy-X">-1</long>
-                  <long name="proxy-Y">-1</long>
-                  <long name="proxy-Width">-1</long>
-                  <long name="proxy-Height">-1</long>
-                  <string name="proxy-AlignH">"Centre"</string>
-                  <string name="proxy-AlignV">"Centre"</string>
-                  <long name="proxy-Stretch factor">0</long>
-                  <long name="proxy-Border">1</long>
-                  <bool name="proxy-wxLEFT">1</bool>
-                  <bool name="proxy-wxRIGHT">1</bool>
-                  <bool name="proxy-wxTOP">1</bool>
-                  <bool name="proxy-wxBOTTOM">1</bool>
-                  <bool name="proxy-wxSHAPED">0</bool>
-                  <bool name="proxy-wxADJUST_MINSIZE">0</bool>
-                  <bool name="proxy-wxFIXED_MINSIZE">0</bool>
-                  <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
-                  <string name="proxy-Custom arguments">""</string>
-                  <string name="proxy-Custom ctor arguments">""</string>
-                </document>
-                <document>
-                  <string name="title">"wxTextCtrl: ID_RemoteServerPort"</string>
-                  <string name="type">"dialog-control-document"</string>
-                  <string name="filename">""</string>
-                  <string name="icon-name">"textctrl"</string>
-                  <long name="is-transient">0</long>
-                  <long name="owns-file">1</long>
-                  <long name="title-mode">0</long>
-                  <long name="locked">0</long>
-                  <string name="created">"29/6/2007"</string>
-                  <string name="proxy-type">"wbTextCtrlProxy"</string>
-                  <string name="proxy-Id name">"ID_RemoteServerPort"</string>
-                  <long name="proxy-Id value">16027</long>
-                  <string name="proxy-Name">""</string>
-                  <string name="proxy-Class">"wxTextCtrl"</string>
-                  <string name="proxy-Base class">"wxTextCtrl"</string>
-                  <bool name="proxy-External implementation">1</bool>
-                  <bool name="proxy-Separate files">0</bool>
-                  <string name="proxy-Implementation filename">""</string>
-                  <string name="proxy-Header filename">""</string>
-                  <string name="proxy-Member variable name">"m_RemoteServerPort"</string>
-                  <string name="proxy-Initial value">"9598"</string>
-                  <long name="proxy-Max length">0</long>
-                  <string name="proxy-Help text">""</string>
-                  <string name="proxy-Tooltip text">""</string>
-                  <string name="proxy-Background colour">""</string>
-                  <string name="proxy-Foreground colour">""</string>
-                  <string name="proxy-Font">""</string>
-                  <bool name="proxy-Hidden">0</bool>
-                  <bool name="proxy-Enabled">1</bool>
-                  <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
-                  <string name="proxy-Data variable">""</string>
-                  <string name="proxy-Data validator">""</string>
-                  <string name="proxy-Data source">""</string>
-                  <string name="proxy-Data class name">""</string>
-                  <string name="proxy-Data class implementation filename">""</string>
-                  <string name="proxy-Data class header filename">""</string>
-                  <string name="proxy-Data class manager window">""</string>
-                  <bool name="proxy-wxTE_MULTILINE">0</bool>
-                  <bool name="proxy-wxTE_PROCESS_ENTER">0</bool>
-                  <bool name="proxy-wxTE_PROCESS_TAB">0</bool>
-                  <bool name="proxy-wxTE_PASSWORD">0</bool>
-                  <bool name="proxy-wxTE_READONLY">0</bool>
-                  <bool name="proxy-wxTE_RICH">0</bool>
-                  <bool name="proxy-wxTE_RICH2">0</bool>
-                  <bool name="proxy-wxTE_AUTO_URL">0</bool>
-                  <bool name="proxy-wxTE_NOHIDESEL">0</bool>
-                  <bool name="proxy-wxTE_LEFT">0</bool>
-                  <bool name="proxy-wxTE_CENTRE">0</bool>
-                  <bool name="proxy-wxTE_RIGHT">0</bool>
-                  <bool name="proxy-wxHSCROLL">0</bool>
-                  <bool name="proxy-wxTE_CHARWRAP">0</bool>
-                  <bool name="proxy-wxTE_WORDWRAP">0</bool>
-                  <bool name="proxy-wxTE_CAPITALIZE">0</bool>
-                  <bool name="proxy-wxNO_BORDER">0</bool>
-                  <bool name="proxy-wxSIMPLE_BORDER">0</bool>
-                  <bool name="proxy-wxDOUBLE_BORDER">0</bool>
-                  <bool name="proxy-wxBORDER_THEME">0</bool>
-                  <bool name="proxy-wxSUNKEN_BORDER">0</bool>
-                  <bool name="proxy-wxRAISED_BORDER">0</bool>
-                  <bool name="proxy-wxSTATIC_BORDER">0</bool>
-                  <bool name="proxy-wxWANTS_CHARS">0</bool>
-                  <bool name="proxy-wxNO_FULL_REPAINT_ON_RESIZE">0</bool>
-                  <bool name="proxy-wxFULL_REPAINT_ON_RESIZE">0</bool>
-                  <string name="proxy-Custom styles">""</string>
-                  <long name="proxy-X">-1</long>
-                  <long name="proxy-Y">-1</long>
-                  <long name="proxy-Width">50</long>
-                  <long name="proxy-Height">-1</long>
-                  <string name="proxy-AlignH">"Centre"</string>
-                  <string name="proxy-AlignV">"Centre"</string>
-                  <long name="proxy-Stretch factor">0</long>
-                  <long name="proxy-Border">1</long>
-                  <bool name="proxy-wxLEFT">1</bool>
-                  <bool name="proxy-wxRIGHT">1</bool>
-                  <bool name="proxy-wxTOP">1</bool>
-                  <bool name="proxy-wxBOTTOM">1</bool>
-                  <bool name="proxy-wxSHAPED">0</bool>
-                  <bool name="proxy-wxADJUST_MINSIZE">0</bool>
-                  <bool name="proxy-wxFIXED_MINSIZE">0</bool>
-                  <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
-                  <string name="proxy-Custom arguments">""</string>
-                  <string name="proxy-Custom ctor arguments">""</string>
-                </document>
-                <document>
-                  <string name="title">"Spacer"</string>
-                  <string name="type">"dialog-control-document"</string>
-                  <string name="filename">""</string>
-                  <string name="icon-name">"spacer"</string>
-                  <long name="is-transient">0</long>
-                  <long name="owns-file">1</long>
-                  <long name="title-mode">0</long>
-                  <long name="locked">0</long>
-                  <string name="created">"29/6/2007"</string>
-                  <string name="proxy-type">"wbSpacerProxy"</string>
-                  <long name="proxy-Width">348</long>
-                  <long name="proxy-Height">5</long>
-                  <string name="proxy-AlignH">"Centre"</string>
-                  <string name="proxy-AlignV">"Centre"</string>
-                  <long name="proxy-Stretch factor">0</long>
-                  <long name="proxy-Border">1</long>
-                  <bool name="proxy-wxLEFT">1</bool>
-                  <bool name="proxy-wxRIGHT">1</bool>
-                  <bool name="proxy-wxTOP">1</bool>
-                  <bool name="proxy-wxBOTTOM">1</bool>
-                  <bool name="proxy-wxSHAPED">0</bool>
-                  <bool name="proxy-wxADJUST_MINSIZE">0</bool>
-                  <bool name="proxy-wxFIXED_MINSIZE">0</bool>
-                  <bool name="proxy-wxRESERVE_SPACE_EVEN_IF_HIDDEN">0</bool>
-                  <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
                 </document>
               </document>
               <document>
@@ -56590,6 +56570,18 @@ click the cancel button."</string>
           <string name="language">""</string>
         </document>
         <document>
+          <string name="title">"crc8.c"</string>
+          <string name="type">"source-editor-document"</string>
+          <string name="filename">"../../common/crc8.c"</string>
+          <string name="icon-name">"source-editor"</string>
+          <long name="is-transient">0</long>
+          <long name="owns-file">0</long>
+          <long name="title-mode">1</long>
+          <long name="locked">0</long>
+          <string name="created">"2/10/2014"</string>
+          <string name="language">""</string>
+        </document>
+        <document>
           <string name="title">"devicelist.h"</string>
           <string name="type">"source-editor-document"</string>
           <string name="filename">"../common/devicelist.h"</string>
@@ -56866,27 +56858,27 @@ click the cancel button."</string>
           <string name="language">""</string>
         </document>
         <document>
-          <string name="title">"vscptcpif.cpp"</string>
+          <string name="title">"vscpremotetcpif.cpp"</string>
           <string name="type">"source-editor-document"</string>
-          <string name="filename">"../common/vscptcpif.cpp"</string>
+          <string name="filename">"../common/vscpremotetcpif.cpp"</string>
           <string name="icon-name">"source-editor"</string>
           <long name="is-transient">0</long>
           <long name="owns-file">0</long>
           <long name="title-mode">1</long>
           <long name="locked">0</long>
-          <string name="created">"12/11/2007"</string>
+          <string name="created">"18/9/2014"</string>
           <string name="language">""</string>
         </document>
         <document>
-          <string name="title">"vscptcpif.h"</string>
+          <string name="title">"vscpremotetcpif.h"</string>
           <string name="type">"source-editor-document"</string>
-          <string name="filename">"../common/vscptcpif.h"</string>
+          <string name="filename">"../common/vscpremotetcpif.h"</string>
           <string name="icon-name">"source-editor"</string>
           <long name="is-transient">0</long>
           <long name="owns-file">0</long>
           <long name="title-mode">1</long>
           <long name="locked">0</long>
-          <string name="created">"12/11/2007"</string>
+          <string name="created">"18/9/2014"</string>
           <string name="language">""</string>
         </document>
         <document>

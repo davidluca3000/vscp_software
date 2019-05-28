@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     21/12/2007 17:16:15
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -383,7 +383,12 @@ WriteRegister::WriteRegister()
   Init();
 }
 
-WriteRegister::WriteRegister( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+WriteRegister::WriteRegister( wxWindow* parent, 
+                                wxWindowID id, 
+                                const wxString& caption, 
+                                const wxPoint& pos, 
+                                const wxSize& size, 
+                                long style )
 {
   Init();
   Create(parent, id, caption, pos, size, style);
@@ -394,7 +399,12 @@ WriteRegister::WriteRegister( wxWindow* parent, wxWindowID id, const wxString& c
 // WriteRegister creator
 //
 
-bool WriteRegister::Create( wxWindow* parent, wxWindowID id, const wxString& caption, const wxPoint& pos, const wxSize& size, long style )
+bool WriteRegister::Create( wxWindow* parent, 
+                                wxWindowID id, 
+                                const wxString& caption, 
+                                const wxPoint& pos, 
+                                const wxSize& size, 
+                                long style )
 {
 ////@begin WriteRegister creation
   SetExtraStyle(wxWS_EX_BLOCK_EVENTS);

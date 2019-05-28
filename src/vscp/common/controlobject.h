@@ -1,148 +1,105 @@
 // ControlObject.h: interface for the CControlObject class.
 //
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version
-// 2 of the License, or (at your option) any later version.
-//
 // This file is part of the VSCP (http://www.vscp.org)
 //
-// Copyright (C) 2000-2014 
-// Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
+// The MIT License (MIT)
 //
-// This file is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// Copyright (C) 2000-2019 Ake Hedman, Grodans Paradis AB
+// <info@grodansparadis.com>
 //
-// You should have received a copy of the GNU General Public License
-// along with this file see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330,
-// Boston, MA 02111-1307, USA.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 //
 
-#if !defined(CONTROLOBJECT_H__7D80016B_5EFD_40D5_94E3_6FD9C324CC7B__INCLUDED_)
-#define CONTROLOBJECT_H__7D80016B_5EFD_40D5_94E3_6FD9C324CC7B__INCLUDED_
+#if !defined(CONTROLOBJECT_H__INCLUDED_)
+#define CONTROLOBJECT_H__INCLUDED_
 
-#ifdef WIN32
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
-#endif
+#include <sqlite3.h>
 
-#include <wx/thread.h>
+#include <automation.h>
+#include <clientlist.h>
+#include <daemonworker.h>
+#include <devicelist.h>
+#include <dm.h>
+#include <interfacelist.h>
+#include <knownnodes.h>
+#include <multicastsrv.h>
+#include <remotevariable.h>
+#include <restsrv.h>
+#include <tables.h>
+#include <tcpipsrv.h>
+#include <udpsrv.h>
+#include <userlist.h>
+#include <vscp.h>
+#include <websocket.h>
+#include <websrv.h>
 
-#include "devicelist.h"
-#include "clientlist.h"
-#include "interfacelist.h"
-#include "userlist.h"
-#include "../../vscp/common/vscp.h"
-#include "vscpvariable.h"
-#include "tcpipclientthread.h"
-#include "daemonvscp.h"
-#include "udpthread.h"
-#include "dm.h"
-#include "vscp.h"
+// Forward declarations
+class TCPListenThread;
+class CVSCPAutomation;
 
-extern "C" {
-#ifndef WIN32
-#include <microhttpd.h>	
-#endif
-#include <libwebsockets.h>
-}
-
-// List used for websocket triggers
-WX_DECLARE_LIST(vscpEventFilter, TRIGGERLIST);
-
-WX_DECLARE_STRING_HASH_MAP( wxString, HashString );
-
-#define DAEMON_LOGMSG_NONE                      0
-#define DAEMON_LOGMSG_INFO                      1		
-#define DAEMON_LOGMSG_NOTICE                    2
-#define DAEMON_LOGMSG_WARNING                   3
-#define DAEMON_LOGMSG_ERROR                     4
-#define DAEMON_LOGMSG_CRITICAL                  5
-#define DAEMON_LOGMSG_ALERT                     6
-#define DAEMON_LOGMSG_EMERGENCY                 7
-#define DAEMON_LOGMSG_DEBUG                     8
-
-
-#define MAX_ITEMS_RECEIVE_QUEUE                 1021
-#define MAX_ITEMS_SEND_QUEUE                    1021
-#define MAX_ITEMS_CLIENT_RECEIVE_QUEUE          8191
-
-/*
- * The websocket server shows how to use libwebsockets for one or more
- * websocket protocols in the same server
- *
- * It defines the following websocket protocols:
- *
- *  dumb-increment-protocol:  once the socket is opened, an incrementing
- *				ascii string is sent down it every 50ms.
- *				If you send "reset\n" on the websocket, then
- *				the incrementing number is reset to 0.
- *
- *  lws-mirror-protocol: copies any received packet to every connection also
- *				using this protocol, including the sender
- */
-
-enum websocket_protocols {
-    /* always first */
-    PROTOCOL_HTTP = 0,
-
-    PROTOCOL_DUMB_INCREMENT,
-    PROTOCOL_LWS_MIRROR,
-    PROTOCOL_VSCP,
-
-    /* always last */
-    DEMO_PROTOCOL_COUNT
+// Log level
+enum
+{
+    DAEMON_LOGMSG_NONE = 0,
+    DAEMON_LOGMSG_NORMAL,
+    DAEMON_LOGMSG_DEBUG,
 };
 
+// TTL     Scope
+// ----------------------------------------------------------------------
+// 0       Restricted to the same host.Won't be output by any interface.
+// 1       Restricted to the same subnet.Won't be forwarded by a router.
+// <32     Restricted to the same site, organization or department.
+// <64     Restricted to the same region.
+// <128    Restricted to the same continent.
+// <255    Unrestricted in scope.Global.
+#define IP_MULTICAST_DEFAULT_TTL 1
 
-WX_DECLARE_LIST(canalMsg, CanalMsgList);
-WX_DECLARE_LIST(vscpEvent, VSCPEventList);
+// Needed on Linux
+#ifndef VSCPMIN
+#define VSCPMIN(X, Y) ((X) < (Y) ? (X) : (Y))
+#endif
+
+#ifndef VSCPMAX
+#define VSCPMAX(a, b)                                                          \
+    ({                                                                         \
+        __typeof__(a) _a = (a);                                                \
+        __typeof__(b) _b = (b);                                                \
+        _a > _b ? _a : _b;                                                     \
+    })
+#endif
+
+#define MAX_ITEMS_RECEIVE_QUEUE 1021
+#define MAX_ITEMS_SEND_QUEUE 1021
+#define MAX_ITEMS_CLIENT_RECEIVE_QUEUE 8192
+
+// VSCP daemon defines from vscp.h
+#define VSCP_MAX_CLIENTS 4096 // abs. max. is 0xffff
+#define VSCP_MAX_DEVICES 1024 // abs. max. is 0xffff
 
 /*!
-    This class implement a thread that handles
-    client receive events
- */
+    This is the class that does the main work in the daemon.
+*/
 
-class clientMsgWorkerThread : public wxThread {
-public:
-
-    /// Constructor
-    clientMsgWorkerThread();
-
-    /// Destructor
-    virtual ~clientMsgWorkerThread();
-
-    /*!
-        Thread code entry point
-     */
-    virtual void *Entry();
-
-
-    /*! 
-        called when the thread exits - whether it terminates normally or is
-        stopped with Delete() (but not when it is Kill()ed!)
-     */
-    virtual void OnExit();
-
-    /*!
-        Termination control
-     */
-    bool m_bQuit;
-
-    /*!
-        Pointer to control object.
-     */
-    CControlObject *m_pCtrlObject;
-
-};
-
-class CControlObject {
-public:
-
+class CControlObject
+{
+  public:
     /*!
         Constructor
      */
@@ -154,15 +111,23 @@ public:
     virtual ~CControlObject(void);
 
     /*!
-      logMsg
-      write log message
-    */ 
-    void logMsg(const wxString& wxstr, unsigned char level = DAEMON_LOGMSG_INFO);
+        Generate a random session key from a string key
+        @param pKey Null terminated string key (max 255 characters)
+        @param pSid Pointer to 33 byte sid that will receive sid
+     */
+    bool generateSessionId(const char *pKey, char *pSid);
 
     /*!
-        General initialization
+        Get server capabilities (64-bit array)
+        @param pCapability Pointer to 64 bit capabilities array
+        @return True on success.
      */
-    bool init(wxString& strcfgfile);
+    bool getVscpCapabilities(uint8_t *pCapability);
+
+    /*!
+        General initialisation
+     */
+    bool init(std::string &strcfgfile, std::string &rootFolder);
 
     /*!
         Clean up used resources
@@ -182,7 +147,7 @@ public:
 
     /*!
         Stop worker threads for devices
-        @return true on success	
+        @return true on success
      */
     bool stopDeviceWorkerThreads(void);
 
@@ -198,82 +163,106 @@ public:
      */
     bool stopDaemonWorkerThread(void);
 
-
     /*!
         Starting TCP/IP worker thread
         @return true on success
      */
-    bool startTcpWorkerThread(void);
+    bool startTcpipSrvThread(void);
 
     /*!
         Stop the TCP/IP worker thread
         @return true on success
      */
-    bool stopTcpWorkerThread(void);
+    bool stopTcpipSrvThread(void);
+
+    /*!
+        Start the UDP worker thread
+    */
+    bool startUDPSrvThread(void);
+
+    /*!
+        Stop the UDP Workerthread
+    */
+    bool stopUDPSrvThread(void);
+
+    /*!
+        Start the Multicast worker threads
+    */
+    bool startMulticastWorkerThreads(void);
+
+    /*!
+        Stop the Multicast Workerthreads
+    */
+    bool stopMulticastWorkerThreads(void);
 
     /*!
         Starting Client worker thread
         @return true on success
      */
-    bool startClientWorkerThread(void);
+    bool startClientMsgWorkerThread(void);
 
     /*!
         Stop Client worker thread
         @return true on success
      */
-    bool stopClientWorkerThread(void);
-
-    /*!
-        Save persistent data
-     */
-    void saveRegistryData(void);
-
+    bool stopClientMsgWorkerThread(void);
 
     /*!
         Add a new client to the clinet list
 
         @param Pointer to client that should be added.
-        @param Normally not used but can be used to set a special 
+        @param Normally not used but can be used to set a special
         client id.
+        @return True on success.
      */
-    void addClient(CClientItem *pClientItem, uint32_t id = 0);
+    bool addClient(CClientItem *pClientItem, uint32_t id = 0);
 
     /*!
-        Remove a new client from the clinet list
+        Add a known node
+        @param guid Real GUID for node
+        @param name Symbolic name for node.
+    */
+    void addKnownNode(cguid &guid, cguid &ifguid, std::string &name);
+
+    /*!
+        Remove a new client from the client list
 
         @param pClientItem Pointer to client that should be added.
      */
     void removeClient(CClientItem *pClientItem);
 
-
     /*!
-        Get device address for primary etehernet adapter
+        Get device address for primary ehernet adapter
 
         @param guid class
      */
-    bool getMacAddress(cguid& guid);
-
+    bool getMacAddress(cguid &guid);
 
     /*!
         Get the first IP address computer is known under
 
         @param pGUID Pointer to GUID class
      */
-    bool getIPAddress(cguid& guid);
+    bool getIPAddress(cguid &guid);
+
+    /*!
+        Read XML configuration GENEAL data
+        @param strcfgfile path to configuration file.
+        @return Returns true on success false on failure.
+     */
+    bool readXMLConfigurationGeneral(const std::string &strcfgfile);
 
     /*!
         Read configuration data
         @param strcfgfile path to configuration file.
         @return Returns true on success false on failure.
      */
-    bool readConfiguration(wxString& strcfgfile);
-	
-	/*!
-		Read in mime types
-		@param path path to XML file holding mime types
-		@return Returns true on success false on failure.
-	 */
-	bool readMimeTypes(wxString& path);
+    bool readConfigurationXML(const std::string &strcfgfile);
+
+    /*!
+         Save configuration data
+     */
+    bool saveConfiguration(void);
 
     /*!
         send level II message to all clients
@@ -281,695 +270,546 @@ public:
     void sendEventToClient(CClientItem *pClientItem, vscpEvent *pEvent);
 
     /*!
-        Send Level II event to all clients witch exception
+        Send Level II event to all clients with exception
      */
     void sendEventAllClients(vscpEvent *pEvent, uint32_t excludeID = 0);
 
+    /*!
+     * Send event
+     * @param pClientItem Client that send the event.
+     * @param pEvent Event to send
+     * @return True on success false on failure.
+     */
+    bool sendEvent(CClientItem *pClientItem, vscpEvent *peventToSend);
+
 
     /*!
-        Get clientmap index from a client id
+     * Read configuration data from database.
+     * The configuration database record is read after the XML file has
+     * been read and will replace duplicate values, if any.
+     * @return true on success
      */
-    uint32_t getClientMapFromId(uint32_t clid);
+    bool readConfigurationDB(void);
 
     /*!
-        Get a client id from a clinet map index
+     * Read configuration value from configuration database.
+     * @param pName Pointer to name of configuration value
+     * @param pValue Buffer that will get value after a successfull read
+     * @param len Size of value buffer
+     * @return true on success
      */
-    uint32_t getClientMapFromIndex(uint32_t idx);
+    bool getConfigurationValueFromDatabase(const char *pName,
+                                           char *pBuf,
+                                           size_t len);
 
     /*!
-        Add a client id to the clientmap
+     * Write configuration datapair to configuration database.
+     *
+     * @param pName Pointer to name of configuration value
+     * @param pValue Pointer to value to write as new configuration value
+     * @return true on success
      */
-    uint32_t addIdToClientMap(uint32_t clid);
+    bool addConfigurationValueToDatabase(const char *pName, const char *pValue);
 
     /*!
-        Remove a client id to the clientmap
+     * Adds default configuration values to the configuration table. If
+     * a configuration value does not exist it is created to make it easy to
+     * add new values to later software versions
      */
-    bool removeIdFromClientMap(uint32_t clid);
-
-
-    /////////////////////////////////////////////////
-    //                  WEBSOCKETS
-    /////////////////////////////////////////////////
-
-    static void
-    dump_handshake_info(struct lws_tokens *lwst);
-
-    static int
-    callback_http(struct libwebsocket_context *context,
-            struct libwebsocket *wsi,
-            enum libwebsocket_callback_reasons reason,
-            void *user,
-            void *in,
-            size_t len);
-
-    static int
-    callback_dumb_increment(struct libwebsocket_context *context,
-            struct libwebsocket *wsi,
-            enum libwebsocket_callback_reasons reason,
-            void *user,
-            void *in,
-            size_t len);
-
-
-    static int
-    callback_lws_mirror(struct libwebsocket_context *context,
-            struct libwebsocket *wsi,
-            enum libwebsocket_callback_reasons reason,
-            void *user,
-            void *in,
-            size_t len);
-
-    static int
-    callback_lws_vscp(struct libwebsocket_context *context,
-            struct libwebsocket *wsi,
-            enum libwebsocket_callback_reasons reason,
-            void *user,
-            void *in,
-            size_t len);
-
-    void
-    handleWebSocketReceive(struct libwebsocket_context *context,
-            struct libwebsocket *wsi,
-            struct per_session_data__lws_vscp *pss,
-            void *in,
-            size_t len);
-
-    bool
-    handleWebSocketSendEvent(vscpEvent *pEvent);
-
-    void
-    handleWebSocketCommand(struct libwebsocket_context *context,
-            struct libwebsocket *wsi,
-            struct per_session_data__lws_vscp *pss,
-            const char *pCommand);
-	
-	
-	/////////////////////////////////////////////////
-    //                 WEB SERVER
-    /////////////////////////////////////////////////
-	
-	static int
-	websrv_callback_check_address( void *cls,
-									const struct sockaddr *addr,
-                                    socklen_t addrlen );
-	
-	/**
-		Main MHD callback for handling requests.
- 
-		@param cls argument given together with the function
-				pointer when the handler was registered with MHD
-		@param connection handle identifying the incoming connection
-		@param url the requested url
-		@param method the HTTP method used ("GET", "PUT", etc.)
-		@param version the HTTP version string (i.e. "HTTP/1.1")
-		@param upload_data the data being uploaded (excluding HEADERS,
-				for a POST that fits into memory and that is encoded
-				with a supported encoding, the POST data will NOT be
-				given in upload_data and is instead available as
-				part of MHD_get_connection_values; very large POST
-				data *will* be made available incrementally in
-				upload_data)
-		@param upload_data_size set initially to the size of the
-				upload_data provided; the method must update this
-				value to the number of bytes NOT processed;
-		@param ptr pointer that the callback can set to some
-				address and that will be preserved by MHD for future
-				calls for this request; since the access handler may
-				be called many times (i.e., for a PUT/POST operation
-				with plenty of upload data) this allows the application
-				to easily associate some request-specific state.
-				If necessary, this state can be cleaned up in the
-				global "MHD_RequestCompleted" callback (which
-				can be set with the MHD_OPTION_NOTIFY_COMPLETED).
-				Initially, <tt>*con_cls</tt> will be NULL.
-		@return MHS_YES if the connection was handled successfully,
-		  MHS_NO if the socket must be closed due to a serios
-		  error while handling the request
-	 */
-	static int
-	websrv_callback_webpage( void *cls,
-								struct MHD_Connection *connection,
-								const char *url,
-								const char *method,
-								const char *version,
-								const char *upload_data, 
-								size_t *upload_data_size, 
-								void **ptr);
-	
-	/*!
-	 * 
-	 */
-	static ssize_t
-	websrv_callback_file_free(void *cls, uint64_t pos, char *buf, size_t max);
-	
-	/*!
-	 * 
-	 */
-	static void
-	websrv_callback_file_free (void *cls);
-	
-	/*!
-	 */
-	static int
-	websrv_callback_file(void *cls,
-							struct MHD_Connection *connection,
-							const char *url,
-							const char *method,
-							const char *version,
-							const char *upload_data,
-							size_t *upload_data_size, 
-							void **ptr);
-	
-	/*!
-		Return the session handle for this connection, or 
-		create one if this is a new user.
-	*/
-	static struct websrv_Session *
-	websrv_get_session( struct MHD_Connection *connection);
-
-	/**
-	 * Add header to response to set a session cookie.
-	 *
-	 * @param session session to use
-	 * @param response response to modify
-	 */
-	static void
-	websrv_add_session_cookie( struct websrv_Session *session,
-								struct MHD_Response *response);
-	
-	/**
-		Clean up handles of sessions that have been idle for
-		too long.
-	*/
-	static void
-	websrv_expire_sessions(void);
-	
-	
-	/**
-		Handler used to generate a 404 reply.
-	 
-		@param cls a 'const char *' with the HTML webpage to return
-		@param mime mime type to use
-		@param session session handle 
-		@param connection connection to use
-	*/
-	static int
-	websrv_not_found_page( const void *cls,
-							const char *mime,
-							struct websrv_Session *session,
-							struct MHD_Connection *connection);
-
-	/**
-	 * Handler that returns a simple static HTTP page that
-	 * is passed in via 'cls'.
-	 *
-	 * @param cls a 'const char *' with the HTML webpage to return
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int
-	websrv_serve_simple_page( const void *cls,
-								const char *mime,
-								struct websrv_Session *session,
-								struct MHD_Connection *connection);
-	
-	/**
-	 * Handler that displays the VSCP control main page.
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int
-	websrv_serve_mainpage( const void *cls,
-								const char *mime,
-                                struct websrv_Session *session,
-                                struct MHD_Connection *connection);
-	
-	/**
-	 * Handler that displays the available interfaces.
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int
-	websrv_serve_interfaces( const void *cls,
-								const char *mime,
-								struct websrv_Session *session,
-								struct MHD_Connection *connection);	
-	
-	/**
-	 * Handler that displays the decision matrix list 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int
-	websrv_serve_dmlist( const void *cls,
-							const char *mime,
-							struct websrv_Session *session,
-							struct MHD_Connection *connection);
-	
-	/**
-	 * Handler edit of one decision matrix entry 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int
-	websrv_serve_dmedit( const void *cls,
-							const char *mime,
-							struct websrv_Session *session,
-							struct MHD_Connection *connection);
-	
-	/**
-	 * Handler post of one decision matrix entry 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int 
-	websrv_serve_dmpost( const void *cls,
-							const char *mime,
-							struct websrv_Session *session,
-							struct MHD_Connection *connection);
-	
-		/**
-	 * Handler - Delete DMe entries 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int 
-	websrv_serve_dmdelete( const void *cls,
-							const char *mime,
-							struct websrv_Session *session,
-							struct MHD_Connection *connection);
-	
-	/**
-	 * Handler that displays the variable list 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int
-	websrv_serve_variables_list( const void *cls,
-									const char *mime,
-									struct websrv_Session *session,
-									struct MHD_Connection *connection);
-	
-	/**
-	 * Handler edit of one variable entry 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int
-	websrv_serve_variables_edit( const void *cls,
-									const char *mime,
-									struct websrv_Session *session,
-									struct MHD_Connection *connection);
-	
-	/**
-	 * Handler post of one variable entry 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int 
-	websrv_serve_variables_post( const void *cls,
-									const char *mime,
-									struct websrv_Session *session,
-									struct MHD_Connection *connection);
-	
-   /**
-	 * Handler - New variable initial type selection state 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int 
-	websrv_serve_variables_new( const void *cls,
-									const char *mime,
-									struct websrv_Session *session,
-									struct MHD_Connection *connection);
-	
-	/**
-	 * Handler - Delete DMe entries 
-	 *
-	 * @param cls Pointer to the control object.
-	 * @param mime mime type to use
-	 * @param session session handle 
-	 * @param connection connection to use
-	 */
-	static int 
-	websrv_serve_variables_delete( const void *cls,
-									const char *mime,
-									struct websrv_Session *session,
-									struct MHD_Connection *connection);
-	
-	/**
-	 * Callback called upon completion of a request.
-	 * Decrements session reference counter.
-	 *
-	 * @param cls not used
-	 * @param connection connection that completed
-	 * @param con_cls session handle
-	 * @param toe status code
-	 */
-	static void
-	websrv_request_callback_completed(void *cls,
-										struct MHD_Connection *connection,
-										void **con_cls,
-										enum MHD_RequestTerminationCode toe);
-	
-	/**
-	 * Iterator over key-value pairs where the value
-	 * maybe made available in increments and/or may
-	 * not be zero-terminated.  Used for processing
-	 * POST data.
-	 *
-	 * @param cls user-specified closure
-	 * @param kind type of the value
-	 * @param key 0-terminated key for the value
-	 * @param filename name of the uploaded file, NULL if not known
-	 * @param content_type mime-type of the data, NULL if not known
-	 * @param transfer_encoding encoding of the data, NULL if not known
-	 * @param data pointer to size bytes of data at the
-	 *              specified offset
-	 * @param off offset of data in the overall value
-	 * @param size number of bytes in data available
-	 * @return MHD_YES to continue iterating,
-	 *         MHD_NO to abort the iteration
-	 */
-	static int
-	websrv_post_iterator( void *cls,
-							enum MHD_ValueKind kind,
-							const char *key,
-							const char *filename,
-							const char *content_type,
-							const char *transfer_encoding,
-							const char *data, uint64_t off, size_t size);
-	
-
-
-public:
-
-#ifdef BUILD_VSCPD_SERVICE
-    HANDLE m_hEvntSource;
-#endif
+    void addDefaultConfigValues(void);
 
     /*!
-        true if we should quit
+     * Create configuration table
+     * @return true on success
      */
+    bool doCreateConfigurationTable(void);
+
+    /*!
+     * Check if db table exists
+     */
+    bool isDbTableExist(sqlite3 *db, const std::string &strTblName);
+
+    /*!
+     * Check if a field n the database exist.
+     * Can be used to updated generations of tables
+     */
+    bool isDbFieldExist(sqlite3 *db,
+                        const std::string &strTblName,
+                        const std::string &strFieldName);
+
+    /*
+     * Update field name in settings table
+     * @param strName Name of field to write
+     * @param strNewName New fieldname to set
+     * @Return true on success.
+     */
+    bool updateConfigurationRecordName(const std::string &strName,
+                                       const std::string &strNewName);
+
+    /*
+     * Update field in settings table
+     * @param strName Name of field to write
+     * @param strValue Value to write to field
+     * @Return true on success.
+     */
+    bool updateConfigurationRecordItem(const std::string &strName,
+                                       const std::string &strValue);
+
+    /*!
+        Update configuration databas if it has evolved
+    */
+    bool updateConfigDb(void);
+
+    /*!
+     * Read in UDP nodes from the database
+     */
+    bool readUdpNodes(void);
+
+    /*!
+     * Read in multicast channels from the database
+     */
+    bool readMulticastChannels(void);
+
+    /*!
+     * Create udpnode database
+     * @return true on success
+     */
+    bool doCreateUdpNodeTable(void);
+
+    /*!
+     * Create multicast database
+     * @return true on success
+     */
+    bool doCreateMulticastTable(void);
+
+    /*!
+     * Create user table
+     */
+    bool doCreateUserTable(void);
+
+    /*!
+     * Create driver table
+     */
+    bool doCreateDriverTable(void);
+
+    /*!
+     * Create guid table
+     */
+    bool doCreateGuidTable(void);
+
+    /*!
+     * Create location table
+     */
+    bool doCreateLocationTable(void);
+
+    /*!
+     * Create mdf table
+     */
+    bool doCreateMdfCacheTable(void);
+
+    /*!
+     * Create simpleui table
+     */
+    bool doCreateSimpleUiTable(void);
+
+    /*!
+     * Create simpleui item table
+     */
+    bool doCreateSimpleUiItemTable(void);
+
+    /*!
+     * Create zone table
+     */
+    bool doCreateZoneTable(void);
+
+    /*!
+     * Create subzone table
+     */
+    bool doCreateSubZoneTable(void);
+
+    /*!
+     * Create userdef table
+     */
+    bool doCreateUserdefTableTable(void);
+
+    /*!
+     * Get number of records in a database table
+     */
+    long getCountRecordsDB(sqlite3 *db, std::string &table);
+
+    /*!
+     * Get the system key
+     *
+     * @param pKey Buffer that will get 32-byte key. Can be NULL in which
+     *              case the key is not copied to the param.
+     * @return Pointer to the 32 byte key
+     */
+    uint8_t *getSystemKey(uint8_t *pKey);
+
+    /*!
+     * Get MD5 of system key (vscptoken)
+     *
+     * @param Reference to string that will receive the MD5 of the key.
+     */
+    void getSystemKeyMD5(std::string &strKey);
+
+    /*!
+     * Create the folder structure that the VSCP daemon is expecting
+     * http://www.vscp.org/docs/vscpd/doku.php?id=files_and_directory_structure
+     */
+    bool createFolderStructure(void);
+
+  public:
+    // In the configuration database configurations are stored in records.
+    // Normally record = 1 (default) is used )
+    uint16_t m_nConfiguration;
+
+    // This is the root folder for the VSCP daemon, it will look for
+    // the configuration database here
+    std::string m_rootFolder;
+
+    // Set to true if we should quit application
     bool m_bQuit;
 
-
+    // Set to true of the clientWorkerThread should terminate
+    bool m_bQuit_clientMsgWorkerThread;
 
     /*!
-        Maximum number of items in receivequeue for clients
+     * Debug flags
+     * See vscp_debug.h for possible flags.
+     */
+    uint32_t m_debugFlags[8];
+
+    //**************************************************************************
+    //                                 Security
+    //**************************************************************************
+
+    // Password is MD5 hash over "username:domain:password"
+    std::string m_admin_user; // Defaults to "admin"
+    std::string m_admin_password;
+    // Default password salt;key
+    // E2D453EF99FB3FCD19E67876554A8C27;A4A86F7D7E119BA3F0CD06881E371B989B33B6D606A863B633EF529D64544F8E
+    std::string m_admin_allowfrom; // Remotes allowed to connect from as admin.
+                                   // Defaults to "*"
+    std::string m_vscptoken;
+    // A4A86F7D7E119BA3F0CD06881E371B989B33B6D606A863B633EF529D64544F8E
+    // {
+    // 0xA4,0xA8,0x6F,0x7D,0x7E,0x11,0x9B,0xA3,0xF0,0xCD,0x06,0x88,0x1E,0x37,0x1B,0x98,
+    //   0x9B,0x33,0xB6,0xD6,0x06,0xA8,0x63,0xB6,0x33,0xEF,0x52,0x9D,0x64,0x54,0x4F,0x8E
+    //   };
+    uint8_t m_systemKey[32];
+
+    /*!
+        User to run as for Unix
+        if not ""
+    */
+    std::string m_runAsUser;
+
+    /*!
+        Maximum number of items in receive queue for clients (ClientBufferSize)
      */
     uint32_t m_maxItemsInClientReceiveQueue;
 
+    /*!
+        Name of this server
+     */
+    std::string m_strServerName;
 
     /*!
         Server GUID
         This is the GUID for the server
-     */
-    //uint8_t m_GUID[ 16 ];
-	cguid m_guid;
+    */
+    cguid m_guid;
 
-    /*!
-        ClientMap
-        This structure maps client id's and
-        The client map structure
-        Maps unsigned log client id's to
-        unsigned char id's for the
-        GUID
-     */
-    uint32_t m_clientMap[ VSCP_MAX_CLIENTS ];
+    //**************************************************************************
+    //                                Logging
+    //**************************************************************************
 
-
-    /*!
-        TCP Port for TCP Interface
-     */
-    unsigned short m_TCPPort;
-
-    /*!
-        UDP Port 
-     */
-    unsigned short m_UDPPort;
-
-
-    /*!
-        Log Level
-     */
+    // Log Level
     uint8_t m_logLevel;
 
-    /*!
-        Enable control (TCP/IP) interface
-     */
-    bool m_bTCPInterface;
+    //**************************************************************************
+    //                            Communication
+    //**************************************************************************
+
+    /////////////////////////////////////////////////////////
+    //                      TCP/IP server
+    /////////////////////////////////////////////////////////
+
+    // Server will be started if set to true (by configuration (db/xml)
+    bool m_enableTcpip;
+
+    // Enable encryption on tcp/ip interface if enabled.
+    // 0 = Disabled
+    // 1 = AES-128
+    // 2 = AES-192
+    // 3 = AES-256
+    uint8_t m_encryptionTcpip;
+
+    // Interface used for TCP/IP connection  (only one)
+    std::string m_strTcpInterfaceAddress;
+
+    // Data object for the tcp/ip Listen thread
+    tcpipListenThreadObj *m_ptcpipSrvObject;
+
+    // Listen thread for tcp/ip connections
+    pthread_t m_tcpipListenThread;
+
+    // tcp/ip SSL settings
+    std::string m_tcpip_ssl_certificate;
+    std::string m_tcpip_ssl_certificate_chain;
+    uint8_t m_tcpip_ssl_verify_peer; // no=0, optional=1, yes=2
+    std::string m_tcpip_ssl_ca_path;
+    std::string m_tcpip_ssl_ca_file;
+    uint8_t m_tcpip_ssl_verify_depth;
+    bool m_tcpip_ssl_default_verify_paths;
+    std::string m_tcpip_ssl_cipher_list;
+    uint8_t m_tcpip_ssl_protocol_version;
+    bool m_tcpip_ssl_short_trust;
+
+    /////////////////////////////////////////////////////////
+    //                        UDP
+    /////////////////////////////////////////////////////////
+
+    // Server will be started if set to true (by configuration (db/xml)
+    bool m_enableUDP;
 
     /*!
-        Interface used for TCP/IP connection
-        Default: empty
-     */
-    wxString m_strTcpInterfaceAddress;
-
+        UDP worker thread object
+    */
+    UDPSrvObj m_udpSrvObj; // TODO UserServerInfo to this one ????
 
     /*!
-        Enable CANAL Driver functionality
+        UDP Worker threads
      */
-    bool m_bCanalDrivers;
+    pthread_t m_UDPThread;
 
-    /*!
-        Enable VSCP Daemon functionality
-     */
-    bool m_bVSCPDaemon;
+    /////////////////////////////////////////////////////////
+    //                      MULTICAST
+    /////////////////////////////////////////////////////////
 
-    /*!
-        Enable variable usage
-     */
-    bool m_bVariables;
+    bool m_bEnableMulticast; // Enable multicast interface
 
-    /*!
-        Hash table for variables
-     */
-    CVariableStorage m_VSCP_Variables;
+    // ** CHANNEL **
 
-    /*!
-        Mutex to protect variables
-     */
-    wxMutex m_variableMutex;
+    // Multicast channel interface
+    MulticastObj m_multicastObj;
 
-    /*!
-        Event source for NT event reporting
-     */
-#ifdef BUILD_VSCPD_SERVICE
-    HANDLE m_hEventSource;
-#endif
+    // ** ANNOUNCE **
 
-    // *************************************************************************
+    // Enable Multicast announce interface
+    bool m_bEnableMulticastAnnounce;
 
-    /*!
-        Mutex for client queue
-     */
-    wxMutex m_wxClientMutex;
+    // Interface(s) used for multicast announce
+    std::string m_strMulticastAnnounceAddress;
 
-    // *************************************************************************
+    // ttl for multicast announce
+    uint8_t m_ttlMultiCastAnnounce;
 
-    /*!
-        Mutex for device queue
-     */
-    wxMutex m_wxDeviceMutex;
+    //*****************************************************
+    //               webserver interface
+    //*****************************************************
 
-    // *************************************************************************
+    // Context for web server
+    struct web_context *m_web_ctx;
 
-    /*!
-        Enable DM functionality
-     */
-    bool m_bDM;
+    // Enable webserver
+    bool m_web_bEnable;
 
-    // Daemon Decision Matrix
+    // See
+    // http://www.vscp.org/docs/vscpd/doku.php?id=configuring_the_vscp_daemon#webserver
+    std::string m_web_document_root;
+    std::string m_web_listening_ports;
+    std::string m_web_index_files;
+    std::string m_web_authentication_domain;
+    bool m_enable_auth_domain_check;
+    std::string m_web_ssl_certificate;
+    std::string m_web_ssl_certificate_chain;
+    bool m_web_ssl_verify_peer;
+    std::string m_web_ssl_ca_path;
+    std::string m_web_ssl_ca_file;
+    uint16_t m_web_ssl_verify_depth;
+    bool m_web_ssl_default_verify_paths;
+    std::string m_web_ssl_cipher_list;
+    uint8_t m_web_ssl_protocol_version;
+    bool m_web_ssl_short_trust;
+    std::string m_web_cgi_interpreter;
+    std::string m_web_cgi_patterns;
+    std::string m_web_cgi_environment;
+    std::string m_web_protect_uri;
+    std::string m_web_trottle;
+    bool m_web_enable_directory_listing;
+    bool m_web_enable_keep_alive;
+    long m_web_keep_alive_timeout_ms;
+    std::string m_web_access_control_list;
+    std::string m_web_extra_mime_types;
+    int m_web_num_threads;
+    std::string m_web_run_as_user;
+    std::string m_web_url_rewrite_patterns;
+    std::string m_web_hide_file_patterns;
+    long m_web_request_timeout_ms;
+    long m_web_linger_timeout_ms; // Set negative to not set
+    bool m_web_decode_url;
+    std::string m_web_global_auth_file;
+    std::string m_web_per_directory_auth_file;
+    std::string m_web_ssi_patterns;
+    std::string m_web_access_control_allow_origin;
+    std::string m_web_access_control_allow_methods;
+    std::string m_web_access_control_allow_headers;
+    std::string m_web_error_pages;
+    long m_web_tcp_nodelay;
+    long m_web_static_file_max_age;
+    long m_web_strict_transport_security_max_age;
+    bool m_web_allow_sendfile_call;
+    std::string m_web_additional_header;
+    long m_web_max_request_size;
+    bool m_web_allow_index_script_resource;
+    std::string m_web_duktape_script_patterns;
+    std::string m_web_lua_preload_file;
+    std::string m_web_lua_script_patterns;
+    std::string m_web_lua_server_page_patterns;
+    std::string m_web_lua_websocket_patterns;
+    std::string m_web_lua_background_script;
+    std::string m_web_lua_background_script_params;
+
+    // Protects the web session object
+    pthread_mutex_t m_websrvSessionMutex;
+
+    // Linked list of all active sessions. (websrv.h)
+    std::list<struct websrv_session *> m_web_sessions;
+
+    // Protects the REST session object
+    pthread_mutex_t m_restSessionMutex;
+
+    // Session structure for REST API
+    std::list<struct restsrv_session *> m_rest_sessions;
+
+    //**************************************************************************
+    //                              WEBSOCKETS
+    //**************************************************************************
+
+    bool m_bWebsocketsEnable; // Enable web socket functionality
+    std::string m_websocket_document_root;
+    long m_websocket_timeout_ms;
+
+    // * * Websockets * *
+
+    // Protects the websocket session object
+    pthread_mutex_t m_websocketSessionMutex;
+
+    // List of active websocket sessions
+    std::list<websock_session *> m_websocketSessions;
+
+    //**************************************************************************
+    //                             REMOTE VARIABLES
+    //**************************************************************************
+
+    // Hash table for variables
+    CVariableStorage m_variables;
+
+    // Mutex to protect variables
+    pthread_mutex_t m_variableMutex;
+
+    //**************************************************************************
+    //                                SQLite3
+    //**************************************************************************
+
+    //*****************************************************
+    //                    Databases
+    //*****************************************************
+
+    std::string m_path_db_vscp_daemon; // Path to the VSCP daemon database
+    sqlite3 *m_db_vscp_daemon;
+
+    // Mutex to protect variables
+    pthread_mutex_t m_db_vscp_configMutex; // Mutex for the configuration table
+
+    std::string m_path_db_vscp_data; // Path to the VSCP data database
+    sqlite3 *m_db_vscp_data;
+
+    // Mutex for client queue
+    //pthread_mutex_t m_clientMutex;
+
+    // Mutex for device queue
+    pthread_mutex_t m_deviceMutex;
+
+    // Daemon Decision Matrix Object
     CDM m_dm;
 
-    /*!
-        TCP Port
-     */
-    short m_tcpport;
+    // Automation Object
+    CVSCPAutomation m_automation;
 
-    /*!
-        TCP Username
-     */
-    wxString m_strTcpUserName;
+    // Username for level II drivers
+    std::string m_driverUsername;
 
-    /*!
-        TCP Password
-        This is 32 hex characters as MD5 sum of password.
-     */
-    wxString m_strTcpPassword;
+    // Password for Level II drivers
+    std::string m_driverPassword;
 
-
-    /*!
-        Username for level II divers
-     */
-    wxString m_driverUsername;
-
-    /*!
-        Password for Level II drivers
-     */
-    wxString m_driverPassword;
-
-    //*****************************************************
-    //            websocket/webserver interface
-    //*****************************************************
-
-	/// Path to file holding mime types
-    wxString m_pathToMimeTypeFile;
-	
-    // Path to filesystem root
-    static wxString m_pathRoot;
-
-    // Enable disable web socket interface
-    bool m_bWebSockets;
-
-    // websocket port
-    uint16_t m_portWebsockets;		// defaults to 7681
-	
-	/*!
-        webserver port 
-     */
-    unsigned short m_portWebServer;	// defaults to 8080
-	
-	// Enable/disable full webserver
-    bool m_bWebServer;
-	
-	// Hash table with mime types, gives mime type from
-	// file extension.
-	HashString m_hashMimeTypes;
-
-    //*****************************************************
-    //                     Security
-    //*****************************************************
-
-    // Path to SSL certificate
-    wxString m_pathCert;
-
-    // Path to SSL key
-    wxString m_pathKey;
-
-
-    //*****************************************************
-    //                      Lists
-    //*****************************************************
-    /*!
-        The list with available devices.
-     */
+    //**************************************************************************
+    //                                Lists
+    //**************************************************************************
+    
+    // The list with available devices.
     CDeviceList m_deviceList;
-    wxMutex m_mutexDeviceList;
+    pthread_mutex_t m_mutexDeviceList;
 
-    /*!
-        The list with active clients.
-     */
-    CClientList m_clientList;
-    wxMutex m_mutexClientList;
+    // The list with active clients. (protecting mutex in object)
+    CClientList m_clientList; 
+    
 
-    /*!
-        The list of active interfaces
-     */
-    CInterfaceList m_interfaceList;
-    wxMutex m_mutexInterfaceList;
+    // The list of users
+    CUserList m_userList; // deque
+    pthread_mutex_t m_mutexUserList;
 
-    /*!
-        The list of users
-     */
-    CUserList m_userList;
-    wxMutex m_mutexUserList;
+    // This is a list with defined tables
+    CUserTableObjList m_userTableObjects; // deque
+    pthread_mutex_t m_mutexUserTables;
 
+    // This is the mao with known nodes in the system
+    // key = guidstr
+    CKnownNodes m_knownNodes;
+    pthread_mutex_t m_mutexKnownNodes;
 
     // *************************************************************************
-
 
     /*!
         Send queue
 
         This is the send queue for all clients attached to the system. A client
-	 *  place events here and the system distribute it to all other clients.
+        place events here and the system distribute it to all other clients.
      */
-    VSCPEventList m_clientOutputQueue;
+    std::list<vscpEvent *> m_clientOutputQueue;
 
     /*!
-        Event object to indicate that there is an event in the client output queue.
+        Event object to indicate that there is an event in the client output
+       queue.
      */
-    wxSemaphore m_semClientOutputQueue;
+    sem_t m_semClientOutputQueue;
 
     /*!
         Mutex for Level II message send queue
      */
-    wxMutex m_mutexClientOutputQueue;
+    pthread_mutex_t m_mutexClientOutputQueue;
 
     // *************************************************************************
 
-
-private:
-
-    //*****************************************************
+  private:
+    //**************************************************************************
     //                          Threads
-    //*****************************************************
+    //**************************************************************************
 
     /*!
         controlobject device thread
      */
-    clientMsgWorkerThread *m_pclientMsgWorkerThread;
-
-    wxMutex m_mutexclientMsgWorkerThread;
-
-    /*!
-        The server thread for the TCP connection interface
-     */
-    TcpClientListenThread *m_pTcpClientListenThread;
-
-    wxMutex m_mutexTcpClientListenThread;
+    pthread_t m_clientMsgWorkerThread;
 
     /*!
         The server thread for the VSCP daemon
      */
-    daemonVSCPThread *m_pdaemonVSCPThread;
+    daemonWorkerObj *m_pdaemonWorkerObj;
+    pthread_t m_pdaemonWorkerThread;
 
-    wxMutex m_mutexdaemonVSCPThread;
-
-    /*!
-        UDP Worker threads
-     */
-    UDPSendThread *m_pudpSendThread;
-    UDPReceiveThread *m_pudpReceiveThread;
-
-    wxMutex m_mutexudpSendThread;
-    wxMutex m_mutexudpReceiveThread;
+    
 };
 
-
-
-
-#endif // !defined(AFX_CONTROLOBJECT_H__7D80016B_5EFD_40D5_94E3_6FD9C324CC7B__INCLUDED_)
+#endif // !defined(CONTROLOBJECT_H__7D80016B_5EFD_40D5_94E3_6FD9C324CC7B__INCLUDED_)

@@ -5,7 +5,7 @@
 // Modified by: 
 // Created:     Thu 25 Oct 2007 22:17:45 CEST
 // RCS-ID:      
-// Copyright:   (C) 2007-2014 
+// Copyright:   (C) 2007-2018 
 // Ake Hedman, Grodans Paradis AB, <akhe@grodansparadis.com>
 // Licence:     
 // This program is free software; you can redistribute it and/or
@@ -38,7 +38,7 @@
 // 
 //  Alternative licenses for VSCP & Friends may be arranged by contacting 
 //  Grodans Paradis AB at info@grodansparadis.com, http://www.grodansparadis.com
-/////////////////////////////////////////////////////////////////////////////
+// 
 
 #ifndef _DLGVSCPFILTER_H_
 #define _DLGVSCPFILTER_H_
@@ -55,7 +55,7 @@
 #include "dlgvscpfilter_symbols.h"
 ////@end includes
 
-#include "../common/vscp.h"
+#include <vscp.h>
 
 /*!
  * Forward declarations
@@ -89,10 +89,20 @@ class dlgVSCPFilter: public wxDialog
 public:
   /// Constructors
   dlgVSCPFilter();
-  dlgVSCPFilter( wxWindow* parent, wxWindowID id = SYMBOL_DLGVSCPFILTER_IDNAME, const wxString& caption = SYMBOL_DLGVSCPFILTER_TITLE, const wxPoint& pos = SYMBOL_DLGVSCPFILTER_POSITION, const wxSize& size = SYMBOL_DLGVSCPFILTER_SIZE, long style = SYMBOL_DLGVSCPFILTER_STYLE );
+  dlgVSCPFilter( wxWindow* parent, 
+                    wxWindowID id = SYMBOL_DLGVSCPFILTER_IDNAME, 
+                    const wxString& caption = SYMBOL_DLGVSCPFILTER_TITLE, 
+                    const wxPoint& pos = SYMBOL_DLGVSCPFILTER_POSITION, 
+                    const wxSize& size = SYMBOL_DLGVSCPFILTER_SIZE, 
+                    long style = SYMBOL_DLGVSCPFILTER_STYLE );
 
   /// Creation
-  bool Create( wxWindow* parent, wxWindowID id = SYMBOL_DLGVSCPFILTER_IDNAME, const wxString& caption = SYMBOL_DLGVSCPFILTER_TITLE, const wxPoint& pos = SYMBOL_DLGVSCPFILTER_POSITION, const wxSize& size = SYMBOL_DLGVSCPFILTER_SIZE, long style = SYMBOL_DLGVSCPFILTER_STYLE );
+  bool Create( wxWindow* parent, 
+                wxWindowID id = SYMBOL_DLGVSCPFILTER_IDNAME, 
+                const wxString& caption = SYMBOL_DLGVSCPFILTER_TITLE, 
+                const wxPoint& pos = SYMBOL_DLGVSCPFILTER_POSITION, 
+                const wxSize& size = SYMBOL_DLGVSCPFILTER_SIZE, 
+                long style = SYMBOL_DLGVSCPFILTER_STYLE );
 
   /// Destructor
   ~dlgVSCPFilter();
